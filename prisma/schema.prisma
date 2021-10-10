@@ -1,0 +1,61 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Channel {
+  id              BigInt             @id
+  webhookId       BigInt?
+  webhookToken    String?            @db.VarChar(255)
+  loggingChannels LoggingChannel[]
+}
+
+enum CommandStatus {
+    SUCCESS
+    MISSING_BOT_PERMISSIONS
+    MISSING_USER_PERMISSIONS
+    INVALID_INPUT
+    MISSING_BOT_SCOPE
+    GUILD_ONLY_COMMAND_IN_DM
+    CHANNEL_INPUT_NOT_TEXT_CHANNEL
+    UNKNOWN_ERROR
+    INPUT_CHANNEL_NOT_FOUND
+    TIMEOUT
+    INPUT_DIFFERENT_SERVER 
+    CONFIG_NOT_SET 
+    MESSAGE_AUTHOR_NOT_BOT
+    INPUT_JSON_INVALID 
+    INPUT_TOO_LONG 
+    USER_CANCELLED
+}
+
+model CommandUsageAnalytics {
+  id           Int      @id @default(autoincrement())
+  guildId      BigInt?
+  timestamp    DateTime @default(now()) @db.Timestamptz(6)
+  commandName  Json
+  slash        Boolean
+  success      CommandStatus @default(SUCCESS)
+}
+
+model Guild {
+  id                 BigInt             @id
+  managementRoleId   BigInt?
+  prefix             String?            @default("~") @db.VarChar(3)
+  loggingChannels    LoggingChannel[]
+}
+
+model LoggingChannel {
+  guildId     BigInt
+  channelId   BigInt
+  loggerType  String   @db.VarChar(20)
+  id          Int      @id @default(autoincrement())
+  channel     Channel @relation(fields: [channelId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  guilds      Guild   @relation(fields: [guildId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([guildId, channelId], map: "uid_logging_cha_guild_i_b7be0e")
+}
