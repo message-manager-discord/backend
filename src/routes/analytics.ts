@@ -1,18 +1,7 @@
-import fastify, {
-  FastifyInstance,
-  FastifyPluginAsync,
-  FastifyPluginOptions,
-  FastifyReply,
-  FastifyRequest,
-  RawReplyDefaultExpression,
-  RawRequestDefaultExpression,
-  RawServerBase,
-  RawServerDefault,
-} from "fastify";
+import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { Forbidden } from "http-errors";
 import { Static, Type } from "@sinclair/typebox";
 import { CommandUsageAnalytics, CommandStatus } from "@prisma/client";
-import { type } from "os";
 
 const CommandUsageAnalytics = Type.Array(
   Type.Object({
@@ -34,13 +23,12 @@ const addPlugin = async (instance: FastifyInstance) => {
   instance.addHook(
     "onRequest",
     async (request: FastifyRequest, reply: FastifyReply) => {
-      if (!request.user.staff) {
-        reply.send(new Forbidden("Missing permissions"));
-      }
+      // TO DO AUTHORIZATION
     }
   );
+
   instance.get<{ Querystring: GetAnalyticsQuerystringType }>(
-    "/auth",
+    "/analytics",
     {
       schema: {
         querystring: GetAnalyticsQuerystring,

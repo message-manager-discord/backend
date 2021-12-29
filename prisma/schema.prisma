@@ -59,3 +59,10 @@ model LoggingChannel {
 
   @@unique([guildId, channelId], map: "uid_logging_cha_guild_i_b7be0e")
 }
+
+model User {
+  id              BigInt             @id
+  oauthToken String? 
+  oauthTokenExpiration DateTime?
+  refreshToken String?
+}
