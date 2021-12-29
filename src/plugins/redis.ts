@@ -60,8 +60,16 @@ class RedisCache {
     key: string;
     expiry: number;
   }): Promise<void> {
-    return this._sendCommand("EXPIRE", [key, expiry]);
+    return this._sendCommand("PEXPIRE", [key, expiry]);
   }
+  async _getExpiry(key: string): Promise<number | null> {
+    const ttl = await this._sendCommand("PTTL", [key]);
+    if (ttl < 0) {
+      return null;
+    }
+    return ttl;
+  }
+
   async setState(state: string, redirectPath: string | null): Promise<void> {
     const key = `state:${state}`;
     await this._set({
@@ -85,12 +93,24 @@ class RedisCache {
     await this._set({ key, value: JSON.stringify(userId) });
     await this._setExpiry({
       key,
-      expiry: 60 * 60 * 24 * 7 * 2,
+      expiry: 1000 * 60 * 60 * 24 * 7,
     });
   }
-  async getSession(session: string): Promise<Snowflake> {
-    return JSON.parse(await this._get({ key: `session:${session}` }));
+  async getSession(
+    session: string
+  ): Promise<{ userId: Snowflake; expiry: number } | null> {
+    const userId = JSON.parse(
+      await this._get({ key: `session:${session}` })
+    ) as Snowflake | null;
+    if (!userId) {
+      return null;
+    }
+    return {
+      userId,
+      expiry: (await this._getExpiry(`session:${session}`)) as number,
+    };
   }
+
   async deleteSession(session: string): Promise<number> {
     return this._delete({ key: `session:${session}` });
   }

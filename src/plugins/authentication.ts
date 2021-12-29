@@ -8,21 +8,37 @@ import { Unauthorized } from "http-errors";
 
 import fp from "fastify-plugin";
 
-const requireAuthentication = async (request: FastifyRequest): Promise<any> => {
+const requireAuthentication = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+): Promise<any> => {
   const sessionSigned = request.cookies["_HOST-session"];
-  const { value: session } = request.unsignCookie(sessionSigned);
+  let session: string | null;
+  try {
+    session = request.unsignCookie(sessionSigned)["value"];
+  } catch {
+    throw new Unauthorized();
+  }
 
   console.log(`Session: ${session}`);
   if (!session) {
     throw new Unauthorized();
   }
 
-  const userId = await request.server.redisCache.getSession(session);
-  console.log(`UserId: ${userId}`);
-  if (!userId) {
-    throw new Unauthorized();
+  const sessionData = await request.server.redisCache.getSession(session);
+  console.log(`UserId: ${sessionData?.userId}`);
+  if (!sessionData) {
+    reply.clearCookie("_HOST-session");
+    reply.send(new Unauthorized());
+  } else {
+    request.userId = sessionData.userId;
+    console.log(sessionData.expiry - 1000 * 60 * 30);
+    if (sessionData.expiry - 1000 * 60 * 30 < 0) {
+      // If session expires in the next 30 mins, then force a refresh to avoid users being logged out while working
+      reply.clearCookie("_HOST-session");
+      reply.send(new Unauthorized());
+    }
   }
-  request.userId = userId;
 };
 
 declare module "fastify" {

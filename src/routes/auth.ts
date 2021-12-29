@@ -100,10 +100,11 @@ const addPlugin = async (instance: FastifyInstance) => {
       const session = uuidv5(user.id, process.env.UUID_NAMESPACE as string);
       await instance.redisCache.setSession(session, user.id);
       const date = new Date();
-      date.setDate(date.getDate() + 31);
+      date.setDate(date.getDate() + 7);
       reply.setCookie("_HOST-session", session, {
         secure: true,
         sameSite: "none",
+        httpOnly: true,
         path: "/",
         expires: date,
         signed: true,
