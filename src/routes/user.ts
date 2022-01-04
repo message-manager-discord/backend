@@ -154,13 +154,13 @@ const userPlugin = async (instance: FastifyInstance) => {
     Params: UserParamsType;
     Querystring: GetUserGuildsQuerystringType;
   }>(
-    `${rootPath}/:id/guilds`,
+    `${rootPath}/@me/guilds`,
     {
       schema: {
-        description: "Get user's mutual guilds",
+        description:
+          "Get user's mutual guilds - only for own guilds, filtered by connected or user has the `MANAGE_SERVER` discord permission",
         tags: ["user"],
         security: [{ apiKey: [] }],
-        params: UserParams,
         querystring: GetUserGuildsQuerystring,
         response: {
           200: {
@@ -203,13 +203,13 @@ const userPlugin = async (instance: FastifyInstance) => {
             connected: true,
           });
         } catch (e) {
-          console.error(e);
           if (
-            (BigInt(guild.permissions) & Permissions.MANAGE_GUILD) ===
+            request.query.include_disconnected &&
+            ((BigInt(guild.permissions) & Permissions.MANAGE_GUILD) ===
               Permissions.MANAGE_GUILD ||
-            (BigInt(guild.permissions) & Permissions.ADMINISTRATOR) ===
-              Permissions.ADMINISTRATOR ||
-            guild.owner
+              (BigInt(guild.permissions) & Permissions.ADMINISTRATOR) ===
+                Permissions.ADMINISTRATOR ||
+              guild.owner)
           ) {
             filteredGuilds.push({
               id: guild.id,
