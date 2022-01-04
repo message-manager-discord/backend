@@ -65,4 +65,5 @@ model User {
   oauthToken String? 
   oauthTokenExpiration DateTime?
   refreshToken String?
+  staff Boolean @default(false)
 }

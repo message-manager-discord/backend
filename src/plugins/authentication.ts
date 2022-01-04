@@ -7,6 +7,8 @@ import {
 import { Unauthorized } from "http-errors";
 
 import fp from "fastify-plugin";
+import { prisma } from "@prisma/client";
+import { Snowflake } from "discord-api-types";
 
 const requireAuthentication = async (
   request: FastifyRequest,
@@ -20,19 +22,28 @@ const requireAuthentication = async (
     throw new Unauthorized();
   }
 
-  console.log(`Session: ${session}`);
   if (!session) {
     throw new Unauthorized();
   }
 
   const sessionData = await request.server.redisCache.getSession(session);
-  console.log(`UserId: ${sessionData?.userId}`);
   if (!sessionData) {
     reply.clearCookie("_HOST-session");
     reply.send(new Unauthorized());
   } else {
-    request.userId = sessionData.userId;
-    console.log(sessionData.expiry - 1000 * 60 * 30);
+    const userData = await request.server.prisma.user.findUnique({
+      select: { oauthToken: true, staff: true },
+      where: { id: BigInt(sessionData.userId) },
+    });
+    if (!userData || !userData.oauthToken) {
+      reply.send(new Unauthorized());
+      return;
+    }
+    request.user = {
+      userId: sessionData.userId,
+      token: userData.oauthToken,
+      staff: userData.staff,
+    };
     if (sessionData.expiry - 1000 * 60 * 30 < 0) {
       // If session expires in the next 30 mins, then force a refresh to avoid users being logged out while working
       reply.clearCookie("_HOST-session");
@@ -41,12 +52,18 @@ const requireAuthentication = async (
   }
 };
 
+interface UserRequestData {
+  userId: Snowflake;
+  token: string;
+  staff: boolean;
+}
+
 declare module "fastify" {
   interface FastifyInstance {
     requireAuthentication: typeof requireAuthentication;
   }
   interface FastifyRequest {
-    userId?: string;
+    user?: UserRequestData;
   }
 }
 
@@ -57,3 +74,4 @@ const authPlugin = fp(
 );
 
 export default authPlugin;
+export { UserRequestData };

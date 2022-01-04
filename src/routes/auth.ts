@@ -1,10 +1,9 @@
-import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import { FastifyInstance } from "fastify";
 import { Forbidden } from "http-errors";
 import { Static, Type } from "@sinclair/typebox";
 import { v5 as uuidv5 } from "uuid";
 import crypto from "crypto";
-import { URLSearchParams } from "url";
-import DiscordOauth from "../discordOauth";
+import DiscordOauthRequests from "../discordOauth";
 
 const CallbackQuerystring = Type.Object({
   code: Type.String(),
@@ -56,14 +55,7 @@ const addPlugin = async (instance: FastifyInstance) => {
       schema: {
         querystring: CallbackQuerystring,
         response: {
-          200: {
-            type: "object",
-            properties: {
-              user: { type: "object" },
-              guilds: { type: "array" },
-              memberInfo: { type: "object" },
-            },
-          },
+          307: {},
         },
       },
     },
@@ -77,11 +69,15 @@ const addPlugin = async (instance: FastifyInstance) => {
         return new Forbidden("Cannot find state, please try again");
       }
       instance.redisCache.deleteState(state);
-      const tokenResponse = await DiscordOauth.exchangeToken(code);
-      if (!DiscordOauth.verifyScopes(tokenResponse.scope)) {
+      const tokenResponse = await instance.discordOauthRequests.exchangeToken(
+        code
+      );
+      if (!DiscordOauthRequests.verifyScopes(tokenResponse.scope)) {
         return new Forbidden("Invalid scopes, please try again");
       }
-      const user = await DiscordOauth.fetchUser(tokenResponse.access_token);
+      const user = await instance.discordOauthRequests.fetchUser({
+        token: tokenResponse.access_token,
+      });
       await instance.prisma.user.upsert({
         where: { id: BigInt(user.id) },
         create: {

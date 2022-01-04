@@ -3,10 +3,12 @@ import fp from "fastify-plugin";
 import { FastifyInstance, FastifyPluginOptions } from "fastify";
 
 import { Client } from "detritus-client-rest";
+import DiscordOauthRequests from "../discordOauth";
 
 declare module "fastify" {
   interface FastifyInstance {
     restClient: Client;
+    discordOauthRequests: DiscordOauthRequests;
   }
 }
 
@@ -16,7 +18,7 @@ interface RestPluginOptions extends FastifyPluginOptions {
   };
 }
 
-const detritusRestPlugin = fp(
+const discordRestPlugin = fp(
   async (server: FastifyInstance, options?: RestPluginOptions) => {
     if (!options?.detritus?.token) {
       throw new Error("Token not set");
@@ -24,7 +26,9 @@ const detritusRestPlugin = fp(
     const restClient = new Client(options.detritus.token);
 
     server.decorate("restClient", restClient);
+    const discordOauthRequests = new DiscordOauthRequests(server);
+    server.decorate("discordOauthRequests", discordOauthRequests);
   }
 );
 
-export default detritusRestPlugin;
+export default discordRestPlugin;

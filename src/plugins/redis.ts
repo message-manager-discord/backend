@@ -111,6 +111,22 @@ class RedisCache {
     };
   }
 
+  async getOauthCache(path: string, userId: Snowflake): Promise<any> {
+    return JSON.parse(await this._get({ key: `oauth:${path}:${userId}` }));
+  }
+  async setOauthCache(
+    path: string,
+    userId: Snowflake,
+    data: any,
+    expiry: number = 1000 * 60 * 3
+  ): Promise<void> {
+    await this._set({
+      key: `oauth:${path}:${userId}`,
+      value: JSON.stringify(data),
+    });
+    await this._setExpiry({ key: `oauth:${path}:${userId}`, expiry });
+  }
+
   async deleteSession(session: string): Promise<number> {
     return this._delete({ key: `session:${session}` });
   }
@@ -141,3 +157,5 @@ const redisRestPlugin = fp(
 );
 
 export default redisRestPlugin;
+
+export { RedisCache };

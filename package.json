@@ -9,7 +9,7 @@
     "build": "tsc",
     "start": "node .",
     "dev": " tsc-watch --noClear --onSuccess \"node ./dist/index.js\"",
-    "go": "yarn build && yarn start"
+    "go": "npm run build && npm run start"
   },
   "dependencies": {
     "@prisma/client": "3.2.1",
@@ -20,12 +20,15 @@
     "fastify": "^3.22.0",
     "fastify-auth": "^1.1.0",
     "fastify-cookie": "^5.4.0",
+    "fastify-cors": "^6.0.2",
     "fastify-error": "^0.3.1",
     "fastify-helmet": "^5.3.2",
     "fastify-plugin": "^3.0.0",
     "fastify-rate-limit": "^5.7.0",
+    "fastify-swagger": "^4.13.0",
     "http-errors": "^1.8.0",
     "ioredis": "^4.28.2",
+    "redis-discord-cache": "github:message-manager-discord/redis-discord-cache",
     "uuid": "^8.3.2"
   },
   "devDependencies": {
