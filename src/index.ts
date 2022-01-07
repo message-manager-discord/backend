@@ -78,7 +78,7 @@ f.addSchema({
   $id: "responses.forbidden",
   type: "object",
   properties: {
-    statusCode: { type: "integer", example: 401 },
+    statusCode: { type: "integer", example: 403 },
     error: { type: "string", example: "Forbidden" },
     message: { type: "string", example: "Missing permissions" },
   },
@@ -137,11 +137,12 @@ f.register(fastifyCookie, {
 } as FastifyCookieOptions);
 
 f.register(fastifySwagger, {
+  routePrefix: "/docs",
   openapi: {
     info: {
-      title: "Test swagger",
-      description: "testing the fastify swagger api",
-      version: "0.1.0",
+      title: "Message Manager API Docs",
+      description: "Endpoints for accessing the message manager api",
+      version: "1.0.0a",
     },
     servers: [
       {
@@ -157,7 +158,15 @@ f.register(fastifySwagger, {
         },
       },
     },
+    tags: [
+      {
+        name: "user",
+        description:
+          "User related endpoints - this is for the user authorized unless the user is staff",
+      },
+    ],
   },
+  uiConfig: {},
   hideUntagged: true,
   exposeRoute: true,
 });
