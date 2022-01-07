@@ -2,7 +2,7 @@ import fastify, { FastifyInstance } from "fastify";
 import fastifyCookie, { FastifyCookieOptions } from "fastify-cookie";
 import fastifyAuth from "fastify-auth";
 import fastifySwagger from "fastify-swagger";
-import { config } from "dotenv";
+import dotenv from "dotenv";
 import analyticsRoutePlugin from "./routes/analytics";
 import authRoutePlugin from "./routes/auth";
 import prismaPlugin from "./plugins/prisma";
@@ -13,57 +13,27 @@ import rootPlugin from "./routes/rootTesting";
 import userPlugin from "./routes/user";
 import fastifyCors from "fastify-cors";
 import discordRedisCachePlugin from "./plugins/discordRedis";
+import { check } from "./envCheck";
 const f: FastifyInstance = fastify({
   logger: true,
 });
 
-config();
+const requiredVars = [
+  "UUID_NAMESPACE",
+  "COOKIE_SECRET",
+  "DISCORD_TOKEN",
+  "DISCORD_CACHE_REDIS_HOST",
+  "DISCORD_CACHE_REDIS_PORT",
+  "BACKEND_REDIS_HOST",
+  "BACKEND_REDIS_PORT",
+  "DISCORD_CLIENT_ID",
+  "DISCORD_CLIENT_SECRET",
+  "BASE_API_URL",
+];
 
-if (!process.env.UUID_NAMESPACE) {
-  console.error(new Error("Environmental variable 'UUID_NAMESPACE' not set!"));
-  process.exit(1);
-}
-if (!process.env.COOKIE_SECRET) {
-  console.error(new Error("Environmental variable 'COOKIE_SECRET' not set!"));
-  process.exit(1);
-}
-if (!process.env.DISCORD_TOKEN) {
-  console.error(new Error("Environmental variable 'DISCORD_TOKEN' not set!"));
-  process.exit(1);
-}
+dotenv.config(); // Load environment variables from .env file
 
-if (!process.env.BACKEND_REDIS_HOST || !process.env.BACKEND_REDIS_PORT) {
-  console.error(
-    new Error(
-      "Environmental variables 'BACKEND_REDIS_HOST' or 'BACKEND_REDIS_PORT' not set!"
-    )
-  );
-  process.exit(1);
-}
-if (
-  !process.env.DISCORD_CACHE_REDIS_PORT ||
-  !process.env.DISCORD_CACHE_REDIS_HOST
-) {
-  console.error(
-    new Error(
-      "Environmental variables 'BACKEND_REDIS_HOST' or 'BACKEND_REDIS_PORT' not set!"
-    )
-  );
-  process.exit(1);
-}
-
-if (!process.env.DISCORD_CLIENT_ID || !process.env.DISCORD_CLIENT_SECRET) {
-  console.error(
-    new Error(
-      "Environmental variable 'DISCORD_CLIENT_ID' or 'DISCORD_CLIENT_SECRET' not set!"
-    )
-  );
-  process.exit(1);
-}
-if (!process.env.BASE_API_URL) {
-  console.error(new Error("Environmental variable 'BASE_API_URL' not set!"));
-  process.exit(1);
-}
+check(requiredVars); // Confirm that all required environment variables are set
 
 f.addSchema({
   $id: "responses.unauthorized",
