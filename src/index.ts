@@ -12,7 +12,7 @@ import discordRestPlugin from "./plugins/discord-rest";
 import redisRestPlugin from "./plugins/redis";
 import discordRedisCachePlugin from "./plugins/discordRedis";
 import fastifyCookie, { FastifyCookieOptions } from "fastify-cookie";
-const f: FastifyInstance = fastify({
+const instance: FastifyInstance = fastify({
   logger: true,
 });
 
@@ -34,39 +34,39 @@ dotenv.config(); // Load environment variables from .env file
 check(requiredVars); // Confirm that all required environment variables are set
 
 // These are plugins that are separate from versioning
-f.register(prismaPlugin);
-f.register(discordRestPlugin, {
+instance.register(prismaPlugin);
+instance.register(discordRestPlugin, {
   detritus: { token: process.env.DISCORD_TOKEN },
 });
-f.register(redisRestPlugin, {
+instance.register(redisRestPlugin, {
   redis: {
     host: process.env.BACKEND_REDIS_HOST,
     port: process.env.BACKEND_REDIS_PORT,
   },
 });
-f.register(discordRedisCachePlugin, {
+instance.register(discordRedisCachePlugin, {
   redis: {
     host: process.env.DISCORD_CACHE_REDIS_PORT,
     port: process.env.DISCORD_CACHE_REDIS_HOST,
   },
 });
 
-f.register(fastifyCookie, {
+instance.register(fastifyCookie, {
   secret: process.env.COOKIE_SECRET, // for cookies signature
   parseOptions: {}, // options for parsing cookies
 } as FastifyCookieOptions);
-f.register(fastifyCors, {
+instance.register(fastifyCors, {
   origin: true,
   methods: ["GET", "PUT", "POST", "DELETE", "PATCH"],
   credentials: true,
 });
 
-f.register(authPlugin);
-f.register(fastifyAuth);
+instance.register(authPlugin);
+instance.register(fastifyAuth);
 
-f.register(versionOnePlugin, { prefix: "/v1" });
+instance.register(versionOnePlugin, { prefix: "/v1" });
 
-f.listen(3000, function (err, address) {
+instance.listen(3000, function (err, address) {
   if (err) {
     console.error(err);
     process.exit(1);
