@@ -3,8 +3,8 @@ import { Forbidden, NotFound } from "http-errors";
 import { FastifyInstance } from "fastify";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 
-import { UserRequestData } from "../plugins/authentication";
-import { Permissions } from "../consts";
+import { UserRequestData } from "../../plugins/authentication";
+import { Permissions } from "../../consts";
 const rootPath = "/user";
 
 const UserParams = Type.Object({

@@ -1,8 +1,8 @@
 import RedisClient, { Redis } from "ioredis";
 import { FastifyInstance, FastifyPluginOptions } from "fastify";
 import fp from "fastify-plugin";
-import { StoredStateResponse } from "../routes/auth";
 import { Snowflake } from "discord-api-types";
+import { StoredStateResponse } from "../authRoutes";
 
 class RedisCache {
   private _client: Redis;

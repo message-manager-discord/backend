@@ -1,9 +1,10 @@
+// This route file is separate from the other routes since auth routes are not versioned
 import { FastifyInstance } from "fastify";
 import { Forbidden } from "http-errors";
 import { Static, Type } from "@sinclair/typebox";
 import { v5 as uuidv5 } from "uuid";
 import crypto from "crypto";
-import DiscordOauthRequests from "../discordOauth";
+import DiscordOauthRequests from "./discordOauth";
 
 const CallbackQuerystring = Type.Object({
   code: Type.String(),
