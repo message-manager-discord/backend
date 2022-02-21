@@ -6,7 +6,7 @@ import {
   ApplicationCommandType,
   InteractionResponseType,
   InteractionType,
-} from "discord-api-types/v9";
+} from "discord-api-types/v10";
 import { FastifyInstance } from "fastify";
 import FastifyRawBody from "fastify-raw-body";
 import { Forbidden } from "http-errors";

@@ -3,14 +3,13 @@ import {
   RESTGetAPICurrentUserResult,
   RESTPostOAuth2AccessTokenResult,
   Snowflake,
-  APIGuildMember,
   RESTGetAPICurrentUserGuildsResult,
-} from "discord-api-types/v9";
+  RESTGetCurrentUserGuildMemberResult,
+} from "discord-api-types/v10";
 import { FastifyInstance } from "fastify";
 import { URLSearchParams } from "url";
 import { discordAPIBaseURL, requiredScopes } from "./constants";
 import { UserRequestData } from "./plugins/authentication";
-import { RedisCache } from "./plugins/redis";
 
 interface CachedResponse {
   cached: true;
@@ -173,8 +172,7 @@ class DiscordOauthRequests {
   async fetchGuildMember(
     guildId: Snowflake,
     user: UserRequestData
-  ): Promise<APIGuildMember> {
-    // TODO: Update this with the correct type when discord-api-types is updated
+  ): Promise<RESTGetCurrentUserGuildMemberResult> {
     const response = await this._makeRequest({
       path: `/users/@me/guilds/${guildId}/member`,
       method: "GET",
@@ -189,7 +187,7 @@ class DiscordOauthRequests {
     if (!(200 <= uncachedResponse.status && 300 > uncachedResponse.status)) {
       throw new Error(uncachedResponse.statusText);
     }
-    return uncachedResponse.data as APIGuildMember;
+    return uncachedResponse.data as RESTGetCurrentUserGuildMemberResult;
   }
   async fetchUserGuilds(
     user: UserRequestData
