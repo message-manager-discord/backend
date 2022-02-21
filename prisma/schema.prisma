@@ -10,7 +10,7 @@ datasource db {
 model Channel {
   id              BigInt             @id
   webhookId       BigInt?
-  webhookToken    String?            @db.VarChar(255)
+  webhookToken    String?            @db.VarChar(255) /// @encrypted
   loggingChannels LoggingChannel[]
 }
 
@@ -62,8 +62,8 @@ model LoggingChannel {
 
 model User {
   id              BigInt             @id
-  oauthToken String? 
+  oauthToken String? /// @encrypted
   oauthTokenExpiration DateTime?
-  refreshToken String?
+  refreshToken String? /// @encrypted
   staff Boolean @default(false)
 }
