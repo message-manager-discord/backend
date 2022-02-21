@@ -21,6 +21,9 @@ const discordRedisCachePlugin = fp(
     if (!options?.redis?.port || !options?.redis?.host) {
       throw new Error("Host or port not set");
     }
+    server.log.info(
+      `Connecting to redis discord gateway cache at ${options.redis.host}:${options.redis.port}`
+    );
     const redisGuildManager = createRedisClient(options.redis);
 
     server.decorate("redisGuildManager", redisGuildManager);

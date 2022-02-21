@@ -150,6 +150,9 @@ const redisRestPlugin = fp(
     if (!options?.redis?.port || !options?.redis?.host) {
       throw new Error("Host or port not set");
     }
+    server.log.info(
+      `Connecting to redis general cache at ${options.redis.host}:${options.redis.port}`
+    );
     const redisClient = new RedisCache(options.redis.host, options.redis.port);
 
     server.decorate("redisCache", redisClient);
