@@ -12,6 +12,7 @@ import discordRestPlugin from "./plugins/discord-rest";
 import redisRestPlugin from "./plugins/redis";
 import discordRedisCachePlugin from "./plugins/discordRedis";
 import fastifyCookie, { FastifyCookieOptions } from "fastify-cookie";
+import interactionsPlugin from "./interactions/index";
 const instance: FastifyInstance = fastify({
   logger: true,
 });
@@ -26,6 +27,7 @@ const requiredVars = [
   "BACKEND_REDIS_PORT",
   "DISCORD_CLIENT_ID",
   "DISCORD_CLIENT_SECRET",
+  "DISCORD_INTERACTIONS_PUBLIC_KEY",
   "BASE_API_URL",
 ];
 
@@ -46,8 +48,8 @@ instance.register(redisRestPlugin, {
 });
 instance.register(discordRedisCachePlugin, {
   redis: {
-    host: process.env.DISCORD_CACHE_REDIS_PORT,
-    port: process.env.DISCORD_CACHE_REDIS_HOST,
+    host: process.env.DISCORD_CACHE_REDIS_HOST,
+    port: process.env.DISCORD_CACHE_REDIS_PORT,
   },
 });
 
@@ -64,9 +66,11 @@ instance.register(fastifyCors, {
 instance.register(authPlugin);
 instance.register(fastifyAuth);
 
+instance.register(interactionsPlugin);
+
 instance.register(versionOnePlugin, { prefix: "/v1" });
 
-instance.listen(3000, function (err, address) {
+instance.listen(4000, function (err, address) {
   if (err) {
     console.error(err);
     process.exit(1);

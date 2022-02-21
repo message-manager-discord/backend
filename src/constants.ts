@@ -1,3 +1,4 @@
 const discordAPIBaseURL = "https://discord.com/api/v9";
 const requiredScopes = ["identify", "guilds", "guilds.members.read"];
-export { discordAPIBaseURL, requiredScopes };
+const embedPink = 12814273;
+export { discordAPIBaseURL, requiredScopes, embedPink };

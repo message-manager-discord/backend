@@ -1,0 +1,128 @@
+[
+  {
+    "default_permission": true,
+    "type": 1,
+    "name": "info",
+    "description": "Information Commands",
+    "options": [
+      {
+        "type": 1,
+        "name": "docs",
+        "description": "Bot documentation"
+      },
+      {
+        "type": 1,
+        "name": "info",
+        "description": "Bot information"
+      },
+      {
+        "type": 1,
+        "name": "invite",
+        "description": "Bot invite"
+      },
+      {
+        "type": 1,
+        "name": "privacy",
+        "description": "Privacy information"
+      },
+      {
+        "type": 1,
+        "name": "source",
+        "description": "Bot's source code"
+      },
+      {
+        "type": 1,
+        "name": "support",
+        "description": "Join my support server!"
+      }
+    ]
+  },
+  {
+    "default_permission": true,
+    "type": 1,
+    "name": "settings",
+    "description": "Set and get values of settings",
+    "guild_id": "719080176465477642",
+    "options": [
+      {
+        "type": 2,
+        "name": "get",
+        "description": "No Description.",
+        "options": [
+          {
+            "type": 1,
+            "name": "admin",
+            "description": "Gets the admin role"
+          },
+          {
+            "type": 1,
+            "name": "logging",
+            "description": "Gets the logging channel"
+          },
+          {
+            "type": 1,
+            "name": "prefix",
+            "description": "Gets the current prefix"
+          }
+        ]
+      },
+      {
+        "type": 2,
+        "name": "set",
+        "description": "No Description.",
+        "options": [
+          {
+            "type": 1,
+            "name": "admin",
+            "description": "Set the admin role, don't pass anything to remove it.",
+            "options": [
+              {
+                "type": 8,
+                "name": "role",
+                "description": "Admin role"
+              }
+            ]
+          },
+          {
+            "type": 1,
+            "name": "logging",
+            "description": "Set the logging channel, don't pass anything to remove it.",
+            "options": [
+              {
+                "type": 7,
+                "name": "channel",
+                "description": "New logging channel",
+                "channel_types": [0, 5]
+              }
+            ]
+          },
+          {
+            "type": 1,
+            "name": "prefix",
+            "description": "Set the prefix, don't pass anything to reset it.",
+            "options": [
+              {
+                "type": 3,
+                "name": "prefix",
+                "description": "New prefix"
+              }
+            ]
+          },
+          {
+            "type": 1,
+            "name": "updates-channel",
+            "description": "UPDATES!!",
+            "options": [
+              {
+                "type": 7,
+                "name": "channel",
+                "description": "New logging channel",
+                "channel_types": [0, 5]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]
