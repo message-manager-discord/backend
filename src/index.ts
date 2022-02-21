@@ -13,6 +13,8 @@ import redisRestPlugin from "./plugins/redis";
 import discordRedisCachePlugin from "./plugins/discordRedis";
 import fastifyCookie, { FastifyCookieOptions } from "fastify-cookie";
 import interactionsPlugin from "./interactions/index";
+
+import authRoutePlugin from "./authRoutes";
 const instance: FastifyInstance = fastify({
   logger: true,
 });
@@ -67,6 +69,8 @@ instance.register(authPlugin);
 instance.register(fastifyAuth);
 
 instance.register(interactionsPlugin);
+
+instance.register(authRoutePlugin);
 
 instance.register(versionOnePlugin, { prefix: "/v1" });
 
