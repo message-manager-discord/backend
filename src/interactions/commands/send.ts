@@ -8,7 +8,10 @@ import {
   MessageFlags,
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
-import { MissingAccessBase } from "../../messages/errors";
+import {
+  InteractionOrRequestFinalStatus,
+  UnexpectedFailure,
+} from "../../errors";
 import {
   checkSendMessagePossible,
   ThreadOptionObject,
@@ -17,11 +20,13 @@ import {
   createModal,
   createTextInputWithRow,
 } from "../modals/createStructures";
+import { InternalInteraction } from "../interaction";
 
 export default async function handleSendCommand(
-  interaction: APIChatInputApplicationCommandGuildInteraction,
+  internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>,
   instance: FastifyInstance
 ): Promise<APIInteractionResponse> {
+  const interaction = internalInteraction.interaction;
   // First option: Channel
   const channelId: string | undefined = (
     interaction.data.options?.find(
@@ -32,17 +37,17 @@ export default async function handleSendCommand(
   )?.value;
   const channel = interaction.data.resolved?.channels?.[channelId];
   console.log(channel);
-  if (!channelId || !channel) {
-    return {
-      type: InteractionResponseType.ChannelMessageWithSource,
-      data: {
-        content:
-          ":exclamation: Something went wrong! Please try again.    " +
-          "\n If the problem persists, contact the bot developers. Error: No channel ID on send command" +
-          "\n *PS: This shouldn't happen*",
-        flags: MessageFlags.Ephemeral,
-      },
-    };
+  if (!channelId) {
+    throw new UnexpectedFailure(
+      InteractionOrRequestFinalStatus.APPLICATION_COMMAND_MISSING_EXPECTED_OPTION,
+      "No channel option on send command"
+    );
+  }
+  if (!channel) {
+    throw new UnexpectedFailure(
+      InteractionOrRequestFinalStatus.APPLICATION_COMMAND_RESOLVED_MISSING_EXPECTED_VALUE,
+      "Channel not found in resolved data"
+    );
   }
   let threadData: undefined | ThreadOptionObject = undefined;
 
@@ -57,28 +62,14 @@ export default async function handleSendCommand(
       type: channel.type,
     };
   }
-  console.log(channel.thread_metadata?.invitable);
 
-  try {
-    await checkSendMessagePossible({
-      channelId,
-      guildId: interaction.guild_id,
-      instance,
-      user: interaction.member,
-      thread: threadData,
-    });
-  } catch (error) {
-    if (error instanceof MissingAccessBase) {
-      return {
-        type: InteractionResponseType.ChannelMessageWithSource,
-        data: {
-          content: `:exclamation: ${error.message}`,
-          flags: MessageFlags.Ephemeral,
-        },
-      };
-    }
-    throw error;
-  }
+  await checkSendMessagePossible({
+    channelId,
+    guildId: interaction.guild_id,
+    instance,
+    user: interaction.member,
+    thread: threadData,
+  });
 
   return createModal({
     title: `Sending a message to #${channel.name}`,

@@ -11,6 +11,7 @@ import prismaPlugin from "./plugins/prisma";
 import discordRestPlugin from "./plugins/discord-rest";
 import redisRestPlugin from "./plugins/redis";
 import discordRedisCachePlugin from "./plugins/discordRedis";
+import metricsPlugin from "./plugins/metrics";
 import fastifyCookie, { FastifyCookieOptions } from "fastify-cookie";
 import interactionsPlugin from "./interactions/index";
 
@@ -31,6 +32,7 @@ const requiredVars = [
   "DISCORD_CLIENT_SECRET",
   "DISCORD_INTERACTIONS_PUBLIC_KEY",
   "BASE_API_URL",
+  "METRICS_AUTH_TOKEN",
 ];
 
 dotenv.config(); // Load environment variables from .env file
@@ -67,6 +69,8 @@ instance.register(fastifyCors, {
 
 instance.register(authPlugin);
 instance.register(fastifyAuth);
+
+instance.register(metricsPlugin);
 
 instance.register(interactionsPlugin);
 

@@ -5,12 +5,7 @@ import {
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 import limits from "../limits";
-import {
-  BotMissingAccess,
-  ChannelNotFoundError,
-  ExceededMessageLimit,
-  UserMissingBotAccess,
-} from "./errors";
+
 import {
   checkAllPermissions,
   checkDiscordPermissions,
@@ -20,6 +15,13 @@ import {
 } from "./permissions";
 import { DiscordHTTPError } from "detritus-client-rest/lib/errors";
 import { MinimalChannel } from "redis-discord-cache/dist/structures/types";
+import {
+  ExpectedFailure,
+  ExpectedPermissionFailure,
+  InteractionOrRequestFinalStatus,
+  LimitHit,
+  UnexpectedFailure,
+} from "../errors";
 
 const missingAccessMessage =
   "You do not have access to the bot permission for sending messages via the bot on this guild. Please contact an administrator.";
@@ -78,19 +80,27 @@ async function checkSendMessagePossible({
       permission: Permission.SEND_MESSAGES,
     })
   ) {
-    throw new UserMissingBotAccess(missingAccessMessage);
+    throw new ExpectedPermissionFailure(
+      InteractionOrRequestFinalStatus.USER_MISSING_INTERNAL_BOT_PERMISSION,
+      missingAccessMessage
+    );
   }
-  console.log(`idOrParentId: ${idOrParentId}`);
   // check channel exists and bot has access to it
   let cachedChannel: MinimalChannel | null = null;
   const cachedGuild = instance.redisGuildManager.getGuild(guildId);
   try {
     cachedChannel = await cachedGuild.getChannel(idOrParentId);
   } catch (e) {
-    throw new ChannelNotFoundError("channel not found");
+    throw new ExpectedFailure(
+      InteractionOrRequestFinalStatus.CHANNEL_NOT_FOUND_IN_CACHE,
+      "channel not found"
+    );
   }
   if (!cachedChannel) {
-    throw new ChannelNotFoundError("channel not found");
+    throw new ExpectedFailure(
+      InteractionOrRequestFinalStatus.CHANNEL_NOT_FOUND_IN_CACHE,
+      "channel not found"
+    );
   }
 
   // Check discord permissions are correct
@@ -123,7 +133,8 @@ async function checkSendMessagePossible({
     where: { channelId: BigInt(channelId) },
   });
   if (messageCount >= limits.MAX_MESSAGES_PER_CHANNEL) {
-    throw new ExceededMessageLimit(
+    throw new LimitHit(
+      InteractionOrRequestFinalStatus.EXCEEDED_CHANNEL_MESSAGE_LIMIT,
       `You have reached the limit of ${limits.MAX_MESSAGES_PER_CHANNEL} messages per channel.`
     );
   }
@@ -178,12 +189,14 @@ async function sendMessage({
   } catch (error) {
     if (error instanceof DiscordHTTPError) {
       if (error.code === 404) {
-        throw new ChannelNotFoundError("Channel not found");
+        throw new UnexpectedFailure(
+          InteractionOrRequestFinalStatus.CHANNEL_NOT_FOUND_DISCORD_HTTP,
+          "Channel not found"
+        );
       } else if (error.code === 403) {
-        throw new BotMissingAccess(
-          ":exclamation: Something went wrong! Please try again.    " +
-            `\n If the problem persists, contact the bot developers. Error: ${error.message}` +
-            "\n *PS: This shouldn't happen*"
+        throw new UnexpectedFailure(
+          InteractionOrRequestFinalStatus.MISSING_PERMISSIONS_DISCORD_HTTP_SEND_MESSAGE,
+          error.message
         );
       }
       throw error;

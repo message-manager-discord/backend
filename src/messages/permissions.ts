@@ -1,7 +1,10 @@
 import { Snowflake } from "discord-api-types/v9";
 import { Guild } from "redis-discord-cache";
 import { Permissions } from "../consts";
-import { BotMissingAccess, UserMissingAccess } from "./errors";
+import {
+  ExpectedPermissionFailure,
+  InteractionOrRequestFinalStatus,
+} from "../errors";
 
 enum Permission {
   NONE = 0,
@@ -154,7 +157,8 @@ async function checkDiscordPermissions({
   );
   requiredUserPermissions.forEach((permission) => {
     if (!checkDiscordPermissionValue(permissions, Permissions[permission])) {
-      throw new UserMissingAccess(
+      throw new ExpectedPermissionFailure(
+        InteractionOrRequestFinalStatus.USER_MISSING_DISCORD_PERMISSION,
         missingUserDiscordPermissionMessage(permission, channelId)
       );
     }
@@ -163,7 +167,8 @@ async function checkDiscordPermissions({
 
   requiredBotPermissions.forEach((permission) => {
     if (!checkDiscordPermissionValue(permissionsBot, Permissions[permission])) {
-      throw new BotMissingAccess(
+      throw new ExpectedPermissionFailure(
+        InteractionOrRequestFinalStatus.BOT_MISSING_DISCORD_PERMISSION,
         missingBotDiscordPermissionMessage(permission, channelId)
       );
     }

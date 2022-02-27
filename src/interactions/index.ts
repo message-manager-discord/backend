@@ -19,6 +19,12 @@ import { verifyKey } from "discord-interactions";
 import handleInfoCommand from "./commands/info";
 import handleSendCommand from "./commands/send";
 import handleModalSend from "./modals/handleModalSend";
+import { InternalInteraction } from "./interaction";
+import {
+  CustomError,
+  InteractionOrRequestFinalStatus,
+  UnexpectedFailure,
+} from "../errors";
 
 const onlyInGuildResponse: APIInteractionResponseChannelMessageWithSource = {
   type: InteractionResponseType.ChannelMessageWithSource,
@@ -34,9 +40,10 @@ class InteractionHandler {
   private _commands: {
     [name: string]: {
       handler: (
-        interaction:
+        interaction: InternalInteraction<
           | APIChatInputApplicationCommandInteraction
-          | APIChatInputApplicationCommandGuildInteraction,
+          | APIChatInputApplicationCommandGuildInteraction
+        >,
         instance: FastifyInstance
       ) => Promise<APIInteractionResponse>;
       guildOnly?: boolean;
@@ -49,7 +56,7 @@ class InteractionHandler {
   addCommand(
     name: string,
     handler: (
-      interaction: APIChatInputApplicationCommandInteraction,
+      interaction: InternalInteraction<APIChatInputApplicationCommandInteraction>,
       instance: FastifyInstance
     ) => Promise<APIInteractionResponse>
   ) {
@@ -60,13 +67,13 @@ class InteractionHandler {
   addGuildOnlyCommand(
     name: string,
     handler: (
-      interaction: APIChatInputApplicationCommandGuildInteraction,
+      interaction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>,
       instance: FastifyInstance
     ) => Promise<APIInteractionResponse>
   ) {
     this._commands[name] = {
       handler: handler as (
-        interaction: APIChatInputApplicationCommandInteraction,
+        interaction: InternalInteraction<APIChatInputApplicationCommandInteraction>,
         instance: FastifyInstance
       ) => Promise<APIInteractionResponse>, // For some weird reason the types don't like to cross over
       guildOnly: true,
@@ -83,70 +90,89 @@ class InteractionHandler {
   }
 
   async handleInteraction(
-    interaction: APIInteraction
+    internalInteraction: InternalInteraction<APIInteraction>
   ): Promise<APIInteractionResponse> {
+    const interaction = internalInteraction.interaction;
     switch (interaction.type) {
       case InteractionType.Ping:
         return { type: InteractionResponseType.Pong };
       case InteractionType.ApplicationCommand:
         if (interaction.data.type === ApplicationCommandType.ChatInput) {
           return await this.handleCommands(
-            interaction as APIChatInputApplicationCommandInteraction
+            internalInteraction as InternalInteraction<APIChatInputApplicationCommandInteraction>
           );
         } else {
-          throw new Error(
+          throw new UnexpectedFailure(
+            InteractionOrRequestFinalStatus.APPLICATION_COMMAND_TYPE_MISSING_HANDLER,
             `No handler for command type ${interaction.data.type}`
           );
         }
       // @ts-ignore // TODO: Remove this when discord-api-types is updated
       case InteractionType.ModalSubmit:
         return await this.handleModalSubmit(
-          interaction as APIModalSubmitInteraction
+          internalInteraction as InternalInteraction<APIModalSubmitInteraction>
         );
       default:
-        throw new Error(`No handler for interaction type ${interaction.type}`);
+        throw new UnexpectedFailure(
+          InteractionOrRequestFinalStatus.INTERACTION_TYPE_MISSING_HANDLER,
+          `No handler for interaction type ${interaction.type}`
+        );
     }
   }
   async handleCommands(
-    interaction: APIChatInputApplicationCommandInteraction
+    internalInteraction: InternalInteraction<APIChatInputApplicationCommandInteraction>
   ): Promise<APIInteractionResponse> {
+    const interaction = internalInteraction.interaction;
+
     if (this._commands[interaction.data.name]) {
+      this._client.metrics.commandsUsed.inc({ command: interaction.data.name });
       if (
         this._commands[interaction.data.name].guildOnly &&
         !interaction.guild_id
       ) {
         return onlyInGuildResponse;
       }
-      return this._commands[interaction.data.name].handler(
-        interaction,
+      const data = this._commands[interaction.data.name].handler(
+        internalInteraction,
         this._client
       );
+      internalInteraction.responded = true;
+      return data;
     }
-    throw new Error(`No handler for command ${interaction.data.name}`);
+
+    throw new UnexpectedFailure(
+      InteractionOrRequestFinalStatus.APPLICATION_COMMAND_MISSING_HANDLER,
+      `No handler for command ${interaction.data.name}`
+    );
   }
   async handleModalSubmit(
-    interaction: APIModalSubmitInteraction
+    internalInteraction: InternalInteraction<APIModalSubmitInteraction>
   ): Promise<APIInteractionResponse> {
+    const interaction = internalInteraction.interaction;
     const id = interaction.data.custom_id.split(":")[0];
     switch (id) {
       case "send":
         // Guild only
         if (!interaction.guild_id) {
+          internalInteraction.responded = true;
           return onlyInGuildResponse;
         }
-        return await handleModalSend(
-          interaction as APIModalSubmitGuildInteraction,
+        const data = await handleModalSend(
+          internalInteraction as InternalInteraction<APIModalSubmitGuildInteraction>,
           this._client
         );
+        internalInteraction.responded = true;
+        return data;
         break;
 
       default:
         break;
     }
-    return {
-      type: InteractionResponseType.ChannelMessageWithSource,
-      data: { content: "HELLO" }, // TODO: Handle modal submit
-    };
+
+    throw new UnexpectedFailure(
+      InteractionOrRequestFinalStatus.MODAL_CUSTOM_ID_NOT_FOUND,
+      `No handler for modal with custom_id: ${interaction.data.custom_id}`
+    );
   }
 }
 
@@ -183,7 +209,66 @@ const interactionsPlugin = async (instance: FastifyInstance) => {
     },
 
     async (request, reply) => {
-      return await handler.handleInteraction(request.body);
+      const internalInteraction = new InternalInteraction(request.body);
+      try {
+        const returnData = await handler.handleInteraction(internalInteraction);
+        instance.metrics.interactionsReceived.inc({
+          type: internalInteraction.interaction.type,
+          status: InteractionOrRequestFinalStatus.SUCCESS,
+        });
+        return returnData;
+      } catch (error) {
+        if (error instanceof CustomError) {
+          instance.metrics.interactionsReceived.inc({
+            type: internalInteraction.interaction.type,
+            status: error.status,
+          });
+          if (error instanceof UnexpectedFailure) {
+            // Unexpected errors
+            return {
+              type: InteractionResponseType.ChannelMessageWithSource,
+              data: {
+                content:
+                  ":exclamation: Something went wrong! Please try again." +
+                  `\nIf the problem persists, contact the bot developers.` +
+                  `\nError message: ${error.message}` +
+                  `\nError code: \`${error.status}\`` +
+                  "\n*PS: This shouldn't happen*",
+                flags: MessageFlags.Ephemeral,
+              },
+            };
+          } else {
+            // Expected errors
+            return {
+              type: InteractionResponseType.ChannelMessageWithSource,
+              data: {
+                content: `:exclamation: ${error.message}`,
+                flags: MessageFlags.Ephemeral,
+              },
+            };
+          }
+        }
+        const message =
+          !!error && !!(error as Error).message ? (error as Error).message : "";
+
+        instance.metrics.interactionsReceived.inc({
+          type: internalInteraction.interaction.type,
+          status: InteractionOrRequestFinalStatus.GENERIC_UNEXPECTED_FAILURE,
+        });
+        return {
+          type: InteractionResponseType.ChannelMessageWithSource,
+          data: {
+            content:
+              ":exclamation: Something went wrong! Please try again." +
+              `\nIf the problem persists, contact the bot developers.` +
+              `\nError message: ${message}` +
+              `\nError code: \`${InteractionOrRequestFinalStatus.GENERIC_UNEXPECTED_FAILURE}\`` +
+              "\n*PS: This shouldn't happen, and if it does, congratulations you've managed to find something unexpected*",
+            flags: MessageFlags.Ephemeral,
+          },
+        };
+      }
+      //TODO Handle deferred responses
     }
   );
 };

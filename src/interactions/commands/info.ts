@@ -8,6 +8,11 @@ import {
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 import { embedPink } from "../../constants";
+import {
+  InteractionOrRequestFinalStatus,
+  UnexpectedFailure,
+} from "../../errors";
+import { InternalInteraction } from "../interaction";
 
 const createInfoEmbed = async (
   instance: FastifyInstance
@@ -132,10 +137,12 @@ const channelMessageResponseWithEmbed = (
 });
 
 export default async function handleInfoCommand(
-  interaction: APIChatInputApplicationCommandInteraction,
+  internalInteraction: InternalInteraction<APIChatInputApplicationCommandInteraction>,
   instance: FastifyInstance
 ): Promise<APIInteractionResponse> {
+  const interaction = internalInteraction.interaction;
   const subcommand = interaction.data.options?.[0]?.name;
+
   switch (subcommand) {
     case "info":
       return channelMessageResponseWithEmbed(await createInfoEmbed(instance));
@@ -154,13 +161,9 @@ export default async function handleInfoCommand(
       return channelMessageResponseWithEmbed(createSupportEmbed());
 
     default:
-      return {
-        type: InteractionResponseType.ChannelMessageWithSource,
-        data: {
-          content:
-            ":exclamation: Invalid subcommand! Please contact the developers about this error",
-          flags: MessageFlags.Ephemeral,
-        },
-      };
+      throw new UnexpectedFailure(
+        InteractionOrRequestFinalStatus.APPLICATION_COMMAND_UNEXPECTED_SUBCOMMAND,
+        `Invalid subcommand: \`${subcommand}\``
+      );
   }
 }
