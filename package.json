@@ -10,7 +10,9 @@
     "start": "node .",
     "dev": " tsc-watch --noClear --onSuccess \"node ./dist/index.js\"",
     "go": "npm run build && npm run start",
-    "test": "tap --ts --test-ignore=dist"
+    "test": "tap --ts --test-ignore=dist",
+    "migrate": "prisma migrate deploy",
+    "generate": "prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^3.9.2",
