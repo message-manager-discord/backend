@@ -1,7 +1,5 @@
 import fastify, { FastifyInstance } from "fastify";
 
-import dotenv from "dotenv";
-
 import { check } from "./envCheck";
 import versionOnePlugin from "./v1";
 import fastifyAuth from "fastify-auth";
@@ -34,8 +32,6 @@ const requiredVars = [
   "BASE_API_URL",
   "METRICS_AUTH_TOKEN",
 ];
-
-dotenv.config(); // Load environment variables from .env file
 
 check(requiredVars); // Confirm that all required environment variables are set
 

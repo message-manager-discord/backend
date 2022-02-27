@@ -18,7 +18,6 @@
     "axios": "^0.24.0",
     "detritus-client-rest": "^0.10.5",
     "discord-interactions": "^2.4.1",
-    "dotenv": "^10.0.0",
     "fastify": "^3.22.0",
     "fastify-auth": "^1.1.0",
     "fastify-cookie": "^5.4.0",
