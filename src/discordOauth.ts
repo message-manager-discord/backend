@@ -5,7 +5,7 @@ import {
   Snowflake,
   RESTGetAPICurrentUserGuildsResult,
   RESTGetCurrentUserGuildMemberResult,
-} from "discord-api-types/v10";
+} from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 import { URLSearchParams } from "url";
 import { discordAPIBaseURL, requiredScopes } from "./constants";

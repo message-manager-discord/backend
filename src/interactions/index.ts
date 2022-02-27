@@ -1,18 +1,32 @@
 import {
+  APIChatInputApplicationCommandGuildInteraction,
   APIChatInputApplicationCommandInteraction,
   APIInteraction,
   APIInteractionResponse,
+  APIInteractionResponseChannelMessageWithSource,
+  APIModalSubmitGuildInteraction,
   APIModalSubmitInteraction,
   ApplicationCommandType,
   InteractionResponseType,
   InteractionType,
-} from "discord-api-types/v10";
+  MessageFlags,
+} from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 import FastifyRawBody from "fastify-raw-body";
 import { Forbidden } from "http-errors";
 import { FastifyRequest } from "fastify";
 import { verifyKey } from "discord-interactions";
 import handleInfoCommand from "./commands/info";
+import handleSendCommand from "./commands/send";
+import handleModalSend from "./modals/handleModalSend";
+
+const onlyInGuildResponse: APIInteractionResponseChannelMessageWithSource = {
+  type: InteractionResponseType.ChannelMessageWithSource,
+  data: {
+    content: `:exclamation: This command is only available in guilds`,
+    flags: MessageFlags.Ephemeral,
+  },
+};
 
 class InteractionHandler {
   private readonly _client: FastifyInstance;
@@ -20,9 +34,12 @@ class InteractionHandler {
   private _commands: {
     [name: string]: {
       handler: (
-        interaction: APIChatInputApplicationCommandInteraction,
+        interaction:
+          | APIChatInputApplicationCommandInteraction
+          | APIChatInputApplicationCommandGuildInteraction,
         instance: FastifyInstance
       ) => Promise<APIInteractionResponse>;
+      guildOnly?: boolean;
     };
   } = {};
   constructor(client: FastifyInstance, publicKey: string) {
@@ -38,6 +55,21 @@ class InteractionHandler {
   ) {
     this._commands[name] = {
       handler,
+    };
+  }
+  addGuildOnlyCommand(
+    name: string,
+    handler: (
+      interaction: APIChatInputApplicationCommandGuildInteraction,
+      instance: FastifyInstance
+    ) => Promise<APIInteractionResponse>
+  ) {
+    this._commands[name] = {
+      handler: handler as (
+        interaction: APIChatInputApplicationCommandInteraction,
+        instance: FastifyInstance
+      ) => Promise<APIInteractionResponse>, // For some weird reason the types don't like to cross over
+      guildOnly: true,
     };
   }
 
@@ -79,6 +111,12 @@ class InteractionHandler {
     interaction: APIChatInputApplicationCommandInteraction
   ): Promise<APIInteractionResponse> {
     if (this._commands[interaction.data.name]) {
+      if (
+        this._commands[interaction.data.name].guildOnly &&
+        !interaction.guild_id
+      ) {
+        return onlyInGuildResponse;
+      }
       return this._commands[interaction.data.name].handler(
         interaction,
         this._client
@@ -89,6 +127,22 @@ class InteractionHandler {
   async handleModalSubmit(
     interaction: APIModalSubmitInteraction
   ): Promise<APIInteractionResponse> {
+    const id = interaction.data.custom_id.split(":")[0];
+    switch (id) {
+      case "send":
+        // Guild only
+        if (!interaction.guild_id) {
+          return onlyInGuildResponse;
+        }
+        return await handleModalSend(
+          interaction as APIModalSubmitGuildInteraction,
+          this._client
+        );
+        break;
+
+      default:
+        break;
+    }
     return {
       type: InteractionResponseType.ChannelMessageWithSource,
       data: { content: "HELLO" }, // TODO: Handle modal submit
@@ -97,13 +151,6 @@ class InteractionHandler {
 }
 
 const interactionsPlugin = async (instance: FastifyInstance) => {
-  /*
-
-  instance.register(rootPlugin);
-  instance.register(userPlugin);
-
-  instance.register(analyticsRoutePlugin);
-  instance.register(authRoutePlugin);*/
   const handler = new InteractionHandler(
     instance,
     process.env.DISCORD_INTERACTIONS_PUBLIC_KEY!
@@ -111,6 +158,7 @@ const interactionsPlugin = async (instance: FastifyInstance) => {
 
   // Add commands to handler
   handler.addCommand("info", handleInfoCommand);
+  handler.addGuildOnlyCommand("send", handleSendCommand);
 
   instance.register(FastifyRawBody, {
     field: "rawBody", // change the default request.rawBody property name

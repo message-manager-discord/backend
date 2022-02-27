@@ -7,7 +7,7 @@ import {
 import { Unauthorized } from "http-errors";
 
 import fp from "fastify-plugin";
-import { Snowflake } from "discord-api-types/v10";
+import { Snowflake } from "discord-api-types/v9";
 
 const requireAuthentication = async (
   request: FastifyRequest,

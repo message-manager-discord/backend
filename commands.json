@@ -2,6 +2,21 @@
   {
     "default_permission": true,
     "type": 1,
+    "name": "send",
+    "description": "Send a message via the bot",
+    "options": [
+      {
+        "name": "channel",
+        "type": 7,
+        "description": "Channel to send the message to",
+        "channel_types": [0, 5, 10, 11, 12],
+        "required": true
+      }
+    ]
+  },
+  {
+    "default_permission": true,
+    "type": 1,
     "name": "info",
     "description": "Information Commands",
     "options": [

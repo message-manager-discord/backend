@@ -1,4 +1,4 @@
-// https://github.com/detritusjs/client/blob/f053ea00707408b1f7cb9d6a402035f766d91cc7/src/constants.ts#L842
+// https://github.com/detritusjs/client/blob/b27cbaa5bfb48506b059be178da0e871b83ba95e/src/constants.ts#L917
 export const Permissions = Object.freeze({
   NONE: 0n,
   CREATE_INSTANT_INVITE: 1n << 0n,
@@ -34,8 +34,10 @@ export const Permissions = Object.freeze({
   MANAGE_EMOJIS: 1n << 30n,
   USE_APPLICATION_COMMANDS: 1n << 31n,
   REQUEST_TO_SPEAK: 1n << 32n,
-
+  MANAGE_EVENTS: 1n << 33n,
   MANAGE_THREADS: 1n << 34n,
   USE_PUBLIC_THREADS: 1n << 35n,
   USE_PRIVATE_THREADS: 1n << 36n,
+  USE_EXTERNAL_STICKERS: 1n << 37n,
+  SEND_MESSAGES_IN_THREADS: 1n << 38n,
 });

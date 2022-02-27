@@ -5,7 +5,7 @@ import {
   APIInteractionResponseChannelMessageWithSource,
   InteractionResponseType,
   MessageFlags,
-} from "discord-api-types/v10";
+} from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 import { embedPink } from "../../constants";
 
