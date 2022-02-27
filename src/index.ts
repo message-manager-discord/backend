@@ -31,6 +31,7 @@ const requiredVars = [
   "DISCORD_INTERACTIONS_PUBLIC_KEY",
   "BASE_API_URL",
   "METRICS_AUTH_TOKEN",
+  "PORT",
 ];
 
 check(requiredVars); // Confirm that all required environment variables are set
@@ -74,10 +75,10 @@ instance.register(authRoutePlugin);
 
 instance.register(versionOnePlugin, { prefix: "/v1" });
 
-instance.listen(4000, function (err, address) {
+instance.listen(process.env.PORT!, function (err, address) {
   if (err) {
     console.error(err);
     process.exit(1);
   }
-  // Server is now listening on ${address}
+  instance.log.info(`Server is now listening on ${address}`);
 });
