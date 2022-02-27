@@ -104,7 +104,7 @@ class InteractionHandler {
         } else {
           throw new UnexpectedFailure(
             InteractionOrRequestFinalStatus.APPLICATION_COMMAND_TYPE_MISSING_HANDLER,
-            `No handler for command type ${interaction.data.type}`
+            `No handler for command type \`${interaction.data.type}\``
           );
         }
       // @ts-ignore // TODO: Remove this when discord-api-types is updated
@@ -115,7 +115,7 @@ class InteractionHandler {
       default:
         throw new UnexpectedFailure(
           InteractionOrRequestFinalStatus.INTERACTION_TYPE_MISSING_HANDLER,
-          `No handler for interaction type ${interaction.type}`
+          `No handler for interaction type \`${interaction.type}\``
         );
     }
   }
@@ -142,7 +142,7 @@ class InteractionHandler {
 
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.APPLICATION_COMMAND_MISSING_HANDLER,
-      `No handler for command ${interaction.data.name}`
+      `No handler for command \`${interaction.data.name}\``
     );
   }
   async handleModalSubmit(
@@ -171,7 +171,7 @@ class InteractionHandler {
 
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.MODAL_CUSTOM_ID_NOT_FOUND,
-      `No handler for modal with custom_id: ${interaction.data.custom_id}`
+      `No handler for modal with custom_id: \`${interaction.data.custom_id}\``
     );
   }
 }
