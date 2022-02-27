@@ -32,6 +32,7 @@ const requiredVars = [
   "BASE_API_URL",
   "METRICS_AUTH_TOKEN",
   "PORT",
+  "HOST",
 ];
 
 check(requiredVars); // Confirm that all required environment variables are set
@@ -75,7 +76,7 @@ instance.register(authRoutePlugin);
 
 instance.register(versionOnePlugin, { prefix: "/v1" });
 
-instance.listen(process.env.PORT!, function (err, address) {
+instance.listen(process.env.PORT!, process.env.HOST!, function (err, address) {
   if (err) {
     console.error(err);
     process.exit(1);
