@@ -2,7 +2,6 @@ import { FastifyInstance } from "fastify";
 import fastifySwagger from "fastify-swagger";
 import rootPlugin from "./routes/rootTesting";
 import userPlugin from "./routes/user";
-import analyticsRoutePlugin from "./routes/analytics";
 
 const versionOnePlugin = async (instance: FastifyInstance) => {
   instance.addSchema({
@@ -93,8 +92,6 @@ const versionOnePlugin = async (instance: FastifyInstance) => {
 
   instance.register(rootPlugin);
   instance.register(userPlugin);
-
-  instance.register(analyticsRoutePlugin);
 };
 
 export default versionOnePlugin;
