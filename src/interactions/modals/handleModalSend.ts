@@ -27,22 +27,23 @@ export default async function handleModalSend(
     );
   }
 
-  const tags = interaction.data.components?.find(
+  let tags = interaction.data.components?.find(
     (component) => component.components[0].custom_id === "tags"
   )?.components[0].value;
   const content = interaction.data.components?.find(
     (component) => component.components[0].custom_id === "content"
   )?.components[0].value;
 
-  if (!tags || !content) {
-    return {
-      type: InteractionResponseType.ChannelMessageWithSource,
-      data: {
-        content: ":exclamation: You must provide tags and content",
-        flags: MessageFlags.Ephemeral,
-      },
-    };
+  if (!content) {
+    throw new UnexpectedFailure(
+      InteractionOrRequestFinalStatus.MODAL_SUBMIT_MISSING_REQUIRED_INPUT,
+      "No content on modal submit"
+    );
   }
+  if (!tags) {
+    tags = "";
+  }
+
   await sendMessage({
     channelId,
     content,
