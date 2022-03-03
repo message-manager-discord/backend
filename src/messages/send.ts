@@ -140,7 +140,7 @@ async function checkSendMessagePossible({
     userId: user.user!.id,
     roles: user.roles,
     requiredBotPermissions: requiredBotPermissions,
-    requiredUserPermissions: requiredBotPermissions,
+    requiredUserPermissions: requiredUserPermissions,
   });
 
   // Check we are not at the limit of messages per channel
