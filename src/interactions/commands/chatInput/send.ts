@@ -11,16 +11,16 @@ import { FastifyInstance } from "fastify";
 import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
-} from "../../errors";
+} from "../../../errors";
 import {
   checkSendMessagePossible,
   ThreadOptionObject,
-} from "../../messages/send";
+} from "../../../messages/send";
 import {
   createModal,
   createTextInputWithRow,
-} from "../modals/createStructures";
-import { InternalInteraction } from "../interaction";
+} from "../../modals/createStructures";
+import { InternalInteraction } from "../../interaction";
 
 export default async function handleSendCommand(
   internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>,
@@ -36,7 +36,6 @@ export default async function handleSendCommand(
     ) as APIApplicationCommandInteractionDataChannelOption
   )?.value;
   const channel = interaction.data.resolved?.channels?.[channelId];
-  console.log(channel);
   if (!channelId) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.APPLICATION_COMMAND_MISSING_EXPECTED_OPTION,
@@ -85,7 +84,6 @@ export default async function handleSendCommand(
       createTextInputWithRow({
         label: "Message Content",
         placeholder: "Message content to send",
-        value: "",
         max_length: 2000,
         min_length: 1,
         required: true,

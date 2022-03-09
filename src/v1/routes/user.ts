@@ -1,5 +1,6 @@
 import { Type, Static } from "@sinclair/typebox";
-import { Forbidden, NotFound } from "http-errors";
+import httpErrors from "http-errors";
+const { Forbidden, NotFound } = httpErrors;
 import { FastifyInstance } from "fastify";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 

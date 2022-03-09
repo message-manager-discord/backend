@@ -8,10 +8,12 @@ import limits from "../limits";
 
 import {
   checkAllPermissions,
+  checkDefaultDiscordPermissionsPresent,
   checkDiscordPermissions,
   Permission,
   PermissionKeys,
   PermissionsData,
+  ThreadOptionObject,
 } from "./permissions";
 import { DiscordHTTPError } from "detritus-client-rest/lib/errors";
 import { MinimalChannel } from "redis-discord-cache/dist/structures/types";
@@ -26,15 +28,6 @@ import { prisma } from "@prisma/client";
 
 const missingAccessMessage =
   "You do not have access to the bot permission for sending messages via the bot on this guild. Please contact an administrator.";
-
-interface ThreadOptionObject {
-  parentId: string;
-  locked: boolean;
-  type:
-    | ChannelType.GuildNewsThread
-    | ChannelType.GuildPublicThread
-    | ChannelType.GuildPrivateThread;
-}
 
 interface CheckSendMessageOptions {
   channelId: string;
@@ -57,7 +50,13 @@ async function checkSendMessagePossible({
 }: CheckSendMessageOptions): Promise<true> {
   // Check if the user has the correct permissions
 
-  const idOrParentId = thread ? thread.parentId : channelId;
+  const { idOrParentId } = await checkDefaultDiscordPermissionsPresent({
+    instance,
+    user,
+    guildId,
+    channelId,
+    thread,
+  });
 
   const guild = await instance.prisma.guild.findUnique({
     where: { id: BigInt(guildId) },
@@ -84,7 +83,7 @@ async function checkSendMessagePossible({
     // TODO: Remove below
     const roles: Record<string, number> = {};
     user.roles.forEach((roleId) => {
-      roles[roleId] = 3;
+      roles[roleId] = Permission.DELETE_MESSAGES;
     });
     await instance.prisma.guild.create({
       data: {
@@ -100,48 +99,6 @@ async function checkSendMessagePossible({
       missingAccessMessage
     );
   }
-  // check channel exists and bot has access to it
-  let cachedChannel: MinimalChannel | null = null;
-  const cachedGuild = instance.redisGuildManager.getGuild(guildId);
-  try {
-    cachedChannel = await cachedGuild.getChannel(idOrParentId);
-  } catch (e) {
-    throw new ExpectedFailure(
-      InteractionOrRequestFinalStatus.CHANNEL_NOT_FOUND_IN_CACHE,
-      "channel not found"
-    );
-  }
-  if (!cachedChannel) {
-    throw new ExpectedFailure(
-      InteractionOrRequestFinalStatus.CHANNEL_NOT_FOUND_IN_CACHE,
-      "channel not found"
-    );
-  }
-
-  // Check discord permissions are correct
-
-  const requiredBotPermissions: PermissionKeys[] = [
-    thread ? "SEND_MESSAGES_IN_THREADS" : "SEND_MESSAGES",
-    "VIEW_CHANNEL",
-    "ATTACH_FILES",
-  ];
-  if (thread?.locked || thread?.type === ChannelType.GuildPrivateThread) {
-    requiredBotPermissions.push("MANAGE_THREADS");
-  }
-
-  const requiredUserPermissions: PermissionKeys[] = ["VIEW_CHANNEL"];
-  if (thread?.locked || thread?.type === ChannelType.GuildPrivateThread) {
-    requiredUserPermissions.push("MANAGE_THREADS");
-  }
-
-  await checkDiscordPermissions({
-    guild: cachedGuild,
-    channelId: idOrParentId, // This is used because permissions apply on the parent channel, and threads may not be cached
-    userId: user.user!.id,
-    roles: user.roles,
-    requiredBotPermissions: requiredBotPermissions,
-    requiredUserPermissions: requiredUserPermissions,
-  });
 
   // Check we are not at the limit of messages per channel
   const messageCount = await instance.prisma.message.count({
@@ -163,8 +120,15 @@ async function sendMessage({
   guildId,
   instance,
   user,
+  thread,
 }: SendMessageOptions) {
-  // Permissions MUST have been checked with checkSendMessagePossible
+  await checkSendMessagePossible({
+    channelId,
+    guildId,
+    instance,
+    user,
+    thread,
+  });
   try {
     const messageResult = (await instance.restClient.createMessage(channelId, {
       content,
@@ -174,7 +138,8 @@ async function sendMessage({
         id: BigInt(messageResult.id),
         content: messageResult.content,
 
-        lastEditedAt: new Date(Date.now()),
+        editedAt: new Date(Date.now()),
+        editedBy: BigInt(user.user!.id),
         tags,
         channel: {
           connectOrCreate: {

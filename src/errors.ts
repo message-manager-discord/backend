@@ -1,3 +1,5 @@
+import { APIMessageComponent } from "discord-api-types/v9";
+
 enum InteractionOrRequestFinalStatus {
   /*
    * 1xxx - The interaction was a success
@@ -10,13 +12,21 @@ enum InteractionOrRequestFinalStatus {
   SUCCESS = 1000,
   GENERIC_EXPECTED_FAILURE = 2000,
   CHANNEL_NOT_FOUND_IN_CACHE,
+  DM_INTERACTION_RECEIVED_WHEN_SHOULD_BE_GUILD_ONLY,
+  MESSAGE_AUTHOR_NOT_BOT_AUTHOR,
+  MESSAGE_NOT_FOUND_IN_DATABASE,
+  USER_REQUIRED_TO_BE_SIGNED_IN,
+  MESSAGE_DELETED_DURING_ACTION,
   GENERIC_EXPECTED_PERMISSIONS_FAILURE = 3000,
   USER_MISSING_DISCORD_PERMISSION,
   BOT_MISSING_DISCORD_PERMISSION,
   USER_MISSING_INTERNAL_BOT_PERMISSION,
-  GENERIC_EXPECTED_LIMIT_FAILURE = 4000,
+  BOT_MISSING_DISCORD_SCOPE,
+  GENERIC_EXPECTED_OAUTH_FAILURE = 4000,
+  OATUH_TOKEN_EXPIRED,
+  GENERIC_EXPECTED_LIMIT_FAILURE = 5000,
   EXCEEDED_CHANNEL_MESSAGE_LIMIT,
-  GENERIC_UNEXPECTED_FAILURE = 5000,
+  GENERIC_UNEXPECTED_FAILURE = 6000,
   INTERACTION_TYPE_MISSING_HANDLER,
   APPLICATION_COMMAND_TYPE_MISSING_HANDLER,
   APPLICATION_COMMAND_MISSING_HANDLER,
@@ -28,13 +38,24 @@ enum InteractionOrRequestFinalStatus {
   APPLICATION_COMMAND_RESOLVED_MISSING_EXPECTED_VALUE,
   APPLICATION_COMMAND_UNEXPECTED_SUBCOMMAND,
   MODAL_SUBMIT_MISSING_REQUIRED_INPUT,
+  GUILD_UNAVAILABLE_BUT_SENDING_INTERACTIONS,
+  COMPONENT_CUSTOM_ID_NOT_FOUND,
+  COMPONENT_CUSTOM_ID_MALFORMED,
+  GUILD_COMPONENT_IN_DM_INTERACTION,
+  OAUTH_REQUEST_FAILED,
 }
 
 class CustomError extends Error {
   status: InteractionOrRequestFinalStatus;
-  constructor(status: InteractionOrRequestFinalStatus, message: string) {
+  components: APIMessageComponent[]; // Won't do anything if outside an interaction
+  constructor(
+    status: InteractionOrRequestFinalStatus,
+    message: string,
+    components: APIMessageComponent[] = []
+  ) {
     super(message);
     this.status = status;
+    this.components = components;
   }
 }
 
@@ -46,18 +67,23 @@ class ExpectedPermissionFailure extends CustomError {
   // status should be 3xxx
 }
 
-class LimitHit extends CustomError {
+class ExpectedOauth2Failure extends CustomError {
   // status should be 4xxx
 }
 
-class UnexpectedFailure extends CustomError {
+class LimitHit extends CustomError {
   // status should be 5xxx
+}
+
+class UnexpectedFailure extends CustomError {
+  // status should be 6xxx
 }
 
 export {
   InteractionOrRequestFinalStatus,
   ExpectedFailure,
   ExpectedPermissionFailure,
+  ExpectedOauth2Failure,
   LimitHit,
   UnexpectedFailure,
   CustomError,

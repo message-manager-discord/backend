@@ -9,21 +9,22 @@ import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../../errors";
-import { sendMessage } from "../../messages/send";
+import { editMessage } from "../../messages/edit";
 import { InternalInteraction } from "../interaction";
-// Guild only
-export default async function handleModalSend(
+import { parseTags } from "./utils";
+
+export default async function handleModalEdit(
   internalInteraction: InternalInteraction<APIModalSubmitGuildInteraction>,
   instance: FastifyInstance
 ): Promise<APIInteractionResponse> {
   const interaction = internalInteraction.interaction;
-  const channelId: string | undefined =
+  const messageId: string | undefined =
     interaction.data.custom_id.split(":")[1];
 
-  if (!channelId) {
+  if (!messageId) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.MODAL_CUSTOM_ID_MALFORMED,
-      "No channel id on modal submit"
+      "No message id on modal submit"
     );
   }
 
@@ -43,24 +44,19 @@ export default async function handleModalSend(
   if (!tags) {
     tags = "";
   }
-
-  await sendMessage({
-    channelId,
+  await editMessage({
     content,
-    tags: tags
-      .replace(/\s/g, "") // Remove blankspace
-      .toLowerCase() // Default to lowercase
-      .split(",") // Split by comma
-      .filter((tag) => tag !== ""), // Remove empty tags (for example if there was a comma on the end)
+    tags: parseTags(tags),
+    channelId: interaction.channel_id!,
     instance,
-    guildId: interaction.guild_id,
     user: interaction.member,
+    messageId,
+    guildId: interaction.guild_id,
   });
-
   return {
     type: InteractionResponseType.ChannelMessageWithSource,
     data: {
-      content: ":white_check_mark: Message sent!",
+      content: "Message edited!",
       flags: MessageFlags.Ephemeral,
     },
   };

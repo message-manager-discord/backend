@@ -7,12 +7,12 @@ import {
   MessageFlags,
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
-import { embedPink } from "../../constants";
+import { embedPink } from "../../../constants";
 import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
-} from "../../errors";
-import { InternalInteraction } from "../interaction";
+} from "../../../errors";
+import { InternalInteraction } from "../../interaction";
 
 const createInfoEmbed = async (
   instance: FastifyInstance

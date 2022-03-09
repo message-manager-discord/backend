@@ -4,7 +4,8 @@ import {
   FastifyRequest,
   FastifyPluginOptions,
 } from "fastify";
-import { Unauthorized } from "http-errors";
+import httpErrors from "http-errors";
+const { Unauthorized } = httpErrors;
 
 import fp from "fastify-plugin";
 import { Snowflake } from "discord-api-types/v9";

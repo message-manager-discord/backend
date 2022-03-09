@@ -9,6 +9,11 @@ import {
 import { FastifyInstance } from "fastify";
 import { URLSearchParams } from "url";
 import { discordAPIBaseURL, requiredScopes } from "./constants";
+import {
+  ExpectedOauth2Failure,
+  InteractionOrRequestFinalStatus,
+  UnexpectedFailure,
+} from "./errors";
 import { UserRequestData } from "./plugins/authentication";
 
 interface CachedResponse {
@@ -78,6 +83,7 @@ class DiscordOauthRequests {
     userId?: Snowflake;
   }): Promise<UncachedResponse | CachedResponse> {
     if (cacheExpiry && userId) {
+      // TODO: Should cacheExpiry be checked / used
       // Requests without a token are not cached
       const cachedResponse = await this._instance.redisCache.getOauthCache(
         path,
@@ -104,15 +110,36 @@ class DiscordOauthRequests {
     if (token) {
       headers = { ...headers, Authorization: `Bearer ${token}` };
     }
-    return {
-      cached: false,
-      response: await axios.request({
+    let response: AxiosResponse;
+    try {
+      response = await axios.request({
         url: `${discordAPIBaseURL}${path}`,
         method,
         data: body,
         headers,
-      }),
+      });
+    } catch (e: any) {
+      throw this._handleError(e.response as AxiosResponse);
+    }
+    return {
+      cached: false,
+      response,
     };
+  }
+
+  private _handleError(response: AxiosResponse): Error {
+    const statusCode = response.status;
+    if (statusCode === 401) {
+      return new ExpectedOauth2Failure(
+        InteractionOrRequestFinalStatus.OATUH_TOKEN_EXPIRED,
+        "Token expired, please re-authenticate"
+      );
+    } else {
+      return new UnexpectedFailure(
+        InteractionOrRequestFinalStatus.OAUTH_REQUEST_FAILED,
+        `Oauth request to ${response.request.path} failed with the status ${statusCode}`
+      );
+    }
   }
 
   async fetchUser(user: {
@@ -143,9 +170,6 @@ class DiscordOauthRequests {
       return response.data;
     }
     const uncachedResponse = response.response;
-    if (!(200 <= uncachedResponse.status && 300 > uncachedResponse.status)) {
-      throw new Error(uncachedResponse.statusText);
-    }
 
     return uncachedResponse.data as RESTGetAPICurrentUserResult;
   }
@@ -164,9 +188,6 @@ class DiscordOauthRequests {
         body,
       })
     ).response;
-    if (!(200 <= response.status && 300 > response.status)) {
-      throw new Error(response.statusText);
-    }
     return response.data as RESTPostOAuth2AccessTokenResult;
   }
   async fetchGuildMember(
@@ -184,9 +205,7 @@ class DiscordOauthRequests {
       return response.data;
     }
     const uncachedResponse = response.response;
-    if (!(200 <= uncachedResponse.status && 300 > uncachedResponse.status)) {
-      throw new Error(uncachedResponse.statusText);
-    }
+
     return uncachedResponse.data as RESTGetCurrentUserGuildMemberResult;
   }
   async fetchUserGuilds(
@@ -202,13 +221,17 @@ class DiscordOauthRequests {
       return response.data;
     }
     const uncachedResponse = response.response;
-    if (!(200 <= uncachedResponse.status && 300 > uncachedResponse.status)) {
-      throw new Error(uncachedResponse.statusText);
-    }
     return uncachedResponse.data as RESTGetAPICurrentUserGuildsResult;
   }
   static verifyScopes(scopes: string): boolean {
     return requiredScopes.every((scope) => scopes.includes(scope));
+  }
+  static generateAuthUrl(state: string): string {
+    return `https://discord.com/api/oauth2/authorize?response_type=code&client_id=${
+      process.env.DISCORD_CLIENT_ID // This is checked on startup
+    }&redirect_uri=${`${process.env.BASE_API_URL}/auth/callback`}&scope=${requiredScopes.join(
+      "%20"
+    )}&state=${state}`;
   }
 }
 

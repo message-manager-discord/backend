@@ -1,6 +1,7 @@
 // This route file is separate from the other routes since auth routes are not versioned
 import { FastifyInstance } from "fastify";
-import { Forbidden } from "http-errors";
+import httpErrors from "http-errors";
+const { Forbidden } = httpErrors;
 import { Static, Type } from "@sinclair/typebox";
 import { v5 as uuidv5 } from "uuid";
 import crypto from "crypto";
@@ -20,7 +21,7 @@ const AuthorizeQuerystring = Type.Object({
 type AuthorizeQuerystringType = Static<typeof AuthorizeQuerystring>;
 
 type StoredStateResponse = {
-  redirectPath: string;
+  redirectPath: string | null;
 };
 
 const rootPath = "/auth";
@@ -42,12 +43,7 @@ const addPlugin = async (instance: FastifyInstance) => {
 
       const state = crypto.randomBytes(16).toString("hex");
       instance.redisCache.setState(state, redirect_to ? redirect_to : null);
-      reply.redirect(
-        307,
-        `https://discord.com/api/oauth2/authorize?response_type=code&client_id=${
-          process.env.DISCORD_CLIENT_ID // This is checked on startup
-        }&redirect_uri=${`${process.env.BASE_API_URL}${rootPath}/callback`}&scope=guilds%20identify%20guilds.members.read&state=${state}`
-      );
+      reply.redirect(307, DiscordOauthRequests.generateAuthUrl(state));
     }
   );
   instance.get<{ Querystring: CallbackQuerystringType }>(
@@ -106,7 +102,8 @@ const addPlugin = async (instance: FastifyInstance) => {
         expires: date,
         signed: true,
       });
-      reply.redirect(307, "/");
+      const redirectPath = cachedState.redirectPath || "/";
+      reply.redirect(307, redirectPath); // TODO redirect to redirect url
     }
   );
 };
