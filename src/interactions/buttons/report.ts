@@ -1,81 +1,59 @@
+import prismaClient from "@prisma/client";
+const { ReportStatus } = prismaClient;
 import {
   APIInteractionResponse,
   APIMessageComponentGuildInteraction,
-  APIUser,
-  ButtonStyle,
-  ComponentType,
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
+import { ExpectedFailure, InteractionOrRequestFinalStatus } from "../../errors";
+import limits from "../../limits";
 
-import crypto from "crypto";
-import {
-  ExpectedFailure,
-  ExpectedOauth2Failure,
-  InteractionOrRequestFinalStatus,
-} from "../../errors";
 import { InternalInteraction } from "../interaction";
 import {
   createModal,
   createTextInputWithRow,
 } from "../modals/createStructures";
-import DiscordOauthRequests from "../../discordOauth";
 
 export default async function handleReportButton(
   internalInteraction: InternalInteraction<APIMessageComponentGuildInteraction>,
   instance: FastifyInstance
 ): Promise<APIInteractionResponse> {
   const interaction = internalInteraction.interaction;
-  const userId = interaction.member.user.id;
-  const userTokens = await instance.prisma.user.findUnique({
+  const messageId: string | undefined =
+    interaction.data.custom_id.split(":")[1];
+  const reportFromDate = new Date();
+  reportFromDate.setMonth(reportFromDate.getMonth() - 1);
+  const spamReportsLastMonth = await instance.prisma.report.count({
     where: {
-      id: BigInt(userId),
+      AND: {
+        userId: BigInt(interaction.member.user.id),
+        status: ReportStatus.Spam,
+        reportedAt: { gt: reportFromDate },
+      },
     },
   });
 
-  let user: APIUser | undefined;
-  try {
-    user =
-      userTokens && userTokens.oauthToken
-        ? await instance.discordOauthRequests.fetchUser({
-            userId,
-            token: userTokens.oauthToken,
-          })
-        : undefined;
-  } catch (e) {
-    if (e instanceof ExpectedOauth2Failure) {
-      if (e.status !== InteractionOrRequestFinalStatus.OATUH_TOKEN_EXPIRED) {
-        // If it's token expired then it is "expected" for this function
-        throw e;
-      }
-    } else {
-      throw e;
-    }
-  }
-  if (!user?.email) {
-    const state = crypto.randomBytes(16).toString("hex");
-    instance.redisCache.setState(
-      state,
-      "https://message.anothercat.me/docs/report"
-    );
+  if (spamReportsLastMonth >= limits.MAX_MONTHLY_SPAM_REPORTS) {
     throw new ExpectedFailure(
-      InteractionOrRequestFinalStatus.USER_REQUIRED_TO_BE_SIGNED_IN,
-      "You must have authorized the bot access to you account to report a message, so that we can email you about the result. Click the button below to sign in.",
-      [
-        {
-          type: ComponentType.ActionRow,
-          components: [
-            {
-              type: ComponentType.Button,
-              label: "Sign in",
-              style: ButtonStyle.Link,
-              url: DiscordOauthRequests.generateAuthUrl(state),
-            },
-          ],
-        },
-      ]
+      InteractionOrRequestFinalStatus.MAX_SPAM_REPORTS_PER_MONTH_REACHED,
+      "You have submitted to many reports that were deemed to be spam in the last month."
+    ); // TODO: Add potential appeal process
+  }
+  const sameMessageAndUserReport = await instance.prisma.report.count({
+    where: {
+      AND: {
+        userId: BigInt(interaction.member.user.id),
+        messageId: BigInt(messageId),
+        status: { in: [ReportStatus.Pending, ReportStatus.Open] }, // Checking for open reports
+      },
+    },
+  });
+  if (sameMessageAndUserReport > 0) {
+    throw new ExpectedFailure(
+      InteractionOrRequestFinalStatus.REPORT_ALREADY_SUBMITTED,
+      "You have already submitted a report for this message."
     );
   }
-  console.log(user.email);
   return createModal({
     title: `Submit a message report`,
     custom_id: interaction.data.custom_id,

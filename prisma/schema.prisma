@@ -55,3 +55,46 @@ model User {
   refreshToken String? /// @encrypted
   staff Boolean @default(false)
 }
+
+enum ReportStatus {
+  Pending // Not yet reviewed by a staff member
+  Open // A staff member has reviewed the report and it is still open
+  Actioned // A staff member has reviewed the report and it is closed and reported message / server has been actioned
+  Ignored // A staff member has reviewed the report and it is closed and no action has been taken
+  Spam // A staff member has reviewed the report and the report was deemed to be spam. 
+  // Three spam reports in a month perioud will result in restriction to reporting ablitity.
+}
+
+model Report {
+  id BigInt @id @default(autoincrement())
+  userId BigInt 
+  content String /// @encrypted
+  messageId BigInt
+  guildId BigInt
+  channelId BigInt
+  reportedAt DateTime
+  resolvedAt DateTime? // Report should be resolved closed if this is set
+  status ReportStatus @default(Pending)
+  userReportReason String /// @encrypted
+  staffResolvedReasonId BigInt?
+  staffResolvedReason ReportReason? @relation(fields: [staffResolvedReasonId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  messages ReportMessage[]
+} 
+
+model ReportReason { 
+  // Set by staff when closing the ticket
+  id BigInt @id @default(autoincrement())
+  name String
+  description String
+  reports Report[]
+}
+
+model ReportMessage {
+  // Communication between the user and staff - doesn't include the inital report
+  id BigInt @id @default(autoincrement())
+  authorId BigInt
+  fromStaff Boolean // If the author of the message was staff
+  content String /// @encrypted
+  reportId BigInt
+  report Report @relation(fields: [reportId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}

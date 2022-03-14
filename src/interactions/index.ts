@@ -40,6 +40,7 @@ import handleDeleteButton from "./buttons/delete";
 import handleModalEdit from "./modals/edit";
 import handleConfirmDeleteButton from "./buttons/confirm-delete";
 import handleCancelDeleteButton from "./buttons/cancel-delete";
+import handleModalReport from "./modals/report";
 
 class InteractionHandler {
   private readonly _client: FastifyInstance;
@@ -240,7 +241,7 @@ class InteractionHandler {
           internalInteraction.responded = true;
           throw new ExpectedFailure(
             InteractionOrRequestFinalStatus.DM_INTERACTION_RECEIVED_WHEN_SHOULD_BE_GUILD_ONLY,
-            ":exclamation: This command is only available in guilds"
+            ":exclamation: This modal is only available in guilds"
           );
         }
         return await handleModalSend(
@@ -253,10 +254,23 @@ class InteractionHandler {
           internalInteraction.responded = true;
           throw new ExpectedFailure(
             InteractionOrRequestFinalStatus.DM_INTERACTION_RECEIVED_WHEN_SHOULD_BE_GUILD_ONLY,
-            ":exclamation: This command is only available in guilds"
+            ":exclamation: This modal is only available in guilds"
           );
         }
         return await handleModalEdit(
+          internalInteraction as InternalInteraction<APIModalSubmitGuildInteraction>,
+          this._client
+        );
+      case "report":
+        // Guild only
+        if (!interaction.guild_id) {
+          internalInteraction.responded = true;
+          throw new ExpectedFailure(
+            InteractionOrRequestFinalStatus.DM_INTERACTION_RECEIVED_WHEN_SHOULD_BE_GUILD_ONLY,
+            ":exclamation: This modal is only available in guilds"
+          );
+        }
+        return await handleModalReport(
           internalInteraction as InternalInteraction<APIModalSubmitGuildInteraction>,
           this._client
         );
