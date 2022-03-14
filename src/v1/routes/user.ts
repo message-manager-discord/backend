@@ -1,12 +1,12 @@
 import { Type, Static } from "@sinclair/typebox";
 import httpErrors from "http-errors";
-const { Forbidden, NotFound } = httpErrors;
+const { Forbidden, NotFound, BadRequest } = httpErrors;
 import { FastifyInstance } from "fastify";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 
 import { UserRequestData } from "../../plugins/authentication";
 import { Permissions } from "../../consts";
-const rootPath = "/user";
+const rootPath = "/users";
 
 const UserParams = Type.Object({
   id: Type.String({ description: "The user's id, `@me` for the current user" }),
@@ -70,6 +70,12 @@ const userPlugin = async (instance: FastifyInstance) => {
           reply.send(
             new Forbidden("You don't have permission to get other users")
           );
+          return;
+        }
+
+        if (!/^\d+$/.test(userId)) {
+          // test for number
+          reply.send(new BadRequest("Invalid user id"));
           return;
         }
         const userStored = await instance.prisma.user.findUnique({
