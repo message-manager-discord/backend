@@ -14,7 +14,7 @@ import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../../errors";
-import { checkDeletePossible, deleteMessage } from "../../messages/delete";
+import { checkDeletePossible, deleteMessage } from "../../lib/messages/delete";
 import { InternalInteraction } from "../interaction";
 
 export default async function handleConfirmDeleteButton(

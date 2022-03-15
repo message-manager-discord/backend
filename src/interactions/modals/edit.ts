@@ -9,7 +9,7 @@ import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../../errors";
-import { editMessage } from "../../messages/edit";
+import { editMessage } from "../../lib/messages/edit";
 import { InternalInteraction } from "../interaction";
 import { parseTags } from "./utils";
 

@@ -1,29 +1,25 @@
-import { Message, prisma } from "@prisma/client";
+import { Message } from "@prisma/client";
 import { DiscordHTTPError } from "detritus-client-rest/lib/errors";
 import { Snowflake } from "discord-api-types/globals";
 import {
   APIGuildMember,
-  APIUser,
-  RESTPatchAPIChannelMessageResult,
+  RESTDeleteAPIChannelMessageResult,
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 import {
-  ExpectedFailure,
   InteractionOrRequestFinalStatus,
   ExpectedPermissionFailure,
   UnexpectedFailure,
-} from "../errors";
+} from "../../errors";
 import {
   checkAllPermissions,
   checkDefaultDiscordPermissionsPresent,
-  getMessageActionsPossible,
   Permission,
   PermissionsData,
 } from "./permissions";
-import { checkSendMessagePossible } from "./send";
 import { checkDatabaseMessage } from "./utils";
 
-interface CheckEditPossibleOptions {
+interface DeleteOptions {
   user: APIGuildMember;
   guildId: Snowflake;
   channelId: Snowflake;
@@ -32,15 +28,15 @@ interface CheckEditPossibleOptions {
 }
 
 const missingAccessMessage =
-  "You do not have access to the bot permission for editing messages via the bot on this guild. Please contact an administrator.";
+  "You do not have access to the bot permission for deleting messages via the bot on this guild. Please contact an administrator.";
 
-const checkEditPossible = async ({
+const checkDeletePossible = async ({
   user,
   guildId,
   channelId,
   instance,
   messageId,
-}: CheckEditPossibleOptions): Promise<Message> => {
+}: DeleteOptions): Promise<Message> => {
   const { idOrParentId } = await checkDefaultDiscordPermissionsPresent({
     instance,
     user,
@@ -49,7 +45,7 @@ const checkEditPossible = async ({
   });
   const databaseMessage = await instance.prisma.message.findFirst({
     where: { id: BigInt(messageId) },
-    orderBy: { editedAt: "desc" },
+    orderBy: { editedAt: "desc" }, // Needs to be ordered, as this is returned
   });
   if (!checkDatabaseMessage(databaseMessage)) {
     throw new UnexpectedFailure(
@@ -77,7 +73,7 @@ const checkEditPossible = async ({
       channelPermissions: databaseChannel?.permissions as unknown as
         | PermissionsData
         | undefined,
-      permission: Permission.EDIT_MESSAGES,
+      permission: Permission.DELETE_MESSAGES,
     })
   ) {
     throw new ExpectedPermissionFailure(
@@ -88,43 +84,34 @@ const checkEditPossible = async ({
   return databaseMessage;
 };
 
-interface EditMessageOptions extends CheckEditPossibleOptions {
-  content: string;
-  tags: string[];
-}
-
-async function editMessage({
-  content,
-  tags,
+async function deleteMessage({
   channelId,
   guildId,
   instance,
   user,
   messageId,
-}: EditMessageOptions) {
-  await checkEditPossible({ user, guildId, channelId, instance, messageId });
+}: DeleteOptions) {
+  await checkDeletePossible({ user, guildId, channelId, instance, messageId });
   try {
-    const response = (await instance.restClient.editMessage(
+    const response = (await instance.restClient.deleteMessage(
       channelId,
-      messageId,
-      {
-        content: content,
-      }
-    )) as RESTPatchAPIChannelMessageResult;
+      messageId
+    )) as RESTDeleteAPIChannelMessageResult;
     const messageBefore = (await instance.prisma.message.findFirst({
       where: { id: BigInt(messageId) },
 
       orderBy: { editedAt: "desc" },
     })) as Message;
-    // Since message will contain message history too
+    // this is also a create, as messages will form a message history
     await instance.prisma.message.create({
       data: {
         id: BigInt(messageId),
-        content: response.content,
+        content: messageBefore.content,
+        deleted: true,
 
         editedAt: new Date(Date.now()),
         editedBy: BigInt(user.user!.id),
-        tags,
+        tags: messageBefore.tags,
         channel: {
           connectOrCreate: {
             where: {
@@ -169,4 +156,4 @@ async function editMessage({
   }
 }
 
-export { checkEditPossible, editMessage };
+export { checkDeletePossible, deleteMessage };

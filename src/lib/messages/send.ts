@@ -4,7 +4,7 @@ import {
   RESTPostAPIChannelMessageResult,
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
-import limits from "../limits";
+import limits from "../../limits";
 
 import {
   checkAllPermissions,
@@ -23,7 +23,7 @@ import {
   InteractionOrRequestFinalStatus,
   LimitHit,
   UnexpectedFailure,
-} from "../errors";
+} from "../../errors";
 import { prisma } from "@prisma/client";
 
 const missingAccessMessage =

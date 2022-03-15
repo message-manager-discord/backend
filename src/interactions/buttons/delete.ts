@@ -12,7 +12,7 @@ import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../../errors";
-import { checkDeletePossible } from "../../messages/delete";
+import { checkDeletePossible } from "../../lib/messages/delete";
 import { InternalInteraction } from "../interaction";
 
 export default async function handleDeleteButton(

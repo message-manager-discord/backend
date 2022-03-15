@@ -10,12 +10,12 @@ import {
   GuildThreadTypes,
   MinimalChannel,
 } from "redis-discord-cache/dist/structures/types";
-import { Permissions } from "../consts";
+import { Permissions } from "../../consts";
 import {
   ExpectedFailure,
   ExpectedPermissionFailure,
   InteractionOrRequestFinalStatus,
-} from "../errors";
+} from "../../errors";
 import { getGuildChannelHandleErrors } from "./utils";
 
 enum Permission {

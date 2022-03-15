@@ -12,7 +12,7 @@ import {
   ExpectedPermissionFailure,
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
-} from "../errors";
+} from "../../errors";
 
 const getGuildChannelHandleErrors = async ({
   channelId,

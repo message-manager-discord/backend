@@ -7,7 +7,7 @@ import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../../errors";
-import { checkEditPossible } from "../../messages/edit";
+import { checkEditPossible } from "../../lib/messages/edit";
 import { InternalInteraction } from "../interaction";
 import {
   createModal,

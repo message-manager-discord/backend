@@ -9,7 +9,7 @@ import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../../errors";
-import { sendMessage } from "../../messages/send";
+import { sendMessage } from "../../lib/messages/send";
 import { InternalInteraction } from "../interaction";
 import { parseTags } from "./utils";
 // Guild only

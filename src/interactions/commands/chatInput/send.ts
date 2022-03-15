@@ -15,7 +15,7 @@ import {
 import {
   checkSendMessagePossible,
   ThreadOptionObject,
-} from "../../../messages/send";
+} from "../../../lib/messages/send";
 import {
   createModal,
   createTextInputWithRow,

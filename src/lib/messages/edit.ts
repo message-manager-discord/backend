@@ -1,25 +1,29 @@
-import { Message } from "@prisma/client";
+import { Message, prisma } from "@prisma/client";
 import { DiscordHTTPError } from "detritus-client-rest/lib/errors";
 import { Snowflake } from "discord-api-types/globals";
 import {
   APIGuildMember,
-  RESTDeleteAPIChannelMessageResult,
+  APIUser,
+  RESTPatchAPIChannelMessageResult,
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 import {
+  ExpectedFailure,
   InteractionOrRequestFinalStatus,
   ExpectedPermissionFailure,
   UnexpectedFailure,
-} from "../errors";
+} from "../../errors";
 import {
   checkAllPermissions,
   checkDefaultDiscordPermissionsPresent,
+  getMessageActionsPossible,
   Permission,
   PermissionsData,
 } from "./permissions";
+import { checkSendMessagePossible } from "./send";
 import { checkDatabaseMessage } from "./utils";
 
-interface DeleteOptions {
+interface CheckEditPossibleOptions {
   user: APIGuildMember;
   guildId: Snowflake;
   channelId: Snowflake;
@@ -28,15 +32,15 @@ interface DeleteOptions {
 }
 
 const missingAccessMessage =
-  "You do not have access to the bot permission for deleting messages via the bot on this guild. Please contact an administrator.";
+  "You do not have access to the bot permission for editing messages via the bot on this guild. Please contact an administrator.";
 
-const checkDeletePossible = async ({
+const checkEditPossible = async ({
   user,
   guildId,
   channelId,
   instance,
   messageId,
-}: DeleteOptions): Promise<Message> => {
+}: CheckEditPossibleOptions): Promise<Message> => {
   const { idOrParentId } = await checkDefaultDiscordPermissionsPresent({
     instance,
     user,
@@ -45,7 +49,7 @@ const checkDeletePossible = async ({
   });
   const databaseMessage = await instance.prisma.message.findFirst({
     where: { id: BigInt(messageId) },
-    orderBy: { editedAt: "desc" }, // Needs to be ordered, as this is returned
+    orderBy: { editedAt: "desc" },
   });
   if (!checkDatabaseMessage(databaseMessage)) {
     throw new UnexpectedFailure(
@@ -73,7 +77,7 @@ const checkDeletePossible = async ({
       channelPermissions: databaseChannel?.permissions as unknown as
         | PermissionsData
         | undefined,
-      permission: Permission.DELETE_MESSAGES,
+      permission: Permission.EDIT_MESSAGES,
     })
   ) {
     throw new ExpectedPermissionFailure(
@@ -84,34 +88,43 @@ const checkDeletePossible = async ({
   return databaseMessage;
 };
 
-async function deleteMessage({
+interface EditMessageOptions extends CheckEditPossibleOptions {
+  content: string;
+  tags: string[];
+}
+
+async function editMessage({
+  content,
+  tags,
   channelId,
   guildId,
   instance,
   user,
   messageId,
-}: DeleteOptions) {
-  await checkDeletePossible({ user, guildId, channelId, instance, messageId });
+}: EditMessageOptions) {
+  await checkEditPossible({ user, guildId, channelId, instance, messageId });
   try {
-    const response = (await instance.restClient.deleteMessage(
+    const response = (await instance.restClient.editMessage(
       channelId,
-      messageId
-    )) as RESTDeleteAPIChannelMessageResult;
+      messageId,
+      {
+        content: content,
+      }
+    )) as RESTPatchAPIChannelMessageResult;
     const messageBefore = (await instance.prisma.message.findFirst({
       where: { id: BigInt(messageId) },
 
       orderBy: { editedAt: "desc" },
-    })) as Message;
-    // this is also a create, as messages will form a message history
+    })) as Message; //TODO: Why is this being typecasted?
+    // Since message will contain message history too
     await instance.prisma.message.create({
       data: {
         id: BigInt(messageId),
-        content: messageBefore.content,
-        deleted: true,
+        content: response.content,
 
         editedAt: new Date(Date.now()),
         editedBy: BigInt(user.user!.id),
-        tags: messageBefore.tags,
+        tags,
         channel: {
           connectOrCreate: {
             where: {
@@ -156,4 +169,4 @@ async function deleteMessage({
   }
 }
 
-export { checkDeletePossible, deleteMessage };
+export { checkEditPossible, editMessage };
