@@ -590,7 +590,6 @@ async function handlePermissionsRemoveSubcommand({
             `Removed permission \`${
               previousPermission ? Permission[previousPermission] : "None"
             }\` for ${
-              //TODO: Check if this returns text or a number
               targetType == "role"
                 ? `role <@&${targetId}>`
                 : `user <@${targetId}>`
