@@ -16,100 +16,7 @@ import {
   ExpectedPermissionFailure,
   InteractionOrRequestFinalStatus,
 } from "../../errors";
-import { getGuildChannelHandleErrors } from "./utils";
-
-enum Permission {
-  NONE = 0,
-  VIEW_MESSAGES,
-  EDIT_MESSAGES,
-  SEND_MESSAGES,
-  DELETE_MESSAGES,
-  MANAGE_PERMISSIONS,
-}
-
-interface PermissionsData {
-  roles: Record<Snowflake, Permission>;
-  users: Record<Snowflake, Permission>;
-}
-
-function checkPermissions(
-  roles: Snowflake[],
-  userId: Snowflake,
-  permissions: PermissionsData | undefined,
-  permission: Permission
-): boolean | void {
-  // Will not return a boolean if permissions for the user or the user's roles are not set on that level
-  if (permissions) {
-    const userPermission = permissions.users[userId];
-    if (userPermission !== undefined) {
-      return userPermission >= permission;
-    }
-    let highestRolePermission: Permission | null = null; // null means no role permissions for the roles provided
-    for (const roleId of roles) {
-      const rolePermission = permissions.roles[roleId];
-      if (rolePermission !== undefined) {
-        if (highestRolePermission !== null) {
-          if (rolePermission >= highestRolePermission) {
-            highestRolePermission = rolePermission;
-          }
-        } else {
-          // Highest role permission isn't defined yet
-          highestRolePermission = rolePermission;
-        }
-      }
-    }
-    if (highestRolePermission !== null) {
-      return highestRolePermission >= permission;
-    }
-  }
-}
-
-function checkAllPermissions({
-  roles,
-  userId,
-  guildPermissions,
-  channelPermissions,
-  permission,
-}: {
-  roles: Snowflake[];
-  userId: Snowflake;
-  guildPermissions: PermissionsData | undefined;
-  channelPermissions: PermissionsData | undefined;
-  permission: Permission;
-}): boolean {
-  // Checks work by checking if the more significant permissions are present, first
-  // And then if not working down the hierarchy
-  // If the user does not have the permission (but it is present) on one of the levels then other levels are not checked
-  // Channel permissions are more significant than guild permissions
-  // User permissions are more significant than role permissions
-  // The user has the permission on each level if their permission level is greater or equal to the permission getting checked
-  // channel permissions
-  const channelPermissionResult = checkPermissions(
-    roles,
-    userId,
-    channelPermissions,
-    permission
-  );
-  // check if channelPermissionResult is a boolean
-  if (channelPermissionResult !== undefined) {
-    return channelPermissionResult;
-  }
-  // guild permissions
-  const guildPermissionResult = checkPermissions(
-    roles,
-
-    userId,
-
-    guildPermissions,
-    permission
-  );
-  // check if guildPermissionResult is a boolean
-  if (guildPermissionResult !== undefined) {
-    return guildPermissionResult;
-  }
-  // Otherwise return false
-  return false;
-}
+import { getGuildChannelHandleErrors } from "../messages/utils";
 
 function checkDiscordPermissionValue(
   existingPermission: bigint,
@@ -121,11 +28,6 @@ function checkDiscordPermissionValue(
   const otherPerm = (existingPermission & permission) === permission;
 
   return adminPerm || otherPerm;
-  return (
-    (existingPermission & permission) === permission ||
-    (existingPermission & Permissions.ADMINISTRATOR) ===
-      Permissions.ADMINISTRATOR
-  );
 }
 const missingDiscordPermissionMessage = (
   entity: string,
@@ -291,108 +193,9 @@ async function checkDefaultDiscordPermissionsPresent({
   return { idOrParentId };
 }
 
-interface GetMessageActionsPossibleOptions {
-  message: APIMessage;
-  user: APIGuildMember;
-  instance: FastifyInstance;
-  guildId: Snowflake;
-}
-
-interface GetMessageActionsPossibleResult {
-  view: boolean;
-  edit: boolean;
-  delete: boolean;
-}
-
-async function getMessageActionsPossible({
-  message,
-  user,
-  instance,
-  guildId,
-}: GetMessageActionsPossibleOptions): Promise<GetMessageActionsPossibleResult> {
-  // Check if the user has the correct permissions
-  const channelId = message.channel_id;
-  if (message.author.id !== process.env.DISCORD_CLIENT_ID!) {
-    // Env exists due to checks
-    throw new ExpectedFailure(
-      InteractionOrRequestFinalStatus.MESSAGE_AUTHOR_NOT_BOT_AUTHOR,
-      "That message was not sent via the bot."
-    );
-  }
-  const { idOrParentId } = await checkDefaultDiscordPermissionsPresent({
-    instance,
-    user,
-    guildId,
-    channelId,
-  });
-
-  const guild = await instance.prisma.guild.findUnique({
-    where: { id: BigInt(guildId) },
-    select: { permissions: true },
-  });
-  const databaseChannel = await instance.prisma.channel.findUnique({
-    where: { id: BigInt(idOrParentId) },
-    select: { permissions: true },
-  });
-
-  const allowedData = {
-    edit: checkAllPermissions({
-      roles: user.roles,
-      userId: user.user!.id,
-      guildPermissions: guild?.permissions as unknown as
-        | PermissionsData
-        | undefined,
-      channelPermissions: databaseChannel?.permissions as unknown as
-        | PermissionsData
-        | undefined,
-      permission: Permission.EDIT_MESSAGES,
-    }),
-    delete: checkAllPermissions({
-      roles: user.roles,
-      userId: user.user!.id,
-      guildPermissions: guild?.permissions as unknown as
-        | PermissionsData
-        | undefined,
-      channelPermissions: databaseChannel?.permissions as unknown as
-        | PermissionsData
-        | undefined,
-      permission: Permission.DELETE_MESSAGES,
-    }),
-
-    view: checkAllPermissions({
-      roles: user.roles,
-      userId: user.user!.id,
-      guildPermissions: guild?.permissions as unknown as
-        | PermissionsData
-        | undefined,
-      channelPermissions: databaseChannel?.permissions as unknown as
-        | PermissionsData
-        | undefined,
-      permission: Permission.VIEW_MESSAGES,
-    }),
-  };
-
-  const databaseMessage = await instance.prisma.message.findFirst({
-    where: { id: BigInt(message.id) },
-    // Don't need to worry about ordering as all we want to do is check that this message has been sent by the bot before
-  });
-  if (!databaseMessage) {
-    throw new ExpectedFailure(
-      InteractionOrRequestFinalStatus.MESSAGE_NOT_FOUND_IN_DATABASE,
-      "That message was not sent via the bot!"
-    );
-  }
-
-  return allowedData;
-}
-
 export {
-  Permission,
-  PermissionsData,
-  checkAllPermissions,
-  checkDiscordPermissions,
-  PermissionKeys,
-  getMessageActionsPossible,
+  checkDiscordPermissionValue,
   checkDefaultDiscordPermissionsPresent,
+  checkDiscordPermissions,
   ThreadOptionObject,
 };

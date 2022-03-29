@@ -3,7 +3,7 @@ import {
   checkAllPermissions,
   Permission,
   PermissionsData,
-} from "../../lib/messages/permissions";
+} from "../../lib/permissions/checks";
 
 const userId = "12587";
 const roles = ["1", "2", "5", "8", "10"];

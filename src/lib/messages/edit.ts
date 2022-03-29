@@ -1,6 +1,6 @@
 import { Message, prisma } from "@prisma/client";
 import { DiscordHTTPError } from "detritus-client-rest/lib/errors";
-import { Snowflake } from "discord-api-types/globals";
+import { Snowflake } from "discord-api-types/v9";
 import {
   APIGuildMember,
   APIUser,
@@ -13,13 +13,12 @@ import {
   ExpectedPermissionFailure,
   UnexpectedFailure,
 } from "../../errors";
+import { checkDefaultDiscordPermissionsPresent } from "../permissions/discordChecks";
 import {
   checkAllPermissions,
-  checkDefaultDiscordPermissionsPresent,
-  getMessageActionsPossible,
   Permission,
   PermissionsData,
-} from "./permissions";
+} from "../permissions/checks";
 import { checkSendMessagePossible } from "./send";
 import { checkDatabaseMessage } from "./utils";
 

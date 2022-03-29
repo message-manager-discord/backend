@@ -8,13 +8,9 @@ import limits from "../../limits";
 
 import {
   checkAllPermissions,
-  checkDefaultDiscordPermissionsPresent,
-  checkDiscordPermissions,
   Permission,
-  PermissionKeys,
   PermissionsData,
-  ThreadOptionObject,
-} from "./permissions";
+} from "../permissions/checks";
 import { DiscordHTTPError } from "detritus-client-rest/lib/errors";
 import { MinimalChannel } from "redis-discord-cache/dist/structures/types";
 import {
@@ -25,6 +21,10 @@ import {
   UnexpectedFailure,
 } from "../../errors";
 import { prisma } from "@prisma/client";
+import {
+  checkDefaultDiscordPermissionsPresent,
+  ThreadOptionObject,
+} from "../permissions/discordChecks";
 
 const missingAccessMessage =
   "You do not have access to the bot permission for sending messages via the bot on this guild. Please contact an administrator.";
@@ -80,20 +80,6 @@ async function checkSendMessagePossible({
       permission: Permission.SEND_MESSAGES,
     })
   ) {
-    // TODO: Remove below
-    const roles: Record<string, number> = {};
-    user.roles.forEach((roleId) => {
-      roles[roleId] = Permission.DELETE_MESSAGES;
-    });
-    await instance.prisma.guild.create({
-      data: {
-        id: BigInt(guildId),
-        permissions: {
-          roles: roles,
-          users: {},
-        },
-      },
-    });
     throw new ExpectedPermissionFailure(
       InteractionOrRequestFinalStatus.USER_MISSING_INTERNAL_BOT_PERMISSION,
       missingAccessMessage

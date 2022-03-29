@@ -1,6 +1,6 @@
 import { Message } from "@prisma/client";
 import { DiscordHTTPError } from "detritus-client-rest/lib/errors";
-import { Snowflake } from "discord-api-types/globals";
+import { Snowflake } from "discord-api-types/v9";
 import {
   APIGuildMember,
   RESTDeleteAPIChannelMessageResult,
@@ -11,12 +11,12 @@ import {
   ExpectedPermissionFailure,
   UnexpectedFailure,
 } from "../../errors";
+import { checkDefaultDiscordPermissionsPresent } from "../permissions/discordChecks";
 import {
   checkAllPermissions,
-  checkDefaultDiscordPermissionsPresent,
   Permission,
   PermissionsData,
-} from "./permissions";
+} from "../permissions/checks";
 import { checkDatabaseMessage } from "./utils";
 
 interface DeleteOptions {

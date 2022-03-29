@@ -3,7 +3,6 @@ import {
   APIChatInputApplicationCommandInteraction,
   APIInteraction,
   APIInteractionResponse,
-  APIInteractionResponseChannelMessageWithSource,
   APIMessageApplicationCommandGuildInteraction,
   APIMessageApplicationCommandInteraction,
   APIMessageComponentGuildInteraction,
@@ -23,6 +22,7 @@ import { FastifyRequest } from "fastify";
 import { verifyKey } from "discord-interactions";
 import handleInfoCommand from "./commands/chatInput/info";
 import handleSendCommand from "./commands/chatInput/send";
+import handleConfigCommand from "./commands/chatInput/config";
 import handleModalSend from "./modals/send";
 import { InternalInteraction } from "./interaction";
 import {
@@ -379,6 +379,7 @@ const interactionsPlugin = async (instance: FastifyInstance) => {
   // Add commands to handler
   handler.addCommand("info", handleInfoCommand);
   handler.addGuildOnlyCommand("send", handleSendCommand);
+  handler.addGuildOnlyCommand("config", handleConfigCommand);
 
   // Add message commands to handler
   handler.addGuildOnlyMessageCommand("actions", handleActionMessageCommand);

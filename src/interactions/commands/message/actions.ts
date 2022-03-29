@@ -13,7 +13,7 @@ import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../../../errors";
-import { getMessageActionsPossible } from "../../../lib/messages/permissions";
+import { getMessageActionsPossible } from "../../../lib/messages/checks";
 import { InternalInteraction } from "../../interaction";
 
 export default async function handleActionMessageCommand(
