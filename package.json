@@ -16,7 +16,7 @@
     "generate": "prisma generate",
     "lint": "eslint  --ext .js,.jsx,.ts,.tsx .",
     "format": "prettier --write .",
-    "format-check": "prettier --check ."
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@prisma/client": "^3.9.2",
