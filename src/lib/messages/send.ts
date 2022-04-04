@@ -1,6 +1,5 @@
 import {
-  APIGuildMember,
-  ChannelType,
+  APIInteractionGuildMember,
   RESTPostAPIChannelMessageResult,
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
@@ -12,15 +11,12 @@ import {
   PermissionsData,
 } from "../permissions/checks";
 import { DiscordHTTPError } from "detritus-client-rest/lib/errors";
-import { MinimalChannel } from "redis-discord-cache/dist/structures/types";
 import {
-  ExpectedFailure,
   ExpectedPermissionFailure,
   InteractionOrRequestFinalStatus,
   LimitHit,
   UnexpectedFailure,
 } from "../../errors";
-import { prisma } from "@prisma/client";
 import {
   checkDefaultDiscordPermissionsPresent,
   ThreadOptionObject,
@@ -33,7 +29,7 @@ interface CheckSendMessageOptions {
   channelId: string;
   guildId: string;
   instance: FastifyInstance;
-  user: APIGuildMember;
+  user: APIInteractionGuildMember;
   thread?: ThreadOptionObject;
 }
 interface SendMessageOptions extends CheckSendMessageOptions {
@@ -70,7 +66,7 @@ async function checkSendMessagePossible({
   if (
     !checkAllPermissions({
       roles: user.roles,
-      userId: user.user!.id,
+      userId: user.user.id,
       guildPermissions: guild?.permissions as unknown as
         | PermissionsData
         | undefined,
@@ -125,7 +121,7 @@ async function sendMessage({
         content: messageResult.content,
 
         editedAt: new Date(Date.now()),
-        editedBy: BigInt(user.user!.id),
+        editedBy: BigInt(user.user.id),
         tags,
         channel: {
           connectOrCreate: {

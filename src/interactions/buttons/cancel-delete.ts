@@ -11,8 +11,10 @@ import { FastifyInstance } from "fastify";
 import { failureRed } from "../../constants";
 import { InternalInteraction } from "../interaction";
 
+// eslint-disable-next-line @typescript-eslint/require-await
 export default async function handleCancelDeleteButton(
   internalInteraction: InternalInteraction<APIMessageComponentGuildInteraction>,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   instance: FastifyInstance
 ): Promise<APIInteractionResponse> {
   const interaction = internalInteraction.interaction;

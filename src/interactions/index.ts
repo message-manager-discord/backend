@@ -14,7 +14,7 @@ import {
   InteractionType,
   MessageFlags,
 } from "discord-api-types/v9";
-import { FastifyInstance, FastifyReply } from "fastify";
+import { FastifyInstance } from "fastify";
 import FastifyRawBody from "fastify-raw-body";
 import httpErrors from "http-errors";
 const { Forbidden } = httpErrors;
@@ -126,13 +126,17 @@ class InteractionHandler {
     };
   }
 
-  async verify(request: FastifyRequest) {
+  verify(request: FastifyRequest) {
     const signature = request.headers["x-signature-ed25519"];
     const timestamp = request.headers["x-signature-timestamp"];
-    if (typeof signature !== "string" || typeof timestamp !== "string") {
+    if (
+      typeof signature !== "string" ||
+      typeof timestamp !== "string" ||
+      !request.rawBody
+    ) {
       return false;
     }
-    return verifyKey(request.rawBody!, signature, timestamp, this._publicKey);
+    return verifyKey(request.rawBody, signature, timestamp, this._publicKey);
   }
 
   async handleInteraction(
@@ -373,7 +377,7 @@ class InteractionHandler {
 const interactionsPlugin = async (instance: FastifyInstance) => {
   const handler = new InteractionHandler(
     instance,
-    process.env.DISCORD_INTERACTIONS_PUBLIC_KEY!
+    instance.envVars.DISCORD_INTERACTIONS_PUBLIC_KEY
   );
 
   // Add commands to handler
@@ -385,7 +389,7 @@ const interactionsPlugin = async (instance: FastifyInstance) => {
   handler.addGuildOnlyMessageCommand("actions", handleActionMessageCommand);
   handler.addGuildOnlyMessageCommand("fetch", handleFetchMessageCommand);
 
-  instance.register(FastifyRawBody, {
+  await instance.register(FastifyRawBody, {
     field: "rawBody", // change the default request.rawBody property name
     global: false, // add the rawBody to every request. **Default true**
     encoding: false, // set it to false to set rawBody as a Buffer **Default utf8**
@@ -399,10 +403,10 @@ const interactionsPlugin = async (instance: FastifyInstance) => {
       config: {
         rawBody: true,
       },
+      // eslint-disable-next-line @typescript-eslint/no-misused-promises
       preHandler: async (request, reply) => {
-        if (!(await handler.verify(request))) {
-          reply.send(new Forbidden("Invalid signature"));
-          return;
+        if (!handler.verify(request)) {
+          return reply.send(new Forbidden("Invalid signature"));
         }
       },
     },
@@ -417,9 +421,7 @@ const interactionsPlugin = async (instance: FastifyInstance) => {
           status: InteractionOrRequestFinalStatus.SUCCESS,
         });
         if (isFormDataReturnData(returnData)) {
-          reply.headers(returnData.headers);
-          reply.send(returnData.body);
-          return;
+          return reply.headers(returnData.headers).send(returnData.body);
         } else {
           return returnData;
         }

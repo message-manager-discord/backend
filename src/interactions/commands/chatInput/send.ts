@@ -4,8 +4,6 @@ import {
   APIInteractionResponse,
   ApplicationCommandOptionType,
   ChannelType,
-  InteractionResponseType,
-  MessageFlags,
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 import {
@@ -56,8 +54,8 @@ export default async function handleSendCommand(
     channel.type === ChannelType.GuildPublicThread
   ) {
     threadData = {
-      parentId: channel.parent_id!,
-      locked: channel.thread_metadata?.locked!,
+      parentId: channel.parent_id,
+      locked: channel.thread_metadata?.locked,
       type: channel.type,
     };
   }

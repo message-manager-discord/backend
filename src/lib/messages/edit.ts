@@ -1,14 +1,9 @@
-import { Message, prisma } from "@prisma/client";
+import { Message } from "@prisma/client";
 import { DiscordHTTPError } from "detritus-client-rest/lib/errors";
-import { Snowflake } from "discord-api-types/v9";
-import {
-  APIGuildMember,
-  APIUser,
-  RESTPatchAPIChannelMessageResult,
-} from "discord-api-types/v9";
+import { APIInteractionGuildMember, Snowflake } from "discord-api-types/v9";
+import { RESTPatchAPIChannelMessageResult } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 import {
-  ExpectedFailure,
   InteractionOrRequestFinalStatus,
   ExpectedPermissionFailure,
   UnexpectedFailure,
@@ -19,11 +14,10 @@ import {
   Permission,
   PermissionsData,
 } from "../permissions/checks";
-import { checkSendMessagePossible } from "./send";
 import { checkDatabaseMessage } from "./utils";
 
 interface CheckEditPossibleOptions {
-  user: APIGuildMember;
+  user: APIInteractionGuildMember;
   guildId: Snowflake;
   channelId: Snowflake;
   messageId: Snowflake;
@@ -69,7 +63,7 @@ const checkEditPossible = async ({
   if (
     !checkAllPermissions({
       roles: user.roles,
-      userId: user.user!.id,
+      userId: user.user.id,
       guildPermissions: guild?.permissions as unknown as
         | PermissionsData
         | undefined,
@@ -110,11 +104,7 @@ async function editMessage({
         content: content,
       }
     )) as RESTPatchAPIChannelMessageResult;
-    const messageBefore = (await instance.prisma.message.findFirst({
-      where: { id: BigInt(messageId) },
 
-      orderBy: { editedAt: "desc" },
-    })) as Message; //TODO: Why is this being typecasted?
     // Since message will contain message history too
     await instance.prisma.message.create({
       data: {
@@ -122,7 +112,7 @@ async function editMessage({
         content: response.content,
 
         editedAt: new Date(Date.now()),
-        editedBy: BigInt(user.user!.id),
+        editedBy: BigInt(user.user.id),
         tags,
         channel: {
           connectOrCreate: {

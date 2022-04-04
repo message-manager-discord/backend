@@ -1,4 +1,5 @@
-const discordAPIBaseURL = "https://discord.com/api/v9";
+//const discordAPIBaseURL = "https://discord.com/api/v9";
+const discordAPIBaseURL = "https://discord-proxy.anothercat.workers.dev/api/v9";
 const requiredScopes = ["identify", "guilds", "guilds.members.read"];
 
 const embedPink = 12814273;

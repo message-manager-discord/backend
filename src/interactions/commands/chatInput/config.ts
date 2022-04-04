@@ -3,6 +3,7 @@ import {
   APIApplicationCommandInteractionDataIntegerOption,
   APIApplicationCommandInteractionDataMentionableOption,
   APIApplicationCommandInteractionDataSubcommandGroupOption,
+  APIApplicationCommandInteractionDataSubcommandOption,
   APIChatInputApplicationCommandGuildInteraction,
   APIInteractionDataResolvedChannel,
   APIInteractionResponse,
@@ -48,28 +49,42 @@ export default async function handleConfigCommand(
   instance: FastifyInstance
 ): Promise<APIInteractionResponse> {
   const interaction = internalInteraction.interaction;
-  const subcommand = interaction.data.options?.[0]?.name;
-  console.log(JSON.stringify(interaction));
-  switch (subcommand) {
+  const subcommand = interaction.data.options?.[0];
+  if (
+    !subcommand ||
+    subcommand.type !== ApplicationCommandOptionType.SubcommandGroup
+  ) {
+    throw new UnexpectedFailure(
+      InteractionOrRequestFinalStatus.APPLICATION_COMMAND_MISSING_EXPECTED_OPTION,
+      "Missing subcommand"
+    );
+  }
+  switch (subcommand.name) {
     case "permissions":
-      return await handlePermissionsSubcommand(internalInteraction, instance);
+      return await handlePermissionsSubcommand(
+        internalInteraction,
+        subcommand,
+        instance
+      );
 
     case "management-roles":
       return await handleManagementRolesSubcommand(
         internalInteraction,
+        subcommand,
         instance
       );
 
     default:
       throw new UnexpectedFailure(
         InteractionOrRequestFinalStatus.APPLICATION_COMMAND_UNEXPECTED_SUBCOMMAND,
-        `Invalid subcommand: \`${subcommand}\``
+        `Invalid subcommand: \`${subcommand.name}\``
       );
   }
 }
 
 async function handleManagementRolesSubcommand(
   internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>,
+  subcommandGroup: APIApplicationCommandInteractionDataSubcommandGroupOption,
   instance: FastifyInstance
 ): Promise<APIInteractionResponse> {
   const interaction = internalInteraction.interaction;
@@ -85,21 +100,20 @@ async function handleManagementRolesSubcommand(
     );
   }
 
-  const subcommandGroup = interaction.data
-    .options![0] as APIApplicationCommandInteractionDataSubcommandGroupOption;
-  // Must be a subcommand group unless something has changed on the commands list on discord
   const subcommand = subcommandGroup.options[0];
 
   switch (subcommand.name) {
     case "add":
       return await handleManagementRolesAddSubcommand({
         internalInteraction,
+        subcommand,
         instance,
       });
 
     case "remove":
       return await handleManagementRolesRemoveSubcommand({
         internalInteraction,
+        subcommand,
         instance,
       });
 
@@ -112,23 +126,22 @@ async function handleManagementRolesSubcommand(
     default:
       throw new UnexpectedFailure(
         InteractionOrRequestFinalStatus.APPLICATION_COMMAND_UNEXPECTED_SUBCOMMAND,
-        `Invalid subcommand: \`${subcommand}\``
+        `Invalid subcommand: \`${subcommand.name}\``
       );
   }
 }
 
 async function handleManagementRolesAddSubcommand({
   internalInteraction,
+  subcommand,
   instance,
 }: {
   internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>;
+  subcommand: APIApplicationCommandInteractionDataSubcommandOption;
   instance: FastifyInstance;
 }): Promise<APIInteractionResponse> {
   const interaction = internalInteraction.interaction;
-  const subcommandGroup = interaction.data
-    .options![0] as APIApplicationCommandInteractionDataSubcommandGroupOption;
-  // Must be a subcommand group unless something has changed on the commands list on discord
-  const subcommand = subcommandGroup.options[0];
+
   const roleId: string | undefined = (
     subcommand.options?.find(
       (option) =>
@@ -170,16 +183,15 @@ async function handleManagementRolesAddSubcommand({
 }
 async function handleManagementRolesRemoveSubcommand({
   internalInteraction,
+  subcommand,
   instance,
 }: {
   internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>;
+  subcommand: APIApplicationCommandInteractionDataSubcommandOption;
   instance: FastifyInstance;
 }): Promise<APIInteractionResponse> {
   const interaction = internalInteraction.interaction;
-  const subcommandGroup = interaction.data
-    .options![0] as APIApplicationCommandInteractionDataSubcommandGroupOption;
-  // Must be a subcommand group unless something has changed on the commands list on discord
-  const subcommand = subcommandGroup.options[0];
+
   const roleId: string | undefined = (
     subcommand.options?.find(
       (option) =>
@@ -245,9 +257,6 @@ async function handleManagementRolesListSubcommand({
   instance: FastifyInstance;
 }): Promise<APIInteractionResponse> {
   const interaction = internalInteraction.interaction;
-  const subcommandGroup = interaction.data
-    .options![0] as APIApplicationCommandInteractionDataSubcommandGroupOption;
-  // Must be a subcommand group unless something has changed on the commands list on discord
 
   const guild = await instance.prisma.guild.findUnique({
     where: { id: BigInt(interaction.guild_id) },
@@ -278,6 +287,7 @@ async function handleManagementRolesListSubcommand({
 
 async function handlePermissionsSubcommand(
   internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>,
+  subcommandGroup: APIApplicationCommandInteractionDataSubcommandGroupOption,
   instance: FastifyInstance
 ): Promise<APIInteractionResponse> {
   const interaction = internalInteraction.interaction;
@@ -300,9 +310,6 @@ async function handlePermissionsSubcommand(
     );
   }
 
-  const subcommandGroup = interaction.data
-    .options![0] as APIApplicationCommandInteractionDataSubcommandGroupOption;
-  // Must be a subcommand group unless something has changed on the commands list on discord
   const subcommand = subcommandGroup.options[0];
   const channelId: string | undefined = (
     subcommand.options?.find(
@@ -316,9 +323,9 @@ async function handlePermissionsSubcommand(
   switch (subcommand.name) {
     case "list":
       return await handlePermissionsListSubcommand({
-        internalInteraction,
         instance,
         channel,
+        subcommand,
         guildStored: guild,
       });
 
@@ -327,6 +334,7 @@ async function handlePermissionsSubcommand(
         internalInteraction,
         instance,
         channel,
+        subcommand,
         guildStored: guild,
       });
 
@@ -335,13 +343,14 @@ async function handlePermissionsSubcommand(
         internalInteraction,
         instance,
         channel,
+        subcommand,
         guildStored: guild,
       });
 
     default:
       throw new UnexpectedFailure(
         InteractionOrRequestFinalStatus.APPLICATION_COMMAND_UNEXPECTED_SUBCOMMAND,
-        `Invalid subcommand: \`${subcommand}\``
+        `Invalid subcommand: \`${subcommand.name}\``
       );
   }
 }
@@ -351,17 +360,16 @@ async function handlePermissionsSetSubcommand({
   instance,
   channel,
   guildStored,
+  subcommand,
 }: {
   internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>;
   instance: FastifyInstance;
   channel?: APIInteractionDataResolvedChannel;
   guildStored: Guild | null;
+  subcommand: APIApplicationCommandInteractionDataSubcommandOption;
 }): Promise<APIInteractionResponse> {
   const interaction = internalInteraction.interaction;
-  const subcommandGroup = interaction.data
-    .options![0] as APIApplicationCommandInteractionDataSubcommandGroupOption;
-  // Must be a subcommand group unless something has changed on the commands list on discord
-  const subcommand = subcommandGroup.options[0];
+
   const targetId: string | undefined = (
     subcommand.options?.find(
       (option) =>
@@ -485,17 +493,17 @@ async function handlePermissionsRemoveSubcommand({
   instance,
   channel,
   guildStored,
+  subcommand,
 }: {
   internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>;
   instance: FastifyInstance;
   channel?: APIInteractionDataResolvedChannel;
   guildStored: Guild | null;
+
+  subcommand: APIApplicationCommandInteractionDataSubcommandOption;
 }): Promise<APIInteractionResponse> {
   const interaction = internalInteraction.interaction;
-  const subcommandGroup = interaction.data
-    .options![0] as APIApplicationCommandInteractionDataSubcommandGroupOption;
-  // Must be a subcommand group unless something has changed on the commands list on discord
-  const subcommand = subcommandGroup.options[0];
+
   const targetId: string | undefined = (
     subcommand.options?.find(
       (option) =>
@@ -609,7 +617,7 @@ interface SortPermissionsReturn {
 function sortPermissions(
   permissions: Record<string, number> | undefined
 ): SortPermissionsReturn {
-  let sorted: SortPermissionsReturn = {
+  const sorted: SortPermissionsReturn = {
     delete: [],
     send: [],
     edit: [],
@@ -655,21 +663,17 @@ function hasPermissionsSet(permissions: PermissionsData) {
   );
 }
 async function handlePermissionsListSubcommand({
-  internalInteraction,
   instance,
   channel,
   guildStored,
+  subcommand,
 }: {
-  internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>;
   instance: FastifyInstance;
   channel?: APIInteractionDataResolvedChannel;
   guildStored: Guild | null;
+
+  subcommand: APIApplicationCommandInteractionDataSubcommandOption;
 }): Promise<APIInteractionResponse> {
-  const interaction = internalInteraction.interaction;
-  const subcommandGroup = interaction.data
-    .options![0] as APIApplicationCommandInteractionDataSubcommandGroupOption;
-  // Must be a subcommand group unless something has changed on the commands list on discord
-  const subcommand = subcommandGroup.options[0];
   const filterBy: string | undefined = (
     subcommand.options?.find(
       (option) =>
@@ -704,11 +708,8 @@ async function handlePermissionsListSubcommand({
   }
 
   let description = "";
-  if (filterBy === "users") {
-  }
-  // If it is roles, users are ignored. Otherwise behavior is the same
-  // If it is undefined it should still be ignored (why it's not !==)
-  else {
+
+  if (filterBy !== "users") {
     if (permissions.roles) {
       const rolesSorted = sortPermissions(permissions.roles);
       if (hasLevelPermissionsSet(permissions.roles)) {
@@ -743,11 +744,7 @@ async function handlePermissionsListSubcommand({
       description = `**No roles with bot permissions ${levelMessage}**\n`;
     }
   }
-  if (filterBy === "roles") {
-  }
-  // If it is roles, users are ignored. Otherwise behavior is the same
-  // If it is undefined it should still be ignored (why it's not !==)
-  else {
+  if (filterBy !== "roles") {
     if (permissions.users) {
       const usersSorted = sortPermissions(permissions.users);
       if (hasLevelPermissionsSet(permissions.users)) {
@@ -783,19 +780,17 @@ async function handlePermissionsListSubcommand({
         description + `\n**No users with bot permissions ${levelMessage}**\n`;
     }
   }
-  console.log(filterBy);
   // Display channels with permissions on them
   if (channels) {
     const channelsWithPermissions = channels.filter(
       (channel) => channel.permissions && hasPermissionsSet(channel.permissions)
     );
-    console.log(channelsWithPermissions);
     if (channelsWithPermissions.length > 0) {
       description =
         description +
-        `\n**Other channels with bot permissions**: ${channelsWithPermissions.map(
-          (channel) => `<#${channel.id}>`
-        )}\n`;
+        `\n**Other channels with bot permissions**: ${channelsWithPermissions
+          .map((channel) => `<#${channel.id}>`)
+          .join(", ")}\n`;
     }
   }
 

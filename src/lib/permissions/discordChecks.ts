@@ -1,6 +1,5 @@
 import {
-  APIGuildMember,
-  APIMessage,
+  APIInteractionGuildMember,
   ChannelType,
   Snowflake,
 } from "discord-api-types/v9";
@@ -92,8 +91,8 @@ async function checkDiscordPermissions({
 }
 
 interface ThreadOptionObject {
-  parentId: string;
-  locked: boolean;
+  parentId?: string | null;
+  locked?: boolean;
   type:
     | ChannelType.GuildNewsThread
     | ChannelType.GuildPublicThread
@@ -101,7 +100,7 @@ interface ThreadOptionObject {
 }
 
 interface CheckDefaultDiscordPermissionsPresentOptions {
-  user: APIGuildMember;
+  user: APIInteractionGuildMember;
   instance: FastifyInstance;
   guildId: Snowflake;
   channelId: Snowflake;
@@ -132,7 +131,6 @@ async function checkDefaultDiscordPermissionsPresent({
     const threadChannel = await getGuildChannelHandleErrors({
       channelId,
       guild: cachedGuild,
-      instance,
     });
 
     threadExists =
@@ -185,7 +183,7 @@ async function checkDefaultDiscordPermissionsPresent({
   await checkDiscordPermissions({
     guild: cachedGuild,
     channelId: idOrParentId, // This is used because permissions apply on the parent channel, and threads may not be cached
-    userId: user.user!.id,
+    userId: user.user.id,
     roles: user.roles,
     requiredBotPermissions: requiredBotPermissions,
     requiredUserPermissions: requiredUserPermissions,

@@ -1,14 +1,18 @@
-import { APIGuildMember, APIMessage, Snowflake } from "discord-api-types/v9";
+import {
+  APIInteractionGuildMember,
+  APIMessage,
+  Snowflake,
+} from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 import { ExpectedFailure, InteractionOrRequestFinalStatus } from "../../errors";
 import { checkDefaultDiscordPermissionsPresent } from "../permissions/discordChecks";
 import { checkAllPermissions } from "../permissions/checks";
-import { PermissionsData, Permission } from "../permissions/types";
+import { Permission } from "../permissions/types";
 import { getChannelPermissions, getGuildPermissions } from "../permissions/get";
 
 interface GetMessageActionsPossibleOptions {
   message: APIMessage;
-  user: APIGuildMember;
+  user: APIInteractionGuildMember;
   instance: FastifyInstance;
   guildId: Snowflake;
 }
@@ -27,7 +31,7 @@ async function getMessageActionsPossible({
 }: GetMessageActionsPossibleOptions): Promise<GetMessageActionsPossibleResult> {
   // Check if the user has the correct permissions
   const channelId = message.channel_id;
-  if (message.author.id !== process.env.DISCORD_CLIENT_ID!) {
+  if (message.author.id !== instance.envVars.DISCORD_CLIENT_ID) {
     // Env exists due to checks
     throw new ExpectedFailure(
       InteractionOrRequestFinalStatus.MESSAGE_AUTHOR_NOT_BOT_AUTHOR,
@@ -49,14 +53,14 @@ async function getMessageActionsPossible({
   const allowedData = {
     edit: checkAllPermissions({
       roles: user.roles,
-      userId: user.user!.id,
+      userId: user.user.id,
       guildPermissions,
       channelPermissions,
       permission: Permission.EDIT_MESSAGES,
     }),
     delete: checkAllPermissions({
       roles: user.roles,
-      userId: user.user!.id,
+      userId: user.user.id,
       guildPermissions,
       channelPermissions,
       permission: Permission.DELETE_MESSAGES,
@@ -64,7 +68,7 @@ async function getMessageActionsPossible({
 
     view: checkAllPermissions({
       roles: user.roles,
-      userId: user.user!.id,
+      userId: user.user.id,
       guildPermissions,
       channelPermissions,
       permission: Permission.VIEW_MESSAGES,

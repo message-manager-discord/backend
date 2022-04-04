@@ -25,8 +25,9 @@ type StoredStateResponse = {
 };
 
 const rootPath = "/auth";
-const sessionCookieKey = "mm-s-id";
 
+// Since this is a plugin
+// eslint-disable-next-line @typescript-eslint/require-await
 const addPlugin = async (instance: FastifyInstance) => {
   instance.get<{ Querystring: AuthorizeQuerystringType }>(
     `${rootPath}/authorize`,
@@ -39,11 +40,18 @@ const addPlugin = async (instance: FastifyInstance) => {
       },
     },
     async (request, reply) => {
-      const { redirect_to } = request.query as AuthorizeQuerystringType;
+      const { redirect_to } = request.query;
 
       const state = crypto.randomBytes(16).toString("hex");
-      instance.redisCache.setState(state, redirect_to ? redirect_to : null);
-      reply.redirect(307, DiscordOauthRequests.generateAuthUrl(state));
+      await instance.redisCache.setState(
+        state,
+        redirect_to ? redirect_to : null
+      );
+
+      return reply.redirect(
+        307,
+        instance.discordOauthRequests.generateAuthUrl(state)
+      );
     }
   );
   instance.get<{ Querystring: CallbackQuerystringType }>(
@@ -57,7 +65,7 @@ const addPlugin = async (instance: FastifyInstance) => {
       },
     },
     async (request, reply) => {
-      const { code, state } = request.query as CallbackQuerystringType;
+      const { code, state } = request.query;
       if (!state) {
         return new Forbidden("Missing state");
       }
@@ -65,7 +73,7 @@ const addPlugin = async (instance: FastifyInstance) => {
       if (!cachedState) {
         return new Forbidden("Cannot find state, please try again");
       }
-      instance.redisCache.deleteState(state);
+      await instance.redisCache.deleteState(state);
       const tokenResponse = await instance.discordOauthRequests.exchangeToken(
         code
       );
@@ -90,20 +98,22 @@ const addPlugin = async (instance: FastifyInstance) => {
         },
       });
 
-      const session = uuidv5(user.id, process.env.UUID_NAMESPACE as string);
+      const session = uuidv5(user.id, instance.envVars.UUID_NAMESPACE);
       await instance.redisCache.setSession(session, user.id);
       const date = new Date();
       date.setDate(date.getDate() + 7);
-      reply.setCookie("_HOST-session", session, {
-        secure: true,
-        sameSite: "none",
-        httpOnly: true,
-        path: "/",
-        expires: date,
-        signed: true,
-      });
+
       const redirectPath = cachedState.redirectPath || "/";
-      reply.redirect(307, redirectPath); // TODO redirect to redirect url
+      return reply
+        .setCookie("_HOST-session", session, {
+          secure: true,
+          sameSite: "none",
+          httpOnly: true,
+          path: "/",
+          expires: date,
+          signed: true,
+        })
+        .redirect(307, redirectPath);
     }
   );
 };

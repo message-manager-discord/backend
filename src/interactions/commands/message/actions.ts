@@ -1,6 +1,5 @@
 import {
   APIButtonComponent,
-  APIChatInputApplicationCommandGuildInteraction,
   APIInteractionResponse,
   APIMessageApplicationCommandGuildInteraction,
   ButtonStyle,

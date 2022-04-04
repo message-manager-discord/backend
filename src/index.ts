@@ -1,6 +1,6 @@
 import fastify, { FastifyInstance } from "fastify";
 
-import { check } from "./envCheck";
+import envPlugin from "./plugins/envCheck";
 import versionOnePlugin from "./v1";
 import fastifyAuth from "fastify-auth";
 import authPlugin from "./plugins/authentication";
@@ -18,68 +18,55 @@ const instance: FastifyInstance = fastify({
   logger: true,
 });
 
-const requiredVars = [
-  "UUID_NAMESPACE",
-  "COOKIE_SECRET",
-  "DISCORD_TOKEN",
-  "DISCORD_CACHE_REDIS_HOST",
-  "DISCORD_CACHE_REDIS_PORT",
-  "BACKEND_REDIS_HOST",
-  "BACKEND_REDIS_PORT",
-  "DISCORD_CLIENT_ID",
-  "DISCORD_CLIENT_SECRET",
-  "DISCORD_INTERACTIONS_PUBLIC_KEY",
-  "BASE_API_URL",
-  "METRICS_AUTH_TOKEN",
-  "PORT",
-  "HOST",
-];
-
-check(requiredVars); // Confirm that all required environment variables are set
+await instance.register(envPlugin); // Load env variables
 
 // These are plugins that are separate from versioning
-instance.register(prismaPlugin);
-instance.register(discordRestPlugin, {
-  detritus: { token: process.env.DISCORD_TOKEN },
+await instance.register(prismaPlugin);
+await instance.register(discordRestPlugin, {
+  detritus: { token: instance.envVars.DISCORD_TOKEN },
 });
-instance.register(redisRestPlugin, {
+await instance.register(redisRestPlugin, {
   redis: {
-    host: process.env.BACKEND_REDIS_HOST,
-    port: process.env.BACKEND_REDIS_PORT,
+    host: instance.envVars.BACKEND_REDIS_HOST,
+    port: instance.envVars.BACKEND_REDIS_PORT,
   },
 });
-instance.register(discordRedisCachePlugin, {
+await instance.register(discordRedisCachePlugin, {
   redis: {
-    host: process.env.DISCORD_CACHE_REDIS_HOST,
-    port: process.env.DISCORD_CACHE_REDIS_PORT,
+    host: instance.envVars.DISCORD_CACHE_REDIS_HOST,
+    port: instance.envVars.DISCORD_CACHE_REDIS_PORT,
   },
 });
 
-instance.register(fastifyCookie, {
-  secret: process.env.COOKIE_SECRET, // for cookies signature
+await instance.register(fastifyCookie, {
+  secret: instance.envVars.COOKIE_SECRET, // for cookies signature
   parseOptions: {}, // options for parsing cookies
 } as FastifyCookieOptions);
-instance.register(fastifyCors, {
+await instance.register(fastifyCors, {
   origin: true,
   methods: ["GET", "PUT", "POST", "DELETE", "PATCH"],
   credentials: true,
 });
 
-instance.register(authPlugin);
-instance.register(fastifyAuth);
+await instance.register(authPlugin);
+await instance.register(fastifyAuth);
 
-instance.register(metricsPlugin);
+await instance.register(metricsPlugin);
 
-instance.register(interactionsPlugin);
+await instance.register(interactionsPlugin);
 
-instance.register(authRoutePlugin);
+await instance.register(authRoutePlugin);
 
-instance.register(versionOnePlugin, { prefix: "/v1" });
+await instance.register(versionOnePlugin, { prefix: "/v1" });
 
-instance.listen(process.env.PORT!, process.env.HOST!, function (err, address) {
-  if (err) {
-    console.error(err);
-    process.exit(1);
+instance.listen(
+  instance.envVars.PORT,
+  instance.envVars.HOST,
+  function (err, address) {
+    if (err) {
+      console.error(err);
+      process.exit(1);
+    }
+    instance.log.info(`Server is now listening on ${address}`);
   }
-  instance.log.info(`Server is now listening on ${address}`);
-});
+);

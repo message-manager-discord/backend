@@ -3,18 +3,17 @@ import {
   APIInteractionResponse,
   APIMessageActionRowComponent,
   APIMessageComponentGuildInteraction,
-  ButtonStyle,
   ComponentType,
   InteractionResponseType,
   MessageFlags,
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
-import { embedPink, successGreen } from "../../constants";
+import { successGreen } from "../../constants";
 import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../../errors";
-import { checkDeletePossible, deleteMessage } from "../../lib/messages/delete";
+import { deleteMessage } from "../../lib/messages/delete";
 import { InternalInteraction } from "../interaction";
 
 export default async function handleConfirmDeleteButton(

@@ -19,6 +19,7 @@ interface RestPluginOptions extends FastifyPluginOptions {
 }
 
 const discordRestPlugin = fp(
+  // eslint-disable-next-line @typescript-eslint/require-await
   async (server: FastifyInstance, options?: RestPluginOptions) => {
     if (!options?.detritus?.token) {
       throw new Error("Token not set");

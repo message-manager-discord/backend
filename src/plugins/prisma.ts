@@ -12,7 +12,7 @@ declare module "fastify" {
   }
 }
 
-const prismaPlugin: FastifyPluginAsync = fp(async (server, options) => {
+const prismaPlugin: FastifyPluginAsync = fp(async (server) => {
   const prisma = new prismaClientImport.PrismaClient();
 
   // Add encryption middleware

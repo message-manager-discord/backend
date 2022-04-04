@@ -21,8 +21,10 @@ import { FormDataEncoder } from "form-data-encoder";
 
 import { FormDataReturnData } from "../../types";
 
+// eslint-disable-next-line @typescript-eslint/require-await
 export default async function handleFetchMessageCommand(
   internalInteraction: InternalInteraction<APIMessageApplicationCommandGuildInteraction>,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   instance: FastifyInstance
 ): Promise<FormDataReturnData | APIInteractionResponse> {
   const interaction = internalInteraction.interaction;

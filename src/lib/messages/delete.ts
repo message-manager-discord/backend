@@ -1,10 +1,7 @@
 import { Message } from "@prisma/client";
 import { DiscordHTTPError } from "detritus-client-rest/lib/errors";
-import { Snowflake } from "discord-api-types/v9";
-import {
-  APIGuildMember,
-  RESTDeleteAPIChannelMessageResult,
-} from "discord-api-types/v9";
+import { APIInteractionGuildMember, Snowflake } from "discord-api-types/v9";
+
 import { FastifyInstance } from "fastify";
 import {
   InteractionOrRequestFinalStatus,
@@ -20,7 +17,7 @@ import {
 import { checkDatabaseMessage } from "./utils";
 
 interface DeleteOptions {
-  user: APIGuildMember;
+  user: APIInteractionGuildMember;
   guildId: Snowflake;
   channelId: Snowflake;
   messageId: Snowflake;
@@ -66,7 +63,7 @@ const checkDeletePossible = async ({
   if (
     !checkAllPermissions({
       roles: user.roles,
-      userId: user.user!.id,
+      userId: user.user.id,
       guildPermissions: guild?.permissions as unknown as
         | PermissionsData
         | undefined,
@@ -93,10 +90,7 @@ async function deleteMessage({
 }: DeleteOptions) {
   await checkDeletePossible({ user, guildId, channelId, instance, messageId });
   try {
-    const response = (await instance.restClient.deleteMessage(
-      channelId,
-      messageId
-    )) as RESTDeleteAPIChannelMessageResult;
+    await instance.restClient.deleteMessage(channelId, messageId);
     const messageBefore = (await instance.prisma.message.findFirst({
       where: { id: BigInt(messageId) },
 
@@ -110,7 +104,7 @@ async function deleteMessage({
         deleted: true,
 
         editedAt: new Date(Date.now()),
-        editedBy: BigInt(user.user!.id),
+        editedBy: BigInt(user.user.id),
         tags: messageBefore.tags,
         channel: {
           connectOrCreate: {

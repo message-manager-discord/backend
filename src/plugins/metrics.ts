@@ -1,8 +1,11 @@
 import fp from "fastify-plugin";
 
-import { FastifyInstance, FastifyPluginOptions, FastifyRequest } from "fastify";
+import { FastifyInstance } from "fastify";
 
-import { register, Gauge, Counter, Summary, LabelValues } from "prom-client";
+import { register, Counter, Summary } from "prom-client";
+
+import httpErrors from "http-errors";
+const { Unauthorized } = httpErrors;
 
 const metricsPrefix = "api_";
 
@@ -30,7 +33,7 @@ declare module "fastify" {
     metrics: Metrics;
   }
 }
-
+// eslint-disable-next-line @typescript-eslint/require-await
 const discordRestPlugin = fp(async (instance: FastifyInstance) => {
   const metricClient = new Metrics();
 
@@ -39,11 +42,11 @@ const discordRestPlugin = fp(async (instance: FastifyInstance) => {
   instance.get("/metrics", async (request, reply) => {
     if (
       request.headers.authorization?.replace(/BEARER\s*/i, "") !==
-      process.env.METRICS_AUTH_TOKEN
+      instance.envVars.METRICS_AUTH_TOKEN
     ) {
-      reply.code(401).send("Unauthorized");
+      throw new Unauthorized("Unauthorized");
     }
-    reply.type("text/plain").send(await register.metrics());
+    return reply.type("text/plain").send(await register.metrics());
   });
   instance.addHook("onResponse", async (request, reply) => {
     metricClient.requestDuration.observe(

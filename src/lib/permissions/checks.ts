@@ -1,23 +1,10 @@
-import {
-  APIGuildMember,
-  APIMessage,
-  ChannelType,
-  Snowflake,
-} from "discord-api-types/v9";
+import { Snowflake } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
-import { Guild } from "redis-discord-cache";
 import {
-  GuildThreadTypes,
-  MinimalChannel,
-} from "redis-discord-cache/dist/structures/types";
-import { Permissions } from "../../consts";
-import {
-  ExpectedFailure,
   ExpectedPermissionFailure,
   InteractionOrRequestFinalStatus,
 } from "../../errors";
 import { Permission, PermissionsData } from "./types";
-import { getGuildChannelHandleErrors } from "../messages/utils";
 
 function checkPermissions(
   roles: Snowflake[],

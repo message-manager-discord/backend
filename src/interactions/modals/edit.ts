@@ -19,7 +19,7 @@ export default async function handleModalEdit(
 ): Promise<APIInteractionResponse> {
   const interaction = internalInteraction.interaction;
   const messageId: string | undefined =
-    interaction.data.custom_id.split(":")[1];
+    interaction.data.custom_id.split(":")[1]; // TODO: Include the channel id in the custom_id
 
   if (!messageId) {
     throw new UnexpectedFailure(
@@ -41,13 +41,19 @@ export default async function handleModalEdit(
       "No content on modal submit"
     );
   }
+  if (!interaction.channel_id) {
+    throw new UnexpectedFailure(
+      InteractionOrRequestFinalStatus.GENERIC_UNEXPECTED_FAILURE,
+      "Missing channel_id on modal submit"
+    ); // Not sure why this might happen
+  }
   if (!tags) {
     tags = "";
   }
   await editMessage({
     content,
     tags: parseTags(tags),
-    channelId: interaction.channel_id!,
+    channelId: interaction.channel_id,
     instance,
     user: interaction.member,
     messageId,

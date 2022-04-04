@@ -24,6 +24,7 @@ const GetUserGuildsQuerystring = Type.Object({
 });
 type GetUserGuildsQuerystringType = Static<typeof GetUserGuildsQuerystring>;
 
+// eslint-disable-next-line @typescript-eslint/require-await
 const userPlugin = async (instance: FastifyInstance) => {
   instance.addHook(
     "preHandler",
@@ -59,7 +60,9 @@ const userPlugin = async (instance: FastifyInstance) => {
         },
       },
     },
-    async (request, reply) => {
+    async (request) => {
+      // Can be disabled as these routes are under authentication, and therefore will have a user
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const requestUser = request.user!;
       const userId = request.params.id;
       let user: UserRequestData;
@@ -67,23 +70,18 @@ const userPlugin = async (instance: FastifyInstance) => {
         user = requestUser;
       } else {
         if (!requestUser.staff) {
-          reply.send(
-            new Forbidden("You don't have permission to get other users")
-          );
-          return;
+          throw new Forbidden("You don't have permission to get other users");
         }
 
         if (!/^\d+$/.test(userId)) {
           // test for number
-          reply.send(new BadRequest("Invalid user id"));
-          return;
+          throw new BadRequest("Invalid user id");
         }
         const userStored = await instance.prisma.user.findUnique({
           where: { id: BigInt(userId) },
         });
         if (!userStored || !userStored.oauthToken) {
-          reply.send(new NotFound("User not found"));
-          return;
+          throw new NotFound("User not found");
         }
         user = {
           userId: userStored.id.toString(),
@@ -134,14 +132,16 @@ const userPlugin = async (instance: FastifyInstance) => {
       },
     },
     async (request, reply) => {
+      // Can be disabled as these routes are under authentication, and therefore will have a user
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const requestUser = request.user!;
       const userId = request.params.id;
       if (userId === "@me") {
-        reply.send(new Forbidden("You can't edit your own user"));
+        throw new BadRequest("You can't edit your own user");
       }
 
       if (!requestUser.staff) {
-        reply.send(new Forbidden("You don't have permission to edit users"));
+        throw new Forbidden("You don't have permission to edit users");
       }
 
       try {
@@ -151,10 +151,10 @@ const userPlugin = async (instance: FastifyInstance) => {
         });
       } catch (e) {
         if (e instanceof PrismaClientKnownRequestError) {
-          reply.send(new NotFound("User not found"));
+          throw new NotFound("User not found");
         }
       }
-      reply.send(204);
+      return reply.send(204);
     }
   );
   instance.get<{
@@ -195,7 +195,9 @@ const userPlugin = async (instance: FastifyInstance) => {
         },
       },
     },
-    async (request, reply) => {
+    async (request) => {
+      // Can be disabled as these routes are under authentication, and therefore will have a user
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const user = request.user!;
       const guilds = await instance.discordOauthRequests.fetchUserGuilds(user);
       const filteredGuilds = [];

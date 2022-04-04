@@ -4,14 +4,16 @@ import fp from "fastify-plugin";
 import { Snowflake } from "discord-api-types/v9";
 import { StoredStateResponse } from "../authRoutes";
 
+type ArgType = Array<string | number>;
 class RedisCache {
   private _client: Redis;
   constructor(host: string, port: number) {
     this._client = new RedisClient(port, host, undefined);
   }
-  private async _sendCommand(command: string, ...args: any[]): Promise<any> {
+
+  private async _sendCommand(command: string, args: ArgType): Promise<unknown> {
     //this.logger.debug(`Sending redis command: ${command} with args: ${args}`);
-    const data = await this._client.send_command(command, ...args);
+    const data = (await this._client.send_command(command, ...args)) as unknown;
     //this.logger.debug(
     //  `Received data: ${data} from redis command: ${command} with args ${args}`
     //);
@@ -23,7 +25,7 @@ class RedisCache {
   }: {
     key: string;
     path?: string | string[];
-  }): Promise<any> {
+  }): Promise<unknown> {
     let args = [key];
     if (typeof path === "string") {
       args.push(path);
@@ -41,7 +43,7 @@ class RedisCache {
     path?: string;
     value: string;
   }): Promise<void> {
-    return this._sendCommand("JSON.SET", [key, path, value]);
+    return this._sendCommand("JSON.SET", [key, path, value]) as Promise<void>;
   }
 
   private _delete({
@@ -51,7 +53,7 @@ class RedisCache {
     key: string;
     path?: string;
   }): Promise<number> {
-    return this._sendCommand("JSON.DEL", [key, path]);
+    return this._sendCommand("JSON.DEL", [key, path]) as Promise<number>;
   }
   private _setExpiry({
     key,
@@ -60,10 +62,10 @@ class RedisCache {
     key: string;
     expiry: number;
   }): Promise<void> {
-    return this._sendCommand("PEXPIRE", [key, expiry]);
+    return this._sendCommand("PEXPIRE", [key, expiry]) as Promise<void>;
   }
   async _getExpiry(key: string): Promise<number | null> {
-    const ttl = await this._sendCommand("PTTL", [key]);
+    const ttl = (await this._sendCommand("PTTL", [key])) as number;
     if (ttl < 0) {
       return null;
     }
@@ -81,7 +83,7 @@ class RedisCache {
   async getState(state: string): Promise<StoredStateResponse | undefined> {
     const data = await this._get({ key: `state:${state}` });
     if (data) {
-      return { redirectPath: JSON.parse(data) };
+      return { redirectPath: JSON.parse(data as string) as string };
     }
     return undefined;
   }
@@ -100,7 +102,7 @@ class RedisCache {
     session: string
   ): Promise<{ userId: Snowflake; expiry: number } | null> {
     const userId = JSON.parse(
-      await this._get({ key: `session:${session}` })
+      (await this._get({ key: `session:${session}` })) as string
     ) as Snowflake | null;
     if (!userId) {
       return null;
@@ -111,13 +113,15 @@ class RedisCache {
     };
   }
 
-  async getOauthCache(path: string, userId: Snowflake): Promise<any> {
-    return JSON.parse(await this._get({ key: `oauth:${path}:${userId}` }));
+  async getOauthCache(path: string, userId: Snowflake): Promise<unknown> {
+    return JSON.parse(
+      (await this._get({ key: `oauth:${path}:${userId}` })) as string
+    ) as unknown;
   }
   async setOauthCache(
     path: string,
     userId: Snowflake,
-    data: any,
+    data: unknown,
     expiry: number = 1000 * 60 * 3
   ): Promise<void> {
     await this._set({
@@ -146,6 +150,7 @@ interface RedisPluginOptions extends FastifyPluginOptions {
 }
 
 const redisRestPlugin = fp(
+  // eslint-disable-next-line @typescript-eslint/require-await
   async (server: FastifyInstance, options?: RedisPluginOptions) => {
     if (!options?.redis?.port || !options?.redis?.host) {
       throw new Error("Host or port not set");

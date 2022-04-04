@@ -163,7 +163,7 @@ export default async function handleInfoCommand(
     default:
       throw new UnexpectedFailure(
         InteractionOrRequestFinalStatus.APPLICATION_COMMAND_UNEXPECTED_SUBCOMMAND,
-        `Invalid subcommand: \`${subcommand}\``
+        `Invalid subcommand: \`${subcommand || "no subcommand"}\``
       );
   }
 }

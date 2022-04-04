@@ -3,6 +3,7 @@ import fastifySwagger from "fastify-swagger";
 import rootPlugin from "./routes/rootTesting";
 import userPlugin from "./routes/user";
 
+// eslint-disable-next-line @typescript-eslint/require-await
 const versionOnePlugin = async (instance: FastifyInstance) => {
   instance.addSchema({
     $id: "responses.unauthorized",
@@ -55,6 +56,7 @@ const versionOnePlugin = async (instance: FastifyInstance) => {
     },
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-floating-promises
   instance.register(fastifySwagger, {
     routePrefix: "/docs",
     openapi: {
@@ -90,7 +92,9 @@ const versionOnePlugin = async (instance: FastifyInstance) => {
     exposeRoute: true,
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-floating-promises
   instance.register(rootPlugin);
+  // eslint-disable-next-line @typescript-eslint/no-floating-promises
   instance.register(userPlugin);
 };
 

@@ -1,5 +1,4 @@
 import { Message } from "@prisma/client";
-import { FastifyInstance } from "fastify";
 import { Guild } from "redis-discord-cache";
 import {
   ChannelNotFound,
@@ -17,11 +16,9 @@ import {
 const getGuildChannelHandleErrors = async ({
   channelId,
   guild,
-  instance,
 }: {
   channelId: string;
   guild: Guild;
-  instance: FastifyInstance;
 }): Promise<MinimalChannel> => {
   let channel: MinimalChannel | null;
 

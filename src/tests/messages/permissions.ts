@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-floating-promises */
+
 import tap from "tap";
 import {
   checkAllPermissions,
