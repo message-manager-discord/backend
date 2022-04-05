@@ -172,34 +172,11 @@
     "description": "Information Commands",
     "options": [
       {
-        "type": 1,
-        "name": "docs",
-        "description": "Bot documentation"
-      },
-      {
-        "type": 1,
-        "name": "info",
-        "description": "Bot information"
-      },
-      {
-        "type": 1,
-        "name": "invite",
-        "description": "Bot invite"
-      },
-      {
-        "type": 1,
-        "name": "privacy",
-        "description": "Privacy information"
-      },
-      {
-        "type": 1,
-        "name": "source",
-        "description": "Bot's source code"
-      },
-      {
-        "type": 1,
-        "name": "support",
-        "description": "Join my support server!"
+        "name": "tag",
+        "description": "The name of the information you are trying to find.",
+        "type": 3,
+        "autocomplete": true,
+        "required": true
       }
     ]
   }

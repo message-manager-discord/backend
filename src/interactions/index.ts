@@ -1,4 +1,7 @@
 import {
+  APIApplicationCommandAutocompleteGuildInteraction,
+  APIApplicationCommandAutocompleteInteraction,
+  APIApplicationCommandAutocompleteResponse,
   APIChatInputApplicationCommandGuildInteraction,
   APIChatInputApplicationCommandInteraction,
   APIInteraction,
@@ -20,7 +23,9 @@ import httpErrors from "http-errors";
 const { Forbidden } = httpErrors;
 import { FastifyRequest } from "fastify";
 import { verifyKey } from "discord-interactions";
-import handleInfoCommand from "./commands/chatInput/info";
+import handleInfoCommand, {
+  handleInfoAutocomplete,
+} from "./commands/chatInput/info";
 import handleSendCommand from "./commands/chatInput/send";
 import handleConfigCommand from "./commands/chatInput/config";
 import handleModalSend from "./modals/send";
@@ -55,6 +60,13 @@ class InteractionHandler {
         instance: FastifyInstance
       ) => Promise<APIInteractionResponse>;
       guildOnly?: boolean;
+      autocompleteHandler?: (
+        interaction: InternalInteraction<
+          | APIApplicationCommandAutocompleteInteraction
+          | APIApplicationCommandAutocompleteGuildInteraction
+        >,
+        instance: FastifyInstance
+      ) => Promise<APIApplicationCommandAutocompleteResponse>;
     };
   } = {};
   private _messageCommands: {
@@ -78,10 +90,15 @@ class InteractionHandler {
     handler: (
       interaction: InternalInteraction<APIChatInputApplicationCommandInteraction>,
       instance: FastifyInstance
-    ) => Promise<APIInteractionResponse>
+    ) => Promise<APIInteractionResponse>,
+    autocompleteHandler?: (
+      interaction: InternalInteraction<APIApplicationCommandAutocompleteInteraction>,
+      instance: FastifyInstance
+    ) => Promise<APIApplicationCommandAutocompleteResponse>
   ) {
     this._commands[name] = {
       handler,
+      autocompleteHandler,
     };
   }
   addGuildOnlyCommand(
@@ -89,13 +106,21 @@ class InteractionHandler {
     handler: (
       interaction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>,
       instance: FastifyInstance
-    ) => Promise<APIInteractionResponse>
+    ) => Promise<APIInteractionResponse>,
+    autocompleteHandler?: (
+      interaction: InternalInteraction<APIApplicationCommandAutocompleteGuildInteraction>,
+      instance: FastifyInstance
+    ) => Promise<APIApplicationCommandAutocompleteResponse>
   ) {
     this._commands[name] = {
       handler: handler as (
         interaction: InternalInteraction<APIChatInputApplicationCommandInteraction>,
         instance: FastifyInstance
       ) => Promise<APIInteractionResponse>, // For some weird reason the types don't like to cross over
+      autocompleteHandler: autocompleteHandler as (
+        interaction: InternalInteraction<APIApplicationCommandAutocompleteInteraction>,
+        instance: FastifyInstance
+      ) => Promise<APIApplicationCommandAutocompleteResponse>,
       guildOnly: true,
     };
   }
@@ -169,10 +194,17 @@ class InteractionHandler {
         return await this.handleComponent(
           internalInteraction as InternalInteraction<APIMessageComponentInteraction>
         );
+      case InteractionType.ApplicationCommandAutocomplete:
+        return await this.handleAutocomplete(
+          internalInteraction as InternalInteraction<APIApplicationCommandAutocompleteInteraction>
+        );
       default:
         throw new UnexpectedFailure(
           InteractionOrRequestFinalStatus.INTERACTION_TYPE_MISSING_HANDLER,
-          `No handler for interaction type \`${interaction.type}\``
+
+          // eslint doesn't like this because it thinks that there are no other types. However the types are subject to change from discord's api
+          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+          `No handler for interaction type \`${(interaction as any).type}\``
         );
     }
   }
@@ -221,6 +253,33 @@ class InteractionHandler {
         );
       }
       const data = this._commands[interaction.data.name].handler(
+        internalInteraction,
+        this._client
+      );
+      internalInteraction.responded = true;
+      return data;
+    }
+
+    throw new UnexpectedFailure(
+      InteractionOrRequestFinalStatus.APPLICATION_COMMAND_MISSING_HANDLER,
+      `No handler for command \`${interaction.data.name}\``
+    );
+  }
+  async handleAutocomplete(
+    internalInteraction: InternalInteraction<APIApplicationCommandAutocompleteInteraction>
+  ): Promise<APIInteractionResponse> {
+    const interaction = internalInteraction.interaction;
+    const command = this._commands[interaction.data.name];
+
+    if (command && command.autocompleteHandler) {
+      // todo: metrics
+      if (command.guildOnly && !interaction.guild_id) {
+        throw new ExpectedFailure(
+          InteractionOrRequestFinalStatus.DM_INTERACTION_RECEIVED_WHEN_SHOULD_BE_GUILD_ONLY,
+          ":exclamation: This autocomplete command is only available in guilds"
+        );
+      }
+      const data = command.autocompleteHandler(
         internalInteraction,
         this._client
       );
@@ -381,7 +440,7 @@ const interactionsPlugin = async (instance: FastifyInstance) => {
   );
 
   // Add commands to handler
-  handler.addCommand("info", handleInfoCommand);
+  handler.addCommand("info", handleInfoCommand, handleInfoAutocomplete);
   handler.addGuildOnlyCommand("send", handleSendCommand);
   handler.addGuildOnlyCommand("config", handleConfigCommand);
 
