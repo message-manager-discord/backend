@@ -5,6 +5,37 @@
     "description": "Bot configuration",
     "options": [
       {
+        "name": "logging-channel",
+        "type": 2,
+        "description": "Manage the channel for logging actions taken through the bot to",
+        "options": [
+          {
+            "name": "set",
+            "type": 1,
+            "description": "Set the channel for logging actions taken through the bot to",
+            "options": [
+              {
+                "name": "channel",
+                "type": 7,
+                "description": "The channel to log to",
+                "channel_types": [0, 5],
+                "required": true
+              }
+            ]
+          },
+          {
+            "name": "remove",
+            "type": 1,
+            "description": "Remove the logging channel"
+          },
+          {
+            "name": "get",
+            "type": 1,
+            "description": "Get the current logging channel"
+          }
+        ]
+      },
+      {
         "name": "management-roles",
         "type": 2,
         "description": "Manage who can manage permissions, and other configuration. Require administrator permissions.",

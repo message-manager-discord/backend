@@ -1,4 +1,5 @@
 import {
+  APIEmbed,
   APIInteractionGuildMember,
   RESTPostAPIChannelMessageResult,
 } from "discord-api-types/v9";
@@ -21,6 +22,7 @@ import {
   checkDefaultDiscordPermissionsPresent,
   ThreadOptionObject,
 } from "../permissions/discordChecks";
+import { embedPink } from "../../constants";
 
 const missingAccessMessage =
   "You do not have access to the bot permission for sending messages via the bot on this guild. Please contact an administrator.";
@@ -148,6 +150,23 @@ async function sendMessage({
         },
       },
     });
+    const embed: APIEmbed = {
+      color: embedPink,
+      title: "Message Edited",
+      description:
+        `Message (${messageResult.id}) edited` +
+        `\n**Content**\n:${messageResult.content}`,
+      fields: [
+        { name: "Action By:", value: `<@${user.user.id}>`, inline: true },
+        { name: "Channel:", value: `<#${channelId}>`, inline: true },
+      ],
+    };
+    console.log(embed.description?.length);
+    // Send log message
+    await instance.loggingManager.sendLogMessage({
+      guildId: guildId,
+      embeds: [embed],
+    });
   } catch (error) {
     if (error instanceof DiscordHTTPError) {
       if (error.code === 404) {
@@ -155,7 +174,7 @@ async function sendMessage({
           InteractionOrRequestFinalStatus.CHANNEL_NOT_FOUND_DISCORD_HTTP,
           "Channel not found"
         );
-      } else if (error.code === 403) {
+      } else if (error.code === 403 || error.code === 50013) {
         throw new UnexpectedFailure(
           InteractionOrRequestFinalStatus.MISSING_PERMISSIONS_DISCORD_HTTP_SEND_MESSAGE,
           error.message

@@ -1,6 +1,10 @@
 import { Message } from "@prisma/client";
 import { DiscordHTTPError } from "detritus-client-rest/lib/errors";
-import { APIInteractionGuildMember, Snowflake } from "discord-api-types/v9";
+import {
+  APIEmbed,
+  APIInteractionGuildMember,
+  Snowflake,
+} from "discord-api-types/v9";
 
 import { FastifyInstance } from "fastify";
 import {
@@ -15,6 +19,7 @@ import {
   PermissionsData,
 } from "../permissions/checks";
 import { checkDatabaseMessage } from "./utils";
+import { embedPink } from "../../constants";
 
 interface DeleteOptions {
   user: APIInteractionGuildMember;
@@ -131,6 +136,22 @@ async function deleteMessage({
         },
       },
     });
+    const embed: APIEmbed = {
+      color: embedPink,
+      title: "Message Deleted",
+      description:
+        `Message (${messageId}) deleted` +
+        `\n\n**Message Content**\n${messageBefore.content}`,
+      fields: [
+        { name: "Action By:", value: `<@${user.user.id}>`, inline: true },
+        { name: "Channel:", value: `<#${channelId}>`, inline: true },
+      ],
+    };
+    // Send log message
+    await instance.loggingManager.sendLogMessage({
+      guildId: guildId,
+      embeds: [embed],
+    });
   } catch (error) {
     if (error instanceof DiscordHTTPError) {
       if (error.code === 404) {
@@ -138,7 +159,7 @@ async function deleteMessage({
           InteractionOrRequestFinalStatus.CHANNEL_NOT_FOUND_DISCORD_HTTP,
           "Channel not found"
         );
-      } else if (error.code === 403) {
+      } else if (error.code === 403 || error.code === 50013) {
         throw new UnexpectedFailure(
           InteractionOrRequestFinalStatus.MISSING_PERMISSIONS_DISCORD_HTTP_SEND_MESSAGE,
           error.message

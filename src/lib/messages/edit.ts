@@ -1,6 +1,10 @@
 import { Message } from "@prisma/client";
 import { DiscordHTTPError } from "detritus-client-rest/lib/errors";
-import { APIInteractionGuildMember, Snowflake } from "discord-api-types/v9";
+import {
+  APIEmbed,
+  APIInteractionGuildMember,
+  Snowflake,
+} from "discord-api-types/v9";
 import { RESTPatchAPIChannelMessageResult } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 import {
@@ -15,6 +19,7 @@ import {
   PermissionsData,
 } from "../permissions/checks";
 import { checkDatabaseMessage } from "./utils";
+import { embedPink } from "../../constants";
 
 interface CheckEditPossibleOptions {
   user: APIInteractionGuildMember;
@@ -104,6 +109,10 @@ async function editMessage({
         content: content,
       }
     )) as RESTPatchAPIChannelMessageResult;
+    const messageBefore = await instance.prisma.message.findFirst({
+      where: { id: BigInt(messageId) },
+      orderBy: { editedAt: "desc" },
+    });
 
     // Since message will contain message history too
     await instance.prisma.message.create({
@@ -139,6 +148,26 @@ async function editMessage({
         },
       },
     });
+    const embed: APIEmbed = {
+      color: embedPink,
+      title: "Message Edited",
+      description:
+        `Message (${messageId}) edited` +
+        `\n**Original Content**\n:${
+          messageBefore?.content || "" //This should never be null as the message is being edited
+        }` +
+        `\n**New Content**\n:${response.content}`,
+      fields: [
+        { name: "Action By:", value: `<@${user.user.id}>`, inline: true },
+        { name: "Channel:", value: `<#${channelId}>`, inline: true },
+      ],
+    };
+    console.log(embed.description?.length);
+    // Send log message
+    await instance.loggingManager.sendLogMessage({
+      guildId: guildId,
+      embeds: [embed],
+    });
   } catch (error) {
     if (error instanceof DiscordHTTPError) {
       if (error.code === 404) {
@@ -146,7 +175,7 @@ async function editMessage({
           InteractionOrRequestFinalStatus.CHANNEL_NOT_FOUND_DISCORD_HTTP,
           "Channel not found"
         );
-      } else if (error.code === 403) {
+      } else if (error.code === 403 || error.code === 50013) {
         throw new UnexpectedFailure(
           InteractionOrRequestFinalStatus.MISSING_PERMISSIONS_DISCORD_HTTP_SEND_MESSAGE,
           error.message

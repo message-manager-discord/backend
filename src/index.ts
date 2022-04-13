@@ -10,6 +10,7 @@ import discordRestPlugin from "./plugins/discord-rest";
 import redisRestPlugin from "./plugins/redis";
 import discordRedisCachePlugin from "./plugins/discordRedis";
 import metricsPlugin from "./plugins/metrics";
+import webhookAndLoggingPlugin from "./plugins/logging";
 import fastifyCookie, { FastifyCookieOptions } from "fastify-cookie";
 import interactionsPlugin from "./interactions/index";
 
@@ -52,6 +53,8 @@ await instance.register(authPlugin);
 await instance.register(fastifyAuth);
 
 await instance.register(metricsPlugin);
+
+await instance.register(webhookAndLoggingPlugin);
 
 await instance.register(interactionsPlugin);
 

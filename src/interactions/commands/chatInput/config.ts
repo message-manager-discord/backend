@@ -5,6 +5,7 @@ import {
   APIApplicationCommandInteractionDataSubcommandGroupOption,
   APIApplicationCommandInteractionDataSubcommandOption,
   APIChatInputApplicationCommandGuildInteraction,
+  APIEmbed,
   APIInteractionDataResolvedChannel,
   APIInteractionResponse,
   ApplicationCommandOptionType,
@@ -69,6 +70,13 @@ export default async function handleConfigCommand(
 
     case "management-roles":
       return await handleManagementRolesSubcommand(
+        internalInteraction,
+        subcommand,
+        instance
+      );
+
+    case "logging-channel":
+      return await handleLoggingChannelSubcommandGroup(
         internalInteraction,
         subcommand,
         instance
@@ -167,17 +175,28 @@ async function handleManagementRolesAddSubcommand({
       managementRoleIds: [BigInt(roleId)],
     },
   });
+  const embed: APIEmbed = {
+    color: embedPink,
+    title: "Added role to management roles",
+    description: `Added role <@&${roleId}> to management roles.\n*Management roles allow non admin members to manage server config on the bot, like permissions, logs, etc*`,
+  };
+  const logEmbed = { ...embed };
+  logEmbed.fields = [
+    {
+      name: "Action By:",
+      value: `<@${interaction.member.user.id}>`,
+    },
+  ];
+  // Send log message
+  await instance.loggingManager.sendLogMessage({
+    guildId: interaction.guild_id,
+    embeds: [logEmbed],
+  });
   return {
     type: InteractionResponseType.ChannelMessageWithSource,
     data: {
       flags: MessageFlags.Ephemeral,
-      embeds: [
-        {
-          color: embedPink,
-          title: "Added role to management roles successfully",
-          description: `Added role <@&${roleId}> to management roles.\n*Management roles allow non admin members to manage server config on the bot, like permissions, logs, etc*`,
-        },
-      ],
+      embeds: [embed],
     },
   };
 }
@@ -234,17 +253,29 @@ async function handleManagementRolesRemoveSubcommand({
       managementRoleIds: newManagementRoleIds,
     },
   });
+  const embed: APIEmbed = {
+    color: embedPink,
+    title: "Removed role from management roles",
+    description: `Removed role <@&${roleId}> from management roles.\n*Management roles allow non admin members to manage server config on the bot, like permissions, logs, etc*`,
+  };
+
+  const logEmbed = { ...embed };
+  logEmbed.fields = [
+    {
+      name: "Action By:",
+      value: `<@${interaction.member.user.id}>`,
+    },
+  ];
+  // Send log message
+  await instance.loggingManager.sendLogMessage({
+    guildId: interaction.guild_id,
+    embeds: [logEmbed],
+  });
   return {
     type: InteractionResponseType.ChannelMessageWithSource,
     data: {
       flags: MessageFlags.Ephemeral,
-      embeds: [
-        {
-          color: embedPink,
-          title: "Removed role from management roles successfully",
-          description: `Removed role <@&${roleId}> from management roles.\n*Management roles allow non admin members to manage server config on the bot, like permissions, logs, etc*`,
-        },
-      ],
+      embeds: [embed],
     },
   };
 }
@@ -464,26 +495,37 @@ async function handlePermissionsSetSubcommand({
       "Target not found in resolved data"
     );
   }
+  const embed: APIEmbed = {
+    color: embedPink,
+    title: "Permission set",
+    description:
+      `Set permission \`${Permission[permission]}\` for ${
+        targetType == "role" ? `role <@&${targetId}>` : `user <@${targetId}>`
+      } ` +
+      (channel ? `on channel <#${channel.id}>` : "") +
+      (previousPermission
+        ? `\n\nPrevious permission: \`${Permission[previousPermission]}\``
+        : ""),
+  };
+
+  const logEmbed = { ...embed };
+  logEmbed.fields = [
+    {
+      name: "Action By:",
+      value: `<@${interaction.member.user.id}>`,
+    },
+  ];
+  // Send log message
+  await instance.loggingManager.sendLogMessage({
+    guildId: interaction.guild_id,
+    embeds: [logEmbed],
+  });
+
   return {
     type: InteractionResponseType.ChannelMessageWithSource,
     data: {
       flags: MessageFlags.Ephemeral,
-      embeds: [
-        {
-          color: embedPink,
-          title: "Permission set successfully",
-          description:
-            `Set permission \`${Permission[permission]}\` for ${
-              targetType == "role"
-                ? `role <@&${targetId}>`
-                : `user <@${targetId}>`
-            } ` +
-            (channel ? `on channel <#${channel.id}>` : "") +
-            (previousPermission
-              ? `\n\nPrevious permission: \`${Permission[previousPermission]}\``
-              : ""),
-        },
-      ],
+      embeds: [embed],
     },
   };
 }
@@ -586,24 +628,33 @@ async function handlePermissionsRemoveSubcommand({
       "Target not found in resolved data"
     );
   }
+  const embed: APIEmbed = {
+    color: embedPink,
+    title: "Permission removed",
+    description:
+      `Removed permission \`${
+        previousPermission ? Permission[previousPermission] : "None"
+      }\` for ${
+        targetType == "role" ? `role <@&${targetId}>` : `user <@${targetId}>`
+      } ` + (channel ? `on channel <#${channel.id}>` : ""),
+  };
+  const logEmbed = { ...embed };
+  logEmbed.fields = [
+    {
+      name: "Action By:",
+      value: `<@${interaction.member.user.id}>`,
+    },
+  ];
+  // Send log message
+  await instance.loggingManager.sendLogMessage({
+    guildId: interaction.guild_id,
+    embeds: [logEmbed],
+  });
   return {
     type: InteractionResponseType.ChannelMessageWithSource,
     data: {
       flags: MessageFlags.Ephemeral,
-      embeds: [
-        {
-          color: embedPink,
-          title: "Permission removed successfully",
-          description:
-            `Removed permission \`${
-              previousPermission ? Permission[previousPermission] : "None"
-            }\` for ${
-              targetType == "role"
-                ? `role <@&${targetId}>`
-                : `user <@${targetId}>`
-            } ` + (channel ? `on channel <#${channel.id}>` : ""),
-        },
-      ],
+      embeds: [embed],
     },
   };
 }
@@ -816,6 +867,258 @@ async function handlePermissionsListSubcommand({
           },
         },
       ],
+      flags: MessageFlags.Ephemeral,
+    },
+  };
+}
+
+async function handleLoggingChannelSubcommandGroup(
+  internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>,
+  subcommandGroup: APIApplicationCommandInteractionDataSubcommandGroupOption,
+  instance: FastifyInstance
+): Promise<APIInteractionResponse> {
+  const interaction = internalInteraction.interaction;
+  if (
+    !checkDiscordPermissionValue(
+      BigInt(interaction.member.permissions),
+      Permissions.ADMINISTRATOR
+    )
+  ) {
+    throw new ExpectedPermissionFailure(
+      InteractionOrRequestFinalStatus.USER_MISSING_DISCORD_PERMISSION,
+      "You must be an administrator to use this command"
+    );
+  }
+
+  const subcommand = subcommandGroup.options[0];
+
+  switch (subcommand.name) {
+    case "set":
+      return await handleLoggingChannelSetSubcommand({
+        internalInteraction,
+        subcommand,
+        instance,
+      });
+
+    case "remove":
+      return await handleLoggingChannelRemoveSubcommand({
+        internalInteraction,
+        instance,
+      });
+
+    case "get":
+      return await handleLoggingChannelGetSubcommand({
+        internalInteraction,
+        instance,
+      });
+
+    default:
+      throw new UnexpectedFailure(
+        InteractionOrRequestFinalStatus.APPLICATION_COMMAND_UNEXPECTED_SUBCOMMAND,
+        `Invalid subcommand: \`${subcommand.name}\``
+      );
+  }
+}
+
+async function handleLoggingChannelSetSubcommand({
+  internalInteraction,
+  subcommand,
+  instance,
+}: {
+  internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>;
+  subcommand: APIApplicationCommandInteractionDataSubcommandOption;
+  instance: FastifyInstance;
+}): Promise<APIInteractionResponse> {
+  const interaction = internalInteraction.interaction;
+  if (
+    !checkDiscordPermissionValue(
+      BigInt(interaction.member.permissions),
+      Permissions.ADMINISTRATOR
+    )
+  ) {
+    throw new ExpectedPermissionFailure(
+      InteractionOrRequestFinalStatus.USER_MISSING_DISCORD_PERMISSION,
+      "You must be an administrator to use this command"
+    );
+  }
+
+  const channelId = (
+    subcommand.options?.find(
+      (option) =>
+        option.type === ApplicationCommandOptionType.Channel &&
+        option.name === "channel"
+    ) as APIApplicationCommandInteractionDataChannelOption | undefined
+  )?.value;
+  if (!channelId) {
+    throw new UnexpectedFailure(
+      InteractionOrRequestFinalStatus.APPLICATION_COMMAND_MISSING_EXPECTED_OPTION,
+      "Missing channel option"
+    );
+  }
+  // Webhook permissions are not checked here for the bot, since they are checked before setting the logging channel
+  // This allows the logging channel to be set to a channel the bot has already created a webhook in, even if it does not currently have
+  // the required permissions to create a webhook
+  const previousChannelId =
+    await instance.loggingManager.setGuildLoggingChannel(
+      interaction.guild_id,
+      channelId
+    );
+
+  let description: string;
+  let title: string;
+  if (previousChannelId === channelId) {
+    description = `Logging channel not changed`;
+    title = "Logging channel not changed";
+  } else if (previousChannelId) {
+    description = `Logging channel set to <#${channelId}> from <#${previousChannelId}>`;
+    title = "Logging channel updated";
+  } else if (channelId) {
+    description = `Logging channel set to <#${channelId}>`;
+    title = "Logging channel set";
+  } else {
+    description = `Logging channel not changed`;
+    title = "Logging channel not changed";
+  }
+  const embed: APIEmbed = {
+    title,
+    color: embedPink,
+    timestamp: new Date().toISOString(),
+    description,
+  };
+  const logEmbed = { ...embed }; // make a copy not another reference
+  logEmbed.fields = [
+    {
+      name: "Action By:",
+      value: `<@${interaction.member.user.id}>`,
+    },
+  ];
+  if (previousChannelId !== channelId) {
+    // Should not send a log if not changed
+    await instance.loggingManager.sendLogMessage({
+      guildId: interaction.guild_id,
+      embeds: [logEmbed],
+      ignoreErrors: false,
+    });
+  }
+  // If this fails it will be returned to the user
+  return {
+    type: InteractionResponseType.ChannelMessageWithSource,
+    data: {
+      embeds: [embed],
+      flags: MessageFlags.Ephemeral,
+    },
+  };
+}
+
+async function handleLoggingChannelRemoveSubcommand({
+  internalInteraction,
+  instance,
+}: {
+  internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>;
+  instance: FastifyInstance;
+}): Promise<APIInteractionResponse> {
+  const interaction = internalInteraction.interaction;
+  if (
+    !checkDiscordPermissionValue(
+      BigInt(interaction.member.permissions),
+      Permissions.ADMINISTRATOR
+    )
+  ) {
+    throw new ExpectedPermissionFailure(
+      InteractionOrRequestFinalStatus.USER_MISSING_DISCORD_PERMISSION,
+      "You must be an administrator to use this command"
+    );
+  }
+
+  // Webhook permissions are not checked here for the bot, since they are checked before setting the logging channel
+  // This allows the logging channel to be set to a channel the bot has already created a webhook in, even if it does not currently have
+  // the required permissions to create a webhook
+  const previousChannelId =
+    await instance.loggingManager.removeGuildLoggingChannel(
+      interaction.guild_id
+    );
+
+  let description: string;
+  let title: string;
+  if (!previousChannelId) {
+    description = `Logging channel not changed`;
+    title = "Logging channel not changed";
+  } else {
+    description = `Logging channel <#${previousChannelId}> removed`;
+    title = "Logging channel removed";
+  }
+  const embed: APIEmbed = {
+    title,
+    color: embedPink,
+    timestamp: new Date().toISOString(),
+    description,
+  };
+  const logEmbed = { ...embed }; // make a copy not another reference
+  logEmbed.fields = [
+    {
+      name: "Action By:",
+      value: `<@${interaction.member.user.id}>`,
+    },
+  ];
+  if (previousChannelId) {
+    // Should not send a log if not changed
+
+    // Sending log to previous channel
+    await instance.webhookManager.sendWebhookMessage(
+      previousChannelId,
+      interaction.guild_id,
+      {
+        embeds: [logEmbed],
+        username: "Message Manager Logging",
+        avatarUrl: instance.envVars.AVATAR_URL,
+      }
+    );
+  }
+
+  return {
+    type: InteractionResponseType.ChannelMessageWithSource,
+    data: {
+      embeds: [embed],
+      flags: MessageFlags.Ephemeral,
+    },
+  };
+}
+async function handleLoggingChannelGetSubcommand({
+  internalInteraction,
+  instance,
+}: {
+  internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>;
+  instance: FastifyInstance;
+}): Promise<APIInteractionResponse> {
+  const interaction = internalInteraction.interaction;
+  if (
+    !checkDiscordPermissionValue(
+      BigInt(interaction.member.permissions),
+      Permissions.ADMINISTRATOR
+    )
+  ) {
+    throw new ExpectedPermissionFailure(
+      InteractionOrRequestFinalStatus.USER_MISSING_DISCORD_PERMISSION,
+      "You must be an administrator to use this command"
+    );
+  }
+
+  const logChannelId = await instance.loggingManager.getGuildLoggingChannel(
+    interaction.guild_id
+  );
+  const embed: APIEmbed = {
+    title: "Current logging channel",
+    color: embedPink,
+    timestamp: new Date().toISOString(),
+    description: logChannelId
+      ? `The current logging channel is <#${logChannelId}>`
+      : "No logging channel set",
+  };
+
+  return {
+    type: InteractionResponseType.ChannelMessageWithSource,
+    data: {
+      embeds: [embed],
       flags: MessageFlags.Ephemeral,
     },
   };

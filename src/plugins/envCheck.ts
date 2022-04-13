@@ -17,6 +17,7 @@ const schemaForEnv = {
     "DISCORD_INTERACTIONS_PUBLIC_KEY",
     "BASE_API_URL",
     "METRICS_AUTH_TOKEN",
+    "AVATAR_URL",
     "PRISMA_FIELD_ENCRYPTION_KEY",
     "PORT",
     "HOST",
@@ -58,6 +59,10 @@ const schemaForEnv = {
     METRICS_AUTH_TOKEN: {
       type: "string",
     },
+    AVATAR_URL: {
+      type: "string",
+    },
+
     PORT: {
       type: "number",
     },
@@ -83,6 +88,7 @@ interface EnvVars {
   DISCORD_INTERACTIONS_PUBLIC_KEY: string;
   BASE_API_URL: string;
   METRICS_AUTH_TOKEN: string;
+  AVATAR_URL: string;
   PORT: number;
   HOST: string;
   PRISMA_FIELD_ENCRYPTION_KEY: string;
