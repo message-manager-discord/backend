@@ -161,7 +161,6 @@ async function sendMessage({
         { name: "Channel:", value: `<#${channelId}>`, inline: true },
       ],
     };
-    console.log(embed.description?.length);
     // Send log message
     await instance.loggingManager.sendLogMessage({
       guildId: guildId,

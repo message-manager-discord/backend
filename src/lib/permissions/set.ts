@@ -42,7 +42,7 @@ async function setGuildRolePermissions({
     },
     create: {
       permissions: { ...currentPermissions }, // For some reason prisma doesn't like just the object
-      id: BigInt(guildId), // TODO: Check if this overwrites or just updates
+      id: BigInt(guildId),
     },
   });
 }
@@ -87,7 +87,7 @@ async function setGuildUserPermissions({
     },
     create: {
       permissions: { ...currentPermissions }, // For some reason prisma doesn't like just the object
-      id: BigInt(guildId), // TODO: Check if this overwrites or just updates
+      id: BigInt(guildId),
     },
   });
 }
@@ -133,7 +133,7 @@ async function setChannelRolePermissions({
     },
     create: {
       permissions: { ...currentPermissions }, // For some reason prisma doesn't like just the object
-      id: BigInt(channelId), // TODO: Check if this overwrites or just updates
+      id: BigInt(channelId),
       guild: {
         connectOrCreate: {
           where: {
@@ -190,7 +190,7 @@ async function setChannelUserPermissions({
     },
     create: {
       permissions: { ...currentPermissions }, // For some reason prisma doesn't like just the object
-      id: BigInt(channelId), // TODO: Check if this overwrites or just updates
+      id: BigInt(channelId),
       guild: {
         connectOrCreate: {
           where: {

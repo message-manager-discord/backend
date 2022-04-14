@@ -46,6 +46,7 @@ import handleModalEdit from "./modals/edit";
 import handleConfirmDeleteButton from "./buttons/confirm-delete";
 import handleCancelDeleteButton from "./buttons/cancel-delete";
 import handleModalReport from "./modals/report";
+import handleAddMessageCommand from "./commands/message/addMessage";
 
 class InteractionHandler {
   private readonly _client: FastifyInstance;
@@ -447,6 +448,7 @@ const interactionsPlugin = async (instance: FastifyInstance) => {
   // Add message commands to handler
   handler.addGuildOnlyMessageCommand("actions", handleActionMessageCommand);
   handler.addGuildOnlyMessageCommand("fetch", handleFetchMessageCommand);
+  handler.addGuildOnlyMessageCommand("add message", handleAddMessageCommand);
 
   await instance.register(FastifyRawBody, {
     field: "rawBody", // change the default request.rawBody property name

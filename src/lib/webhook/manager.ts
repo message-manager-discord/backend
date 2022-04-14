@@ -53,19 +53,15 @@ export default class WebhookManager {
         channelId
       )) as RESTGetAPIChannelWebhooksResult;
     } catch (error) {
-      console.log("AH 1");
       if (error instanceof DiscordHTTPError) {
-        console.log(error.code);
         if (error.code === 403 || error.code === 50013) {
           throw new ExpectedFailure(
             InteractionOrRequestFinalStatus.BOT_MISSING_DISCORD_PERMISSION,
             "Missing the permission `MANAGE_WEBHOOKS` on that channel"
           );
         }
-        console.log("AH 2");
         throw error;
       }
-      console.log("AH 3");
       throw error;
     }
     // Filter webhooks by application id, they must match the DISCORD_CLIENT_ID variable

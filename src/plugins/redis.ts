@@ -134,6 +134,23 @@ class RedisCache {
   async deleteSession(session: string): Promise<number> {
     return this._delete({ key: `session:${session}` });
   }
+
+  async setGuildMigrationCommandRegistered(guildId: Snowflake) {
+    await this._sendCommand("SET", [
+      `${guildId}:migrationCmdRegistered`,
+      "true",
+      "EX",
+      "60*60",
+    ]); // 1 hour
+  }
+  async getGuildMigrationCommandRegistered(
+    guildId: Snowflake
+  ): Promise<boolean> {
+    const registered = await this._sendCommand("GET", [
+      `${guildId}:migrationCmdRegistered`,
+    ]);
+    return !!registered;
+  }
 }
 
 declare module "fastify" {

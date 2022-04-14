@@ -21,6 +21,7 @@ const schemaForEnv = {
     "PRISMA_FIELD_ENCRYPTION_KEY",
     "PORT",
     "HOST",
+    "NO_MIGRATION_AFTER",
   ],
   properties: {
     UUID_NAMESPACE: {
@@ -72,6 +73,9 @@ const schemaForEnv = {
     PRISMA_FIELD_ENCRYPTION_KEY: {
       type: "string",
     },
+    NO_MIGRATION_AFTER: {
+      type: "number",
+    },
   },
 };
 
@@ -92,6 +96,7 @@ interface EnvVars {
   PORT: number;
   HOST: string;
   PRISMA_FIELD_ENCRYPTION_KEY: string;
+  NO_MIGRATION_AFTER: number;
 }
 
 declare module "fastify" {

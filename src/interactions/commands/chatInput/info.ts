@@ -130,6 +130,17 @@ const infoTags: Record<string, Tag> = {
     url: "https://message.anothercat.me/terms",
     extraTags: ["tos"],
   },
+  "message-migration": {
+    title: "Migrating old messages over",
+    description:
+      "As part of the migration to the new system, messages are now stored by the bot to facilitate extra features." +
+      " This means that messages that were previously sent by the bot are not currently recognized by the actions commands." +
+      "\nTo migrate messages over, a context menu command will be added to the guild after an action command fails on the guild." +
+      "\nOnly message created before the migration date can be migrated, this is because messages sent after the date are already in the database and do not need to be migrated. " +
+      "This prevents non-user created messages being editable.",
+
+    extraTags: ["new", "missing"],
+  },
 };
 
 interface NonTextTag {
@@ -247,9 +258,6 @@ async function handleInfoAutocomplete(
       ],
     });
     const tags = tagsSearch.search(tagFilling, { limit: 25 });
-    console.log(tags);
-    console.log(allTags);
-    console.log(tagFilling);
 
     return {
       type: InteractionResponseType.ApplicationCommandAutocompleteResult,

@@ -34,7 +34,7 @@ async function removeGuildRolePermissions({
     },
     create: {
       permissions: { ...currentPermissions }, // For some reason prisma doesn't like just the object
-      id: BigInt(guildId), // TODO: Check if this overwrites or just updates
+      id: BigInt(guildId),
     },
   });
 }
@@ -71,7 +71,7 @@ async function removeGuildUserPermissions({
     },
     create: {
       permissions: { ...currentPermissions }, // For some reason prisma doesn't like just the object
-      id: BigInt(guildId), // TODO: Check if this overwrites or just updates
+      id: BigInt(guildId),
     },
   });
 }
@@ -109,7 +109,7 @@ async function removeChannelRolePermissions({
     },
     create: {
       permissions: { ...currentPermissions }, // For some reason prisma doesn't like just the object
-      id: BigInt(channelId), // TODO: Check if this overwrites or just updates
+      id: BigInt(channelId),
       guild: {
         connectOrCreate: {
           where: {
@@ -158,7 +158,7 @@ async function removeChannelUserPermissions({
     },
     create: {
       permissions: { ...currentPermissions }, // For some reason prisma doesn't like just the object
-      id: BigInt(channelId), // TODO: Check if this overwrites or just updates
+      id: BigInt(channelId),
       guild: {
         connectOrCreate: {
           where: {
