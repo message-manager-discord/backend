@@ -1,6 +1,6 @@
 import {
   APIActionRowComponent,
-  APIInteractionResponse,
+  APIInteractionResponseUpdateMessage,
   APIMessageActionRowComponent,
   APIMessageComponentGuildInteraction,
   ComponentType,
@@ -19,7 +19,8 @@ import { InternalInteraction } from "../interaction";
 export default async function handleConfirmDeleteButton(
   internalInteraction: InternalInteraction<APIMessageComponentGuildInteraction>,
   instance: FastifyInstance
-): Promise<APIInteractionResponse> {
+): Promise<APIInteractionResponseUpdateMessage> {
+  // Not deferred as no logic is 'heavy'
   const interaction = internalInteraction.interaction;
   const messageId = interaction.data.custom_id.split(":")[1];
   if (!messageId) {

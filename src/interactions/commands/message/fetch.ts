@@ -1,6 +1,5 @@
 import {
   APIEmbed,
-  APIInteractionResponse,
   APIInteractionResponseChannelMessageWithSource,
   APIMessageApplicationCommandGuildInteraction,
   APIMessageComponent,
@@ -19,14 +18,14 @@ import { Readable } from "stream";
 
 import { FormDataEncoder } from "form-data-encoder";
 
-import { FormDataReturnData } from "../../types";
+import { InteractionReturnData } from "../../types";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function handleFetchMessageCommand(
   internalInteraction: InternalInteraction<APIMessageApplicationCommandGuildInteraction>,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   instance: FastifyInstance
-): Promise<FormDataReturnData | APIInteractionResponse> {
+): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   // Returns the content of the message in a txt file format
   const messageId = interaction.data.target_id;

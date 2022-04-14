@@ -1,5 +1,4 @@
 import {
-  APIInteractionResponse,
   APIModalSubmitGuildInteraction,
   InteractionResponseType,
   MessageFlags,
@@ -11,11 +10,12 @@ import {
 } from "../../errors";
 import { sendMessage } from "../../lib/messages/send";
 import { InternalInteraction } from "../interaction";
+import { InteractionReturnData } from "../types";
 // Guild only
 export default async function handleModalSend(
   internalInteraction: InternalInteraction<APIModalSubmitGuildInteraction>,
   instance: FastifyInstance
-): Promise<APIInteractionResponse> {
+): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   const channelId: string | undefined =
     interaction.data.custom_id.split(":")[1];

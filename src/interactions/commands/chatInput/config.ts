@@ -7,7 +7,6 @@ import {
   APIChatInputApplicationCommandGuildInteraction,
   APIEmbed,
   APIInteractionDataResolvedChannel,
-  APIInteractionResponse,
   ApplicationCommandOptionType,
   InteractionResponseType,
   MessageFlags,
@@ -44,11 +43,12 @@ import {
   removeGuildRolePermissions,
   removeGuildUserPermissions,
 } from "../../../lib/permissions/remove";
+import { InteractionReturnData } from "../../types";
 
 export default async function handleConfigCommand(
   internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>,
   instance: FastifyInstance
-): Promise<APIInteractionResponse> {
+): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   const subcommand = interaction.data.options?.[0];
   if (
@@ -94,7 +94,7 @@ async function handleManagementRolesSubcommand(
   internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>,
   subcommandGroup: APIApplicationCommandInteractionDataSubcommandGroupOption,
   instance: FastifyInstance
-): Promise<APIInteractionResponse> {
+): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   if (
     !checkDiscordPermissionValue(
@@ -147,7 +147,7 @@ async function handleManagementRolesAddSubcommand({
   internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>;
   subcommand: APIApplicationCommandInteractionDataSubcommandOption;
   instance: FastifyInstance;
-}): Promise<APIInteractionResponse> {
+}): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
 
   const roleId: string | undefined = (
@@ -208,7 +208,7 @@ async function handleManagementRolesRemoveSubcommand({
   internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>;
   subcommand: APIApplicationCommandInteractionDataSubcommandOption;
   instance: FastifyInstance;
-}): Promise<APIInteractionResponse> {
+}): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
 
   const roleId: string | undefined = (
@@ -286,7 +286,7 @@ async function handleManagementRolesListSubcommand({
 }: {
   internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>;
   instance: FastifyInstance;
-}): Promise<APIInteractionResponse> {
+}): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
 
   const guild = await instance.prisma.guild.findUnique({
@@ -320,7 +320,7 @@ async function handlePermissionsSubcommand(
   internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>,
   subcommandGroup: APIApplicationCommandInteractionDataSubcommandGroupOption,
   instance: FastifyInstance
-): Promise<APIInteractionResponse> {
+): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   const guild = await instance.prisma.guild.findUnique({
     where: { id: BigInt(interaction.guild_id) },
@@ -398,7 +398,7 @@ async function handlePermissionsSetSubcommand({
   channel?: APIInteractionDataResolvedChannel;
   guildStored: Guild | null;
   subcommand: APIApplicationCommandInteractionDataSubcommandOption;
-}): Promise<APIInteractionResponse> {
+}): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
 
   const targetId: string | undefined = (
@@ -543,7 +543,7 @@ async function handlePermissionsRemoveSubcommand({
   guildStored: Guild | null;
 
   subcommand: APIApplicationCommandInteractionDataSubcommandOption;
-}): Promise<APIInteractionResponse> {
+}): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
 
   const targetId: string | undefined = (
@@ -724,7 +724,7 @@ async function handlePermissionsListSubcommand({
   guildStored: Guild | null;
 
   subcommand: APIApplicationCommandInteractionDataSubcommandOption;
-}): Promise<APIInteractionResponse> {
+}): Promise<InteractionReturnData> {
   const filterBy: string | undefined = (
     subcommand.options?.find(
       (option) =>
@@ -876,7 +876,7 @@ async function handleLoggingChannelSubcommandGroup(
   internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>,
   subcommandGroup: APIApplicationCommandInteractionDataSubcommandGroupOption,
   instance: FastifyInstance
-): Promise<APIInteractionResponse> {
+): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   if (
     !checkDiscordPermissionValue(
@@ -928,7 +928,7 @@ async function handleLoggingChannelSetSubcommand({
   internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>;
   subcommand: APIApplicationCommandInteractionDataSubcommandOption;
   instance: FastifyInstance;
-}): Promise<APIInteractionResponse> {
+}): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   if (
     !checkDiscordPermissionValue(
@@ -1016,7 +1016,7 @@ async function handleLoggingChannelRemoveSubcommand({
 }: {
   internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>;
   instance: FastifyInstance;
-}): Promise<APIInteractionResponse> {
+}): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   if (
     !checkDiscordPermissionValue(
@@ -1089,7 +1089,7 @@ async function handleLoggingChannelGetSubcommand({
 }: {
   internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>;
   instance: FastifyInstance;
-}): Promise<APIInteractionResponse> {
+}): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   if (
     !checkDiscordPermissionValue(

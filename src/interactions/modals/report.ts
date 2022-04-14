@@ -1,7 +1,6 @@
 import prismaClient from "@prisma/client";
 const { ReportStatus } = prismaClient;
 import {
-  APIInteractionResponse,
   APIModalSubmitGuildInteraction,
   InteractionResponseType,
   MessageFlags,
@@ -12,11 +11,12 @@ import {
   UnexpectedFailure,
 } from "../../errors";
 import { InternalInteraction } from "../interaction";
+import { InteractionReturnData } from "../types";
 
 export default async function handleModalReport(
   internalInteraction: InternalInteraction<APIModalSubmitGuildInteraction>,
   instance: FastifyInstance
-): Promise<APIInteractionResponse> {
+): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   const messageId: string | undefined =
     interaction.data.custom_id.split(":")[1];

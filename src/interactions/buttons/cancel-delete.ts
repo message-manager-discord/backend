@@ -1,6 +1,6 @@
 import {
   APIActionRowComponent,
-  APIInteractionResponse,
+  APIInteractionResponseUpdateMessage,
   APIMessageActionRowComponent,
   APIMessageComponentGuildInteraction,
   ComponentType,
@@ -16,7 +16,8 @@ export default async function handleCancelDeleteButton(
   internalInteraction: InternalInteraction<APIMessageComponentGuildInteraction>,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   instance: FastifyInstance
-): Promise<APIInteractionResponse> {
+): Promise<APIInteractionResponseUpdateMessage> {
+  // Not deferred as no logic is 'heavy'
   const interaction = internalInteraction.interaction;
 
   const embed = interaction.message.embeds[0];

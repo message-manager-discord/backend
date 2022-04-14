@@ -1,5 +1,4 @@
 import {
-  APIInteractionResponse,
   APIMessageComponentGuildInteraction,
   ButtonStyle,
   ComponentType,
@@ -14,11 +13,12 @@ import {
 } from "../../errors";
 import { checkDeletePossible } from "../../lib/messages/delete";
 import { InternalInteraction } from "../interaction";
+import { InteractionReturnData } from "../types";
 
 export default async function handleDeleteButton(
   internalInteraction: InternalInteraction<APIMessageComponentGuildInteraction>,
   instance: FastifyInstance
-): Promise<APIInteractionResponse> {
+): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   const messageId = interaction.data.custom_id.split(":")[1];
   if (!messageId) {

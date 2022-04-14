@@ -1,9 +1,5 @@
 import {
-  APIButtonComponent,
-  APIInteractionResponse,
   APIMessageApplicationCommandGuildInteraction,
-  ButtonStyle,
-  ComponentType,
   InteractionResponseType,
   MessageFlags,
 } from "discord-api-types/v9";
@@ -15,11 +11,12 @@ import {
 } from "../../../errors";
 import { checkSendMessagePossible } from "../../../lib/messages/send";
 import { InternalInteraction } from "../../interaction";
+import { InteractionReturnData } from "../../types";
 
 export default async function handleAddMessageCommand(
   internalInteraction: InternalInteraction<APIMessageApplicationCommandGuildInteraction>,
   instance: FastifyInstance
-): Promise<APIInteractionResponse> {
+): Promise<InteractionReturnData> {
   // This command will generate a ephemeral message with the action buttons for editing, deleting, or reporting.
   // The command will also check permissions for the invoking user
 

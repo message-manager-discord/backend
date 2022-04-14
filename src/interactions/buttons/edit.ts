@@ -1,7 +1,4 @@
-import {
-  APIInteractionResponse,
-  APIMessageComponentGuildInteraction,
-} from "discord-api-types/v9";
+import { APIMessageComponentGuildInteraction } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 import {
   InteractionOrRequestFinalStatus,
@@ -13,11 +10,12 @@ import {
   createModal,
   createTextInputWithRow,
 } from "../modals/createStructures";
+import { InteractionReturnData } from "../types";
 
 export default async function handleEditButton(
   internalInteraction: InternalInteraction<APIMessageComponentGuildInteraction>,
   instance: FastifyInstance
-): Promise<APIInteractionResponse> {
+): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   const messageId = interaction.data.custom_id.split(":")[1];
   if (!messageId) {

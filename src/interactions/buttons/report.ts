@@ -4,7 +4,6 @@
 import prismaClient from "@prisma/client";
 const { ReportStatus } = prismaClient;
 import {
-  APIInteractionResponse,
   APIMessageComponentGuildInteraction,
   InteractionResponseType,
 } from "discord-api-types/v9";
@@ -17,11 +16,12 @@ import {
   createModal,
   createTextInputWithRow,
 } from "../modals/createStructures";
+import { InteractionReturnData } from "../types";
 
 export default async function handleReportButton(
   internalInteraction: InternalInteraction<APIMessageComponentGuildInteraction>,
   instance: FastifyInstance
-): Promise<APIInteractionResponse> {
+): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   return {
     type: InteractionResponseType.ChannelMessageWithSource,

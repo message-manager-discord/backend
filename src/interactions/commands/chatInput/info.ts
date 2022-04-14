@@ -4,7 +4,6 @@ import {
   APIApplicationCommandInteractionDataStringOption,
   APIChatInputApplicationCommandInteraction,
   APIEmbed,
-  APIInteractionResponse,
   APIInteractionResponseChannelMessageWithSource,
   ApplicationCommandOptionType,
   InteractionResponseType,
@@ -18,6 +17,7 @@ import {
 } from "../../../errors";
 import { InternalInteraction } from "../../interaction";
 import Fuse from "fuse.js";
+import { InteractionReturnData } from "../../types";
 
 const createInfoEmbed = async (
   instance: FastifyInstance
@@ -204,7 +204,7 @@ const channelMessageResponseWithEmbed = (
 export default async function handleInfoCommand(
   internalInteraction: InternalInteraction<APIChatInputApplicationCommandInteraction>,
   instance: FastifyInstance
-): Promise<APIInteractionResponse> {
+): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   const tagName: string | undefined = (
     interaction.data.options?.find(

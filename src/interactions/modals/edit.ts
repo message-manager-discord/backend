@@ -1,5 +1,4 @@
 import {
-  APIInteractionResponse,
   APIModalSubmitGuildInteraction,
   InteractionResponseType,
   MessageFlags,
@@ -11,11 +10,12 @@ import {
 } from "../../errors";
 import { editMessage } from "../../lib/messages/edit";
 import { InternalInteraction } from "../interaction";
+import { InteractionReturnData } from "../types";
 
 export default async function handleModalEdit(
   internalInteraction: InternalInteraction<APIModalSubmitGuildInteraction>,
   instance: FastifyInstance
-): Promise<APIInteractionResponse> {
+): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   const messageId: string | undefined =
     interaction.data.custom_id.split(":")[1]; // TODO: Include the channel id in the custom_id

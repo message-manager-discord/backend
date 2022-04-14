@@ -1,6 +1,5 @@
 import {
   APIButtonComponent,
-  APIInteractionResponse,
   APIMessageApplicationCommandGuildInteraction,
   ButtonStyle,
   ComponentType,
@@ -14,11 +13,12 @@ import {
 } from "../../../errors";
 import { getMessageActionsPossible } from "../../../lib/messages/checks";
 import { InternalInteraction } from "../../interaction";
+import { InteractionReturnData } from "../../types";
 
 export default async function handleActionMessageCommand(
   internalInteraction: InternalInteraction<APIMessageApplicationCommandGuildInteraction>,
   instance: FastifyInstance
-): Promise<APIInteractionResponse> {
+): Promise<InteractionReturnData> {
   // This command will generate a ephemeral message with the action buttons for editing, deleting, or reporting.
   // The command will also check permissions for the invoking user
 

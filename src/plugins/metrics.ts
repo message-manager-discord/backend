@@ -18,7 +18,7 @@ class Metrics {
   readonly interactionsReceived = new Counter({
     name: `${metricsPrefix}interactions_received`,
     help: "Number of interactions received",
-    labelNames: ["type", "status"],
+    labelNames: ["type", "status", "deferred"],
   });
   readonly requestDuration = new Summary({
     name: `${metricsPrefix}request_duration`,

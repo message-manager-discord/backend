@@ -5,9 +5,9 @@ import {
   APIChatInputApplicationCommandGuildInteraction,
   APIChatInputApplicationCommandInteraction,
   APIInteraction,
-  APIInteractionResponse,
   APIMessageApplicationCommandGuildInteraction,
   APIMessageApplicationCommandInteraction,
+  APIMessageComponent,
   APIMessageComponentGuildInteraction,
   APIMessageComponentInteraction,
   APIModalSubmitGuildInteraction,
@@ -39,7 +39,11 @@ import {
 import handleActionMessageCommand from "./commands/message/actions";
 import handleReportButton from "./buttons/report";
 import handleFetchMessageCommand from "./commands/message/fetch";
-import { FormDataReturnData, isFormDataReturnData } from "./types";
+import {
+  InteractionReturnData,
+  isFormDataReturnData,
+  isInteractionReturnDataDeferred,
+} from "./types";
 import handleEditButton from "./buttons/edit";
 import handleDeleteButton from "./buttons/delete";
 import handleModalEdit from "./modals/edit";
@@ -47,6 +51,8 @@ import handleConfirmDeleteButton from "./buttons/confirm-delete";
 import handleCancelDeleteButton from "./buttons/cancel-delete";
 import handleModalReport from "./modals/report";
 import handleAddMessageCommand from "./commands/message/addMessage";
+import axios from "axios";
+import { discordAPIBaseURL } from "../constants";
 
 class InteractionHandler {
   private readonly _client: FastifyInstance;
@@ -59,7 +65,7 @@ class InteractionHandler {
           | APIChatInputApplicationCommandGuildInteraction
         >,
         instance: FastifyInstance
-      ) => Promise<APIInteractionResponse>;
+      ) => Promise<InteractionReturnData>;
       guildOnly?: boolean;
       autocompleteHandler?: (
         interaction: InternalInteraction<
@@ -78,7 +84,7 @@ class InteractionHandler {
           | APIMessageApplicationCommandGuildInteraction
         >,
         instance: FastifyInstance
-      ) => Promise<APIInteractionResponse | FormDataReturnData>;
+      ) => Promise<InteractionReturnData>;
       guildOnly?: boolean;
     };
   } = {};
@@ -91,7 +97,7 @@ class InteractionHandler {
     handler: (
       interaction: InternalInteraction<APIChatInputApplicationCommandInteraction>,
       instance: FastifyInstance
-    ) => Promise<APIInteractionResponse>,
+    ) => Promise<InteractionReturnData>,
     autocompleteHandler?: (
       interaction: InternalInteraction<APIApplicationCommandAutocompleteInteraction>,
       instance: FastifyInstance
@@ -107,7 +113,7 @@ class InteractionHandler {
     handler: (
       interaction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>,
       instance: FastifyInstance
-    ) => Promise<APIInteractionResponse>,
+    ) => Promise<InteractionReturnData>,
     autocompleteHandler?: (
       interaction: InternalInteraction<APIApplicationCommandAutocompleteGuildInteraction>,
       instance: FastifyInstance
@@ -117,7 +123,7 @@ class InteractionHandler {
       handler: handler as (
         interaction: InternalInteraction<APIChatInputApplicationCommandInteraction>,
         instance: FastifyInstance
-      ) => Promise<APIInteractionResponse>, // For some weird reason the types don't like to cross over
+      ) => Promise<InteractionReturnData>, // For some weird reason the types don't like to cross over
       autocompleteHandler: autocompleteHandler as (
         interaction: InternalInteraction<APIApplicationCommandAutocompleteInteraction>,
         instance: FastifyInstance
@@ -130,7 +136,7 @@ class InteractionHandler {
     handler: (
       interaction: InternalInteraction<APIMessageApplicationCommandInteraction>,
       instance: FastifyInstance
-    ) => Promise<APIInteractionResponse | FormDataReturnData>
+    ) => Promise<InteractionReturnData>
   ) {
     this._messageCommands[name] = {
       handler,
@@ -141,13 +147,13 @@ class InteractionHandler {
     handler: (
       interaction: InternalInteraction<APIMessageApplicationCommandGuildInteraction>,
       instance: FastifyInstance
-    ) => Promise<APIInteractionResponse | FormDataReturnData>
+    ) => Promise<InteractionReturnData>
   ) {
     this._messageCommands[name] = {
       handler: handler as (
         interaction: InternalInteraction<APIMessageApplicationCommandInteraction>,
         instance: FastifyInstance
-      ) => Promise<APIInteractionResponse>, // For some weird reason the types don't like to cross over
+      ) => Promise<InteractionReturnData>, // For some weird reason the types don't like to cross over
       guildOnly: true,
     };
   }
@@ -167,7 +173,7 @@ class InteractionHandler {
 
   async handleInteraction(
     internalInteraction: InternalInteraction<APIInteraction>
-  ): Promise<APIInteractionResponse | FormDataReturnData> {
+  ): Promise<InteractionReturnData> {
     const interaction = internalInteraction.interaction;
     switch (interaction.type) {
       case InteractionType.Ping:
@@ -211,7 +217,7 @@ class InteractionHandler {
   }
   async handleMessageCommands(
     internalInteraction: InternalInteraction<APIMessageApplicationCommandInteraction>
-  ): Promise<APIInteractionResponse | FormDataReturnData> {
+  ): Promise<InteractionReturnData> {
     const interaction = internalInteraction.interaction;
     const name = interaction.data.name.toLowerCase();
     if (this._messageCommands[name]) {
@@ -239,7 +245,7 @@ class InteractionHandler {
   }
   async handleCommands(
     internalInteraction: InternalInteraction<APIChatInputApplicationCommandInteraction>
-  ): Promise<APIInteractionResponse> {
+  ): Promise<InteractionReturnData> {
     const interaction = internalInteraction.interaction;
 
     if (this._commands[interaction.data.name]) {
@@ -268,7 +274,7 @@ class InteractionHandler {
   }
   async handleAutocomplete(
     internalInteraction: InternalInteraction<APIApplicationCommandAutocompleteInteraction>
-  ): Promise<APIInteractionResponse> {
+  ): Promise<APIApplicationCommandAutocompleteResponse> {
     const interaction = internalInteraction.interaction;
     const command = this._commands[interaction.data.name];
 
@@ -295,7 +301,7 @@ class InteractionHandler {
   }
   async handleModalSubmit(
     internalInteraction: InternalInteraction<APIModalSubmitInteraction>
-  ): Promise<APIInteractionResponse> {
+  ): Promise<InteractionReturnData> {
     const interaction = internalInteraction.interaction;
     const id = interaction.data.custom_id.split(":")[0];
     switch (id) {
@@ -350,7 +356,7 @@ class InteractionHandler {
   }
   async handleComponent(
     internalInteraction: InternalInteraction<APIMessageComponentInteraction>
-  ): Promise<APIInteractionResponse> {
+  ): Promise<InteractionReturnData> {
     const interaction = internalInteraction.interaction;
     const name = interaction.data.custom_id.split(":")[0];
     switch (name) {
@@ -477,68 +483,102 @@ const interactionsPlugin = async (instance: FastifyInstance) => {
 
       try {
         const returnData = await handler.handleInteraction(internalInteraction);
-        instance.metrics.interactionsReceived.inc({
-          type: internalInteraction.interaction.type,
-          status: InteractionOrRequestFinalStatus.SUCCESS,
-        });
-        if (isFormDataReturnData(returnData)) {
-          return reply.headers(returnData.headers).send(returnData.body);
+        if (isInteractionReturnDataDeferred(returnData)) {
+          // This handles deferred interactions. The idea is that anything that does database calls or heavy stuff should be deferred.
+          await reply.send(returnData.returnData);
+          internalInteraction.deferred = true;
+          const afterDeferData = await returnData.callback();
+          if (isFormDataReturnData(afterDeferData)) {
+            await axios.request({
+              method: "PATCH",
+              url: `${discordAPIBaseURL}/webhooks/${instance.envVars.DISCORD_CLIENT_ID}/${internalInteraction.interaction.token}/messages/@original`,
+              data: afterDeferData.body,
+              headers: afterDeferData.headers,
+            });
+          } else {
+            console.log(
+              `\n\n${discordAPIBaseURL}/webhooks/${instance.envVars.DISCORD_CLIENT_ID}/${internalInteraction.interaction.token}/messages/@original\n\n`
+            );
+            await axios.request({
+              method: "PATCH",
+              url: `${discordAPIBaseURL}/webhooks/${instance.envVars.DISCORD_CLIENT_ID}/${internalInteraction.interaction.token}/messages/@original`,
+              data: afterDeferData,
+            });
+          }
+          instance.metrics.interactionsReceived.inc({
+            type: internalInteraction.interaction.type,
+            status: InteractionOrRequestFinalStatus.SUCCESS,
+            deferred: true.toString(),
+          });
         } else {
-          return returnData;
+          instance.metrics.interactionsReceived.inc({
+            type: internalInteraction.interaction.type,
+            status: InteractionOrRequestFinalStatus.SUCCESS,
+          });
+          // Not deferred
+          if (isFormDataReturnData(returnData)) {
+            return reply.headers(returnData.headers).send(returnData.body);
+          } else {
+            return returnData;
+          }
         }
       } catch (error) {
+        let errorMessage: string;
+        let components: APIMessageComponent[] = [];
         if (error instanceof CustomError) {
           instance.metrics.interactionsReceived.inc({
             type: internalInteraction.interaction.type,
             status: error.status,
+            deferred: internalInteraction.deferred.toString(),
           });
           if (error instanceof UnexpectedFailure) {
             // Unexpected errors
-            return {
-              type: InteractionResponseType.ChannelMessageWithSource,
-              data: {
-                content:
-                  ":exclamation: Something went wrong! Please try again." +
-                  `\nIf the problem persists, contact the bot developers.` +
-                  `\nError message: ${error.message}` +
-                  `\nError code: \`${error.status}\`` +
-                  "\n*PS: This shouldn't happen*",
-                flags: MessageFlags.Ephemeral,
-                components: error.components,
-              },
-            };
-          } else {
-            // Expected errors
-            return {
-              type: InteractionResponseType.ChannelMessageWithSource,
-              data: {
-                content: `:exclamation: ${error.message}`,
-                flags: MessageFlags.Ephemeral,
-                components: error.components,
-              },
-            };
-          }
-        }
-        const message =
-          !!error && !!(error as Error).message ? (error as Error).message : "";
-
-        instance.metrics.interactionsReceived.inc({
-          type: internalInteraction.interaction.type,
-          status: InteractionOrRequestFinalStatus.GENERIC_UNEXPECTED_FAILURE,
-        });
-        instance.log.error(error);
-        return {
-          type: InteractionResponseType.ChannelMessageWithSource,
-          data: {
-            content:
+            errorMessage =
               ":exclamation: Something went wrong! Please try again." +
               `\nIf the problem persists, contact the bot developers.` +
-              `\nError message: ${message}` +
-              `\nError code: \`${InteractionOrRequestFinalStatus.GENERIC_UNEXPECTED_FAILURE}\`` +
-              "\n*PS: This shouldn't happen, and if it does, congratulations you've managed to find something unexpected*",
-            flags: MessageFlags.Ephemeral,
-          },
-        };
+              `\nError message: ${error.message}` +
+              `\nError code: \`${error.status}\`` +
+              "\n*PS: This shouldn't happen*";
+            components = error.components;
+          } else {
+            // Expected errors
+            errorMessage = `:exclamation: ${error.message}`;
+            components = error.components;
+          }
+        } else {
+          const message =
+            !!error && !!(error as Error).message
+              ? (error as Error).message
+              : "";
+
+          instance.metrics.interactionsReceived.inc({
+            type: internalInteraction.interaction.type,
+            status: InteractionOrRequestFinalStatus.GENERIC_UNEXPECTED_FAILURE,
+          });
+          instance.log.error(error);
+          errorMessage =
+            ":exclamation: Something went wrong! Please try again." +
+            `\nIf the problem persists, contact the bot developers.` +
+            `\nError message: ${message}` +
+            `\nError code: \`${InteractionOrRequestFinalStatus.GENERIC_UNEXPECTED_FAILURE}\`` +
+            "\n*PS: This shouldn't happen, and if it does, congratulations you've managed to find something unexpected*";
+        }
+        if (!internalInteraction.deferred) {
+          return {
+            type: InteractionResponseType.ChannelMessageWithSource,
+            data: {
+              content: errorMessage,
+              flags: MessageFlags.Ephemeral,
+              components: components,
+            },
+          };
+        } else {
+          await axios.request({
+            method: "PATCH",
+            url: `${discordAPIBaseURL}/webhooks/${instance.envVars.DISCORD_CLIENT_ID}/${internalInteraction.interaction.token}/messages/@original`,
+            data: { content: errorMessage, components },
+          });
+        }
       }
       //TODO Handle deferred responses
     }

@@ -1,7 +1,6 @@
 import {
   APIApplicationCommandInteractionDataChannelOption,
   APIChatInputApplicationCommandGuildInteraction,
-  APIInteractionResponse,
   ApplicationCommandOptionType,
   ChannelType,
 } from "discord-api-types/v9";
@@ -19,11 +18,12 @@ import {
   createTextInputWithRow,
 } from "../../modals/createStructures";
 import { InternalInteraction } from "../../interaction";
+import { InteractionReturnData } from "../../types";
 
 export default async function handleSendCommand(
   internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>,
   instance: FastifyInstance
-): Promise<APIInteractionResponse> {
+): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   // First option: Channel
   const channelId: string | undefined = (
