@@ -6,6 +6,7 @@ const { ReportStatus } = prismaClient;
 import {
   APIMessageComponentGuildInteraction,
   InteractionResponseType,
+  MessageFlags,
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 import { ExpectedFailure, InteractionOrRequestFinalStatus } from "../../errors";
@@ -28,6 +29,7 @@ export default async function handleReportButton(
     data: {
       content:
         "Reports are not currently being accepted at the moment. If there is something that you think needs to be reported, please join the support server and contact the developer directly.",
+      flags: MessageFlags.Ephemeral,
     },
   }; /*
   const messageId: string | undefined =
