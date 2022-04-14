@@ -38,13 +38,6 @@ export default async function handleEditButton(
     custom_id: interaction.data.custom_id, // This is the same ( `edit${messageId}`)
     components: [
       createTextInputWithRow({
-        label: "Tags",
-        value: databaseMessage.tags.join(", "),
-        custom_id: "tags",
-        short: true,
-        required: false,
-      }),
-      createTextInputWithRow({
         label: "Message Content",
         value: databaseMessage.content,
         max_length: 2000,

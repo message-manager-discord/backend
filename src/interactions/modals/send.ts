@@ -11,7 +11,6 @@ import {
 } from "../../errors";
 import { sendMessage } from "../../lib/messages/send";
 import { InternalInteraction } from "../interaction";
-import { parseTags } from "./utils";
 // Guild only
 export default async function handleModalSend(
   internalInteraction: InternalInteraction<APIModalSubmitGuildInteraction>,
@@ -28,9 +27,6 @@ export default async function handleModalSend(
     );
   }
 
-  let tags = interaction.data.components?.find(
-    (component) => component.components[0].custom_id === "tags"
-  )?.components[0].value;
   const content = interaction.data.components?.find(
     (component) => component.components[0].custom_id === "content"
   )?.components[0].value;
@@ -41,14 +37,10 @@ export default async function handleModalSend(
       "No content on modal submit"
     );
   }
-  if (!tags) {
-    tags = "";
-  }
 
   await sendMessage({
     channelId,
     content,
-    tags: parseTags(tags),
     instance,
     guildId: interaction.guild_id,
     user: interaction.member,

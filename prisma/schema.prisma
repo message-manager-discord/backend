@@ -42,7 +42,6 @@ model Message {
   editedBy BigInt
   deleted Boolean @default(false)
   addedByUser Boolean @default(false) // This indicates if the message was a message previously sent by the bot, and then added to the database.
-  tags String[]
 
   @@unique([id, editedAt])
 

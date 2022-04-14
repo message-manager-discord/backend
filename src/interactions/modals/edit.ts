@@ -11,7 +11,6 @@ import {
 } from "../../errors";
 import { editMessage } from "../../lib/messages/edit";
 import { InternalInteraction } from "../interaction";
-import { parseTags } from "./utils";
 
 export default async function handleModalEdit(
   internalInteraction: InternalInteraction<APIModalSubmitGuildInteraction>,
@@ -28,9 +27,6 @@ export default async function handleModalEdit(
     );
   }
 
-  let tags = interaction.data.components?.find(
-    (component) => component.components[0].custom_id === "tags"
-  )?.components[0].value;
   const content = interaction.data.components?.find(
     (component) => component.components[0].custom_id === "content"
   )?.components[0].value;
@@ -47,12 +43,9 @@ export default async function handleModalEdit(
       "Missing channel_id on modal submit"
     ); // Not sure why this might happen
   }
-  if (!tags) {
-    tags = "";
-  }
   await editMessage({
     content,
-    tags: parseTags(tags),
+
     channelId: interaction.channel_id,
     instance,
     user: interaction.member,

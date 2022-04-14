@@ -73,13 +73,6 @@ export default async function handleSendCommand(
     custom_id: `send:${channelId}`,
     components: [
       createTextInputWithRow({
-        label: "Tags",
-        placeholder: "Comma separated list of tags",
-        custom_id: "tags",
-        short: true,
-        required: false,
-      }),
-      createTextInputWithRow({
         label: "Message Content",
         placeholder: "Message content to send",
         max_length: 2000,

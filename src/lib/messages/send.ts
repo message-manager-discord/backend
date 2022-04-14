@@ -36,7 +36,6 @@ interface CheckSendMessageOptions {
 }
 interface SendMessageOptions extends CheckSendMessageOptions {
   content: string;
-  tags: string[];
 }
 
 async function checkSendMessagePossible({
@@ -99,7 +98,6 @@ async function checkSendMessagePossible({
 
 async function sendMessage({
   content,
-  tags,
   channelId,
   guildId,
   instance,
@@ -124,7 +122,6 @@ async function sendMessage({
 
         editedAt: new Date(Date.now()),
         editedBy: BigInt(user.user.id),
-        tags,
         channel: {
           connectOrCreate: {
             where: {

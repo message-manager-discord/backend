@@ -110,7 +110,6 @@ async function deleteMessage({
 
         editedAt: new Date(Date.now()),
         editedBy: BigInt(user.user.id),
-        tags: messageBefore.tags,
         channel: {
           connectOrCreate: {
             where: {

@@ -88,12 +88,10 @@ const checkEditPossible = async ({
 
 interface EditMessageOptions extends CheckEditPossibleOptions {
   content: string;
-  tags: string[];
 }
 
 async function editMessage({
   content,
-  tags,
   channelId,
   guildId,
   instance,
@@ -122,7 +120,7 @@ async function editMessage({
 
         editedAt: new Date(Date.now()),
         editedBy: BigInt(user.user.id),
-        tags,
+
         channel: {
           connectOrCreate: {
             where: {
