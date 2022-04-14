@@ -1,8 +1,12 @@
+/* eslint-disable */
+// Disable all checks
+// Remove this when reports are accepted again
 import prismaClient from "@prisma/client";
 const { ReportStatus } = prismaClient;
 import {
   APIInteractionResponse,
   APIMessageComponentGuildInteraction,
+  InteractionResponseType,
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 import { ExpectedFailure, InteractionOrRequestFinalStatus } from "../../errors";
@@ -19,6 +23,13 @@ export default async function handleReportButton(
   instance: FastifyInstance
 ): Promise<APIInteractionResponse> {
   const interaction = internalInteraction.interaction;
+  return {
+    type: InteractionResponseType.ChannelMessageWithSource,
+    data: {
+      content:
+        "Reports are not currently being accepted at the moment. If there is something that you think needs to be reported, please join the support server and contact the developer directly.",
+    },
+  }; /*
   const messageId: string | undefined =
     interaction.data.custom_id.split(":")[1];
   const reportFromDate = new Date();
@@ -69,5 +80,5 @@ export default async function handleReportButton(
         min_length: 10,
       }),
     ],
-  });
+  });*/
 }
