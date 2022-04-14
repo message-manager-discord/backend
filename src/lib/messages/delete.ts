@@ -140,7 +140,7 @@ async function deleteMessage({
       title: "Message Deleted",
       description:
         `Message (${messageId}) deleted` +
-        `\n\n**Message Content**\n${messageBefore.content}`,
+        `\n\n**Message Content:**\n${messageBefore.content}`,
       fields: [
         { name: "Action By:", value: `<@${user.user.id}>`, inline: true },
         { name: "Channel:", value: `<#${channelId}>`, inline: true },

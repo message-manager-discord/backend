@@ -765,7 +765,7 @@ async function handlePermissionsListSubcommand({
       const rolesSorted = sortPermissions(permissions.roles);
       if (hasLevelPermissionsSet(permissions.roles)) {
         description =
-          `**Roles**:\n` +
+          `**Roles:**\n` +
           `${
             rolesSorted.delete.length
               ? `__Delete Messages__: <@&${rolesSorted.delete.join(
@@ -801,7 +801,7 @@ async function handlePermissionsListSubcommand({
       if (hasLevelPermissionsSet(permissions.users)) {
         description =
           description +
-          `\n**Users**:\n` +
+          `\n**Users:**\n` +
           `${
             usersSorted.delete.length
               ? `__Delete Messages__: <@${usersSorted.delete.join(">, <@")}>\n`
@@ -839,7 +839,7 @@ async function handlePermissionsListSubcommand({
     if (channelsWithPermissions.length > 0) {
       description =
         description +
-        `\n**Other channels with bot permissions**: ${channelsWithPermissions
+        `\n**Other channels with bot permissions:** ${channelsWithPermissions
           .map((channel) => `<#${channel.id}>`)
           .join(", ")}\n`;
     }

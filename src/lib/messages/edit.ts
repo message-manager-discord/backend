@@ -151,10 +151,10 @@ async function editMessage({
       title: "Message Edited",
       description:
         `Message (${messageId}) edited` +
-        `\n**Original Content**\n:${
+        `\n**Original Content:**\n${
           messageBefore?.content || "" //This should never be null as the message is being edited
         }` +
-        `\n**New Content**\n:${response.content}`,
+        `\n**New Content:**\n${response.content}`,
       fields: [
         { name: "Action By:", value: `<@${user.user.id}>`, inline: true },
         { name: "Channel:", value: `<#${channelId}>`, inline: true },

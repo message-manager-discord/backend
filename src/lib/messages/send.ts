@@ -149,10 +149,10 @@ async function sendMessage({
     });
     const embed: APIEmbed = {
       color: embedPink,
-      title: "Message Edited",
+      title: "Message Sent",
       description:
-        `Message (${messageResult.id}) edited` +
-        `\n**Content**\n:${messageResult.content}`,
+        `Message (${messageResult.id}) sent` +
+        `\n**Content:**\n${messageResult.content}`,
       fields: [
         { name: "Action By:", value: `<@${user.user.id}>`, inline: true },
         { name: "Channel:", value: `<#${channelId}>`, inline: true },
