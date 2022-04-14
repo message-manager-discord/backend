@@ -36,9 +36,19 @@ export default class WebhookManager {
       update: { webhookId: BigInt(webhook.id), webhookToken: webhook.token },
       create: {
         id: BigInt(channelId),
-        guildId: BigInt(guildId),
         webhookId: BigInt(webhook.id),
         webhookToken: webhook.token,
+        guild: {
+          connectOrCreate: {
+            where: {
+              id: BigInt(guildId),
+            },
+
+            create: {
+              id: BigInt(guildId),
+            },
+          },
+        },
       },
     });
   }
