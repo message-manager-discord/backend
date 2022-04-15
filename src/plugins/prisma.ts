@@ -2,16 +2,21 @@ import fp from "fastify-plugin";
 
 import { FastifyPluginAsync } from "fastify";
 
-import { PrismaClient, CommandStatus } from "@prisma/client";
+import prismaClientImport from "@prisma/client";
+
+import { fieldEncryptionMiddleware } from "prisma-field-encryption";
 
 declare module "fastify" {
   interface FastifyInstance {
-    prisma: PrismaClient;
+    prisma: prismaClientImport.PrismaClient;
   }
 }
 
-const prismaPlugin: FastifyPluginAsync = fp(async (server, options) => {
-  const prisma = new PrismaClient();
+const prismaPlugin: FastifyPluginAsync = fp(async (server) => {
+  const prisma = new prismaClientImport.PrismaClient();
+
+  // Add encryption middleware
+  prisma.$use(fieldEncryptionMiddleware());
 
   await prisma.$connect();
 

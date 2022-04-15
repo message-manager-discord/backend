@@ -1,0 +1,113 @@
+import fp from "fastify-plugin";
+import envSchema from "env-schema";
+import { FastifyInstance } from "fastify";
+
+const schemaForEnv = {
+  type: "object",
+  required: [
+    "UUID_NAMESPACE",
+    "COOKIE_SECRET",
+    "DISCORD_TOKEN",
+    "DISCORD_CACHE_REDIS_HOST",
+    "DISCORD_CACHE_REDIS_PORT",
+    "BACKEND_REDIS_HOST",
+    "BACKEND_REDIS_PORT",
+    "DISCORD_CLIENT_ID",
+    "DISCORD_CLIENT_SECRET",
+    "DISCORD_INTERACTIONS_PUBLIC_KEY",
+    "BASE_API_URL",
+    "METRICS_AUTH_TOKEN",
+    "AVATAR_URL",
+    "PRISMA_FIELD_ENCRYPTION_KEY",
+    "PORT",
+    "HOST",
+    "NO_MIGRATION_AFTER",
+  ],
+  properties: {
+    UUID_NAMESPACE: {
+      type: "string",
+    },
+    COOKIE_SECRET: {
+      type: "string",
+    },
+    DISCORD_TOKEN: {
+      type: "string",
+    },
+    DISCORD_CACHE_REDIS_HOST: {
+      type: "string",
+    },
+    DISCORD_CACHE_REDIS_PORT: {
+      type: "number",
+    },
+    BACKEND_REDIS_HOST: {
+      type: "string",
+    },
+    BACKEND_REDIS_PORT: {
+      type: "number",
+    },
+    DISCORD_CLIENT_ID: {
+      type: "string",
+    },
+    DISCORD_CLIENT_SECRET: {
+      type: "string",
+    },
+    DISCORD_INTERACTIONS_PUBLIC_KEY: {
+      type: "string",
+    },
+    BASE_API_URL: {
+      type: "string",
+    },
+    METRICS_AUTH_TOKEN: {
+      type: "string",
+    },
+    AVATAR_URL: {
+      type: "string",
+    },
+
+    PORT: {
+      type: "number",
+    },
+    HOST: {
+      type: "string",
+    },
+    PRISMA_FIELD_ENCRYPTION_KEY: {
+      type: "string",
+    },
+    NO_MIGRATION_AFTER: {
+      type: "number",
+    },
+  },
+};
+
+interface EnvVars {
+  UUID_NAMESPACE: string;
+  COOKIE_SECRET: string;
+  DISCORD_TOKEN: string;
+  DISCORD_CACHE_REDIS_HOST: string;
+  DISCORD_CACHE_REDIS_PORT: number;
+  BACKEND_REDIS_HOST: string;
+  BACKEND_REDIS_PORT: number;
+  DISCORD_CLIENT_ID: string;
+  DISCORD_CLIENT_SECRET: string;
+  DISCORD_INTERACTIONS_PUBLIC_KEY: string;
+  BASE_API_URL: string;
+  METRICS_AUTH_TOKEN: string;
+  AVATAR_URL: string;
+  PORT: number;
+  HOST: string;
+  PRISMA_FIELD_ENCRYPTION_KEY: string;
+  NO_MIGRATION_AFTER: number;
+}
+
+declare module "fastify" {
+  interface FastifyInstance {
+    envVars: EnvVars;
+  }
+}
+// eslint-disable-next-line @typescript-eslint/require-await
+const envPlugin = fp(async (instance: FastifyInstance) => {
+  const envVars = envSchema<EnvVars>({ schema: schemaForEnv });
+  instance.decorate("envVars", envVars);
+});
+
+export default envPlugin;

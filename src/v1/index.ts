@@ -2,9 +2,8 @@ import { FastifyInstance } from "fastify";
 import fastifySwagger from "fastify-swagger";
 import rootPlugin from "./routes/rootTesting";
 import userPlugin from "./routes/user";
-import analyticsRoutePlugin from "./routes/analytics";
-import authRoutePlugin from "../authRoutes";
 
+// eslint-disable-next-line @typescript-eslint/require-await
 const versionOnePlugin = async (instance: FastifyInstance) => {
   instance.addSchema({
     $id: "responses.unauthorized",
@@ -57,6 +56,7 @@ const versionOnePlugin = async (instance: FastifyInstance) => {
     },
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-floating-promises
   instance.register(fastifySwagger, {
     routePrefix: "/docs",
     openapi: {
@@ -92,11 +92,10 @@ const versionOnePlugin = async (instance: FastifyInstance) => {
     exposeRoute: true,
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-floating-promises
   instance.register(rootPlugin);
+  // eslint-disable-next-line @typescript-eslint/no-floating-promises
   instance.register(userPlugin);
-
-  instance.register(analyticsRoutePlugin);
-  instance.register(authRoutePlugin);
 };
 
 export default versionOnePlugin;

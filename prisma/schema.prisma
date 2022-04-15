@@ -7,63 +7,96 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+
 model Channel {
   id              BigInt             @id
+  permissions Json? 
   webhookId       BigInt?
-  webhookToken    String?            @db.VarChar(255)
-  loggingChannels LoggingChannel[]
+  webhookToken    String?            @db.VarChar(255) /// @encrypted
+  guildId     BigInt
+  guild Guild   @relation(fields: [guildId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  messages Message[]
+  
 }
 
-enum CommandStatus {
-    SUCCESS
-    MISSING_BOT_PERMISSIONS
-    MISSING_USER_PERMISSIONS
-    INVALID_INPUT
-    MISSING_BOT_SCOPE
-    GUILD_ONLY_COMMAND_IN_DM
-    CHANNEL_INPUT_NOT_TEXT_CHANNEL
-    UNKNOWN_ERROR
-    INPUT_CHANNEL_NOT_FOUND
-    TIMEOUT
-    INPUT_DIFFERENT_SERVER 
-    CONFIG_NOT_SET 
-    MESSAGE_AUTHOR_NOT_BOT
-    INPUT_JSON_INVALID 
-    INPUT_TOO_LONG 
-    USER_CANCELLED
-}
-
-model CommandUsageAnalytics {
-  id           Int      @id @default(autoincrement())
-  guildId      BigInt?
-  timestamp    DateTime @default(now()) @db.Timestamptz(6)
-  commandName  Json
-  slash        Boolean
-  success      CommandStatus @default(SUCCESS)
-}
 
 model Guild {
   id                 BigInt             @id
-  managementRoleId   BigInt?
-  prefix             String?            @default("~") @db.VarChar(3)
-  loggingChannels    LoggingChannel[]
+  logChannelId      BigInt?
+  permissions Json? 
+  beforeMigration Boolean @default(false) // This indicates if the guild existed before the migration to storing message content. 
+  // If it was it gains access to adding any previous bot sent message to the database.
+  managementRoleIds BigInt[]
+  messages Message[]
+  channels Channel[]
 }
 
-model LoggingChannel {
-  guildId     BigInt
-  channelId   BigInt
-  loggerType  String   @db.VarChar(20)
-  id          Int      @id @default(autoincrement())
-  channel     Channel @relation(fields: [channelId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  guilds      Guild   @relation(fields: [guildId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+model Message {
+  id BigInt  
+  guildId BigInt
+  guild Guild @relation(fields: [guildId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  channelId BigInt
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  content String /// @encrypted
+  editedAt DateTime
+  editedBy BigInt
+  deleted Boolean @default(false)
+  addedByUser Boolean @default(false) // This indicates if the message was a message previously sent by the bot, and then added to the database.
 
-  @@unique([guildId, channelId], map: "uid_logging_cha_guild_i_b7be0e")
+  @@unique([id, editedAt])
+
 }
+
+
+
 
 model User {
   id              BigInt             @id
-  oauthToken String? 
+  oauthToken String? /// @encrypted
   oauthTokenExpiration DateTime?
-  refreshToken String?
+  refreshToken String? /// @encrypted
   staff Boolean @default(false)
+}
+
+enum ReportStatus {
+  Pending // Not yet reviewed by a staff member
+  Open // A staff member has reviewed the report and it is still open
+  Actioned // A staff member has reviewed the report and it is closed and reported message / server has been actioned
+  Ignored // A staff member has reviewed the report and it is closed and no action has been taken
+  Spam // A staff member has reviewed the report and the report was deemed to be spam. 
+  // Three spam reports in a month perioud will result in restriction to reporting ablitity.
+}
+
+model Report {
+  id BigInt @id @default(autoincrement())
+  userId BigInt 
+  content String /// @encrypted
+  messageId BigInt
+  guildId BigInt
+  channelId BigInt
+  reportedAt DateTime
+  resolvedAt DateTime? // Report should be resolved closed if this is set
+  status ReportStatus @default(Pending)
+  userReportReason String /// @encrypted
+  staffResolvedReasonId BigInt?
+  staffResolvedReason ReportReason? @relation(fields: [staffResolvedReasonId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  messages ReportMessage[]
+} 
+
+model ReportReason { 
+  // Set by staff when closing the ticket
+  id BigInt @id @default(autoincrement())
+  name String
+  description String
+  reports Report[]
+}
+
+model ReportMessage {
+  // Communication between the user and staff - doesn't include the inital report
+  id BigInt @id @default(autoincrement())
+  authorId BigInt
+  fromStaff Boolean // If the author of the message was staff
+  content String /// @encrypted
+  reportId BigInt
+  report Report @relation(fields: [reportId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }

@@ -1,6 +1,7 @@
 // This route file is separate from the other routes since auth routes are not versioned
 import { FastifyInstance } from "fastify";
-import { Forbidden } from "http-errors";
+import httpErrors from "http-errors";
+const { Forbidden } = httpErrors;
 import { Static, Type } from "@sinclair/typebox";
 import { v5 as uuidv5 } from "uuid";
 import crypto from "crypto";
@@ -20,12 +21,13 @@ const AuthorizeQuerystring = Type.Object({
 type AuthorizeQuerystringType = Static<typeof AuthorizeQuerystring>;
 
 type StoredStateResponse = {
-  redirectPath: string;
+  redirectPath: string | null;
 };
 
 const rootPath = "/auth";
-const sessionCookieKey = "mm-s-id";
 
+// Since this is a plugin
+// eslint-disable-next-line @typescript-eslint/require-await
 const addPlugin = async (instance: FastifyInstance) => {
   instance.get<{ Querystring: AuthorizeQuerystringType }>(
     `${rootPath}/authorize`,
@@ -38,15 +40,17 @@ const addPlugin = async (instance: FastifyInstance) => {
       },
     },
     async (request, reply) => {
-      const { redirect_to } = request.query as AuthorizeQuerystringType;
+      const { redirect_to } = request.query;
 
       const state = crypto.randomBytes(16).toString("hex");
-      instance.redisCache.setState(state, redirect_to ? redirect_to : null);
-      reply.redirect(
+      await instance.redisCache.setState(
+        state,
+        redirect_to ? redirect_to : null
+      );
+
+      return reply.redirect(
         307,
-        `https://discord.com/api/oauth2/authorize?response_type=code&client_id=${
-          process.env.DISCORD_CLIENT_ID // This is checked on startup
-        }&redirect_uri=${`${process.env.BASE_API_URL}${rootPath}/callback`}&scope=guilds%20identify%20guilds.members.read&state=${state}`
+        instance.discordOauthRequests.generateAuthUrl(state)
       );
     }
   );
@@ -61,7 +65,7 @@ const addPlugin = async (instance: FastifyInstance) => {
       },
     },
     async (request, reply) => {
-      const { code, state } = request.query as CallbackQuerystringType;
+      const { code, state } = request.query;
       if (!state) {
         return new Forbidden("Missing state");
       }
@@ -69,7 +73,7 @@ const addPlugin = async (instance: FastifyInstance) => {
       if (!cachedState) {
         return new Forbidden("Cannot find state, please try again");
       }
-      instance.redisCache.deleteState(state);
+      await instance.redisCache.deleteState(state);
       const tokenResponse = await instance.discordOauthRequests.exchangeToken(
         code
       );
@@ -94,19 +98,22 @@ const addPlugin = async (instance: FastifyInstance) => {
         },
       });
 
-      const session = uuidv5(user.id, process.env.UUID_NAMESPACE as string);
+      const session = uuidv5(user.id, instance.envVars.UUID_NAMESPACE);
       await instance.redisCache.setSession(session, user.id);
       const date = new Date();
       date.setDate(date.getDate() + 7);
-      reply.setCookie("_HOST-session", session, {
-        secure: true,
-        sameSite: "none",
-        httpOnly: true,
-        path: "/",
-        expires: date,
-        signed: true,
-      });
-      reply.redirect(307, "/");
+
+      const redirectPath = cachedState.redirectPath || "/";
+      return reply
+        .setCookie("_HOST-session", session, {
+          secure: true,
+          sameSite: "none",
+          httpOnly: true,
+          path: "/",
+          expires: date,
+          signed: true,
+        })
+        .redirect(307, redirectPath);
     }
   );
 };

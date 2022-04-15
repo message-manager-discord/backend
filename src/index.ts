@@ -1,8 +1,6 @@
 import fastify, { FastifyInstance } from "fastify";
 
-import dotenv from "dotenv";
-
-import { check } from "./envCheck";
+import envPlugin from "./plugins/envCheck";
 import versionOnePlugin from "./v1";
 import fastifyAuth from "fastify-auth";
 import authPlugin from "./plugins/authentication";
@@ -11,65 +9,67 @@ import prismaPlugin from "./plugins/prisma";
 import discordRestPlugin from "./plugins/discord-rest";
 import redisRestPlugin from "./plugins/redis";
 import discordRedisCachePlugin from "./plugins/discordRedis";
+import metricsPlugin from "./plugins/metrics";
+import webhookAndLoggingPlugin from "./plugins/logging";
 import fastifyCookie, { FastifyCookieOptions } from "fastify-cookie";
+import interactionsPlugin from "./interactions/index";
+
+import authRoutePlugin from "./authRoutes";
 const instance: FastifyInstance = fastify({
   logger: true,
 });
 
-const requiredVars = [
-  "UUID_NAMESPACE",
-  "COOKIE_SECRET",
-  "DISCORD_TOKEN",
-  "DISCORD_CACHE_REDIS_HOST",
-  "DISCORD_CACHE_REDIS_PORT",
-  "BACKEND_REDIS_HOST",
-  "BACKEND_REDIS_PORT",
-  "DISCORD_CLIENT_ID",
-  "DISCORD_CLIENT_SECRET",
-  "BASE_API_URL",
-];
-
-dotenv.config(); // Load environment variables from .env file
-
-check(requiredVars); // Confirm that all required environment variables are set
+await instance.register(envPlugin); // Load env variables
 
 // These are plugins that are separate from versioning
-instance.register(prismaPlugin);
-instance.register(discordRestPlugin, {
-  detritus: { token: process.env.DISCORD_TOKEN },
+await instance.register(prismaPlugin);
+await instance.register(discordRestPlugin, {
+  detritus: { token: instance.envVars.DISCORD_TOKEN },
 });
-instance.register(redisRestPlugin, {
+await instance.register(redisRestPlugin, {
   redis: {
-    host: process.env.BACKEND_REDIS_HOST,
-    port: process.env.BACKEND_REDIS_PORT,
+    host: instance.envVars.BACKEND_REDIS_HOST,
+    port: instance.envVars.BACKEND_REDIS_PORT,
   },
 });
-instance.register(discordRedisCachePlugin, {
+await instance.register(discordRedisCachePlugin, {
   redis: {
-    host: process.env.DISCORD_CACHE_REDIS_PORT,
-    port: process.env.DISCORD_CACHE_REDIS_HOST,
+    host: instance.envVars.DISCORD_CACHE_REDIS_HOST,
+    port: instance.envVars.DISCORD_CACHE_REDIS_PORT,
   },
 });
 
-instance.register(fastifyCookie, {
-  secret: process.env.COOKIE_SECRET, // for cookies signature
+await instance.register(fastifyCookie, {
+  secret: instance.envVars.COOKIE_SECRET, // for cookies signature
   parseOptions: {}, // options for parsing cookies
 } as FastifyCookieOptions);
-instance.register(fastifyCors, {
+await instance.register(fastifyCors, {
   origin: true,
   methods: ["GET", "PUT", "POST", "DELETE", "PATCH"],
   credentials: true,
 });
 
-instance.register(authPlugin);
-instance.register(fastifyAuth);
+await instance.register(authPlugin);
+await instance.register(fastifyAuth);
 
-instance.register(versionOnePlugin, { prefix: "/v1" });
+await instance.register(metricsPlugin);
 
-instance.listen(3000, function (err, address) {
-  if (err) {
-    console.error(err);
-    process.exit(1);
+await instance.register(webhookAndLoggingPlugin);
+
+await instance.register(interactionsPlugin);
+
+await instance.register(authRoutePlugin);
+
+await instance.register(versionOnePlugin, { prefix: "/v1" });
+
+instance.listen(
+  instance.envVars.PORT,
+  instance.envVars.HOST,
+  function (err, address) {
+    if (err) {
+      console.error(err);
+      process.exit(1);
+    }
+    instance.log.info(`Server is now listening on ${address}`);
   }
-  // Server is now listening on ${address}
-});
+);

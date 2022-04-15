@@ -1,0 +1,214 @@
+[
+  {
+    "name": "config",
+    "type": 1,
+    "description": "Bot configuration",
+    "options": [
+      {
+        "name": "logging-channel",
+        "type": 2,
+        "description": "Manage the channel for logging actions taken through the bot to",
+        "options": [
+          {
+            "name": "set",
+            "type": 1,
+            "description": "Set the channel for logging actions taken through the bot to",
+            "options": [
+              {
+                "name": "channel",
+                "type": 7,
+                "description": "The channel to log to",
+                "channel_types": [0, 5],
+                "required": true
+              }
+            ]
+          },
+          {
+            "name": "remove",
+            "type": 1,
+            "description": "Remove the logging channel"
+          },
+          {
+            "name": "get",
+            "type": 1,
+            "description": "Get the current logging channel"
+          }
+        ]
+      },
+      {
+        "name": "management-roles",
+        "type": 2,
+        "description": "Manage who can manage permissions, and other configuration. Require administrator permissions.",
+        "options": [
+          {
+            "name": "add",
+            "type": 1,
+            "description": "Make a role a bot management role.",
+            "options": [
+              {
+                "type": 8,
+                "name": "role",
+                "required": true,
+                "description": "The role to make a bot management role."
+              }
+            ]
+          },
+          {
+            "name": "remove",
+            "type": 1,
+            "description": "Remove a role from being a bot management role",
+            "options": [
+              {
+                "type": 8,
+                "name": "role",
+                "required": true,
+                "description": "The role to set the permission for"
+              }
+            ]
+          },
+          {
+            "name": "list",
+            "type": 1,
+            "description": "List all bot management roles"
+          }
+        ]
+      },
+      {
+        "name": "permissions",
+        "type": 2,
+        "description": "Manage bot level permissions. Requires being a manager on the bot.",
+        "options": [
+          {
+            "name": "set",
+            "type": 1,
+            "description": "Set a user's or a role's bot permission",
+            "options": [
+              {
+                "type": 9,
+                "name": "target",
+                "required": true,
+                "description": "The user or role to set the permission for"
+              },
+              {
+                "type": 4,
+                "name": "permission",
+                "required": true,
+                "description": "The permission to set",
+                "choices": [
+                  {
+                    "name": "View Messages",
+                    "value": 1
+                  },
+                  {
+                    "name": "Edit Messages",
+                    "value": 2
+                  },
+                  {
+                    "name": "Send Messages",
+                    "value": 3
+                  },
+                  {
+                    "name": "Delete Messages",
+                    "value": 4
+                  }
+                ]
+              },
+              {
+                "type": 7,
+                "name": "channel",
+                "description": "The channel to set the permission on. Leave empty to set the permission on the guild level.",
+                "channel_types": [0, 5]
+              }
+            ]
+          },
+          {
+            "name": "remove",
+            "type": 1,
+            "description": "Remove a user's or a role's bot permission",
+            "options": [
+              {
+                "type": 9,
+                "name": "target",
+                "required": true,
+                "description": "The user or role to remove permissions for"
+              },
+              {
+                "type": 7,
+                "name": "channel",
+                "description": "The channel to remove the permissions on. Leave empty to remove the permissions on the guild level.",
+                "channel_types": [0, 5]
+              }
+            ]
+          },
+          {
+            "name": "list",
+            "type": 1,
+            "description": "List all users and roles with bot permissions",
+            "options": [
+              {
+                "type": 7,
+                "name": "channel",
+                "description": "The channel to list the permissions on. Leave empty to list the permissions on the guild level.",
+                "channel_types": [0, 5]
+              },
+              {
+                "type": 3,
+                "name": "type-filter",
+                "description": "Filter the set permissions by a specific type (user or role)",
+                "choices": [
+                  {
+                    "name": "Users",
+                    "value": "users"
+                  },
+                  {
+                    "name": "Roles",
+                    "value": "roles"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+
+  {
+    "name": "Fetch",
+    "type": 3
+  },
+  {
+    "name": "Actions",
+    "type": 3
+  },
+  {
+    "default_permission": true,
+    "type": 1,
+    "name": "send",
+    "description": "Send a message via the bot",
+    "options": [
+      {
+        "name": "channel",
+        "type": 7,
+        "description": "Channel to send the message to",
+        "channel_types": [0, 5, 10, 11, 12],
+        "required": true
+      }
+    ]
+  },
+  {
+    "default_permission": true,
+    "type": 1,
+    "name": "info",
+    "description": "Information Commands",
+    "options": [
+      {
+        "name": "tag",
+        "description": "The name of the information you are trying to find.",
+        "type": 3,
+        "autocomplete": true,
+        "required": true
+      }
+    ]
+  }
+]

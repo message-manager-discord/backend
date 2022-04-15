@@ -1,19 +1,14 @@
-import {
-  FastifyInstance,
-  FastifyReply,
-  FastifyRequest,
-  FastifyPluginOptions,
-} from "fastify";
-import { Unauthorized } from "http-errors";
+import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import httpErrors from "http-errors";
+const { Unauthorized } = httpErrors;
 
 import fp from "fastify-plugin";
-import { prisma } from "@prisma/client";
-import { Snowflake } from "discord-api-types";
+import { Snowflake } from "discord-api-types/v9";
 
 const requireAuthentication = async (
   request: FastifyRequest,
   reply: FastifyReply
-): Promise<any> => {
+): Promise<FastifyReply | void> => {
   const sessionSigned = request.cookies["_HOST-session"];
   let session: string | null;
   try {
@@ -28,16 +23,14 @@ const requireAuthentication = async (
 
   const sessionData = await request.server.redisCache.getSession(session);
   if (!sessionData) {
-    reply.clearCookie("_HOST-session");
-    reply.send(new Unauthorized());
+    return reply.clearCookie("_HOST-session").send(new Unauthorized());
   } else {
     const userData = await request.server.prisma.user.findUnique({
       select: { oauthToken: true, staff: true },
       where: { id: BigInt(sessionData.userId) },
     });
     if (!userData || !userData.oauthToken) {
-      reply.send(new Unauthorized());
-      return;
+      return reply.send(new Unauthorized());
     }
     request.user = {
       userId: sessionData.userId,
@@ -46,8 +39,7 @@ const requireAuthentication = async (
     };
     if (sessionData.expiry - 1000 * 60 * 30 < 0) {
       // If session expires in the next 30 mins, then force a refresh to avoid users being logged out while working
-      reply.clearCookie("_HOST-session");
-      reply.send(new Unauthorized());
+      return reply.clearCookie("_HOST-session").send(new Unauthorized());
     }
   }
 };
@@ -67,11 +59,10 @@ declare module "fastify" {
   }
 }
 
-const authPlugin = fp(
-  async (instance: FastifyInstance, options?: FastifyPluginOptions) => {
-    instance.decorate("requireAuthentication", requireAuthentication);
-  }
-);
+// eslint-disable-next-line @typescript-eslint/require-await
+const authPlugin = fp(async (instance: FastifyInstance) => {
+  instance.decorate("requireAuthentication", requireAuthentication);
+});
 
 export default authPlugin;
 export { UserRequestData };
