@@ -20,6 +20,7 @@ import {
 } from "../permissions/checks";
 import { checkDatabaseMessage } from "./utils";
 import { embedPink } from "../../constants";
+import limits from "../../limits";
 
 interface CheckEditPossibleOptions {
   user: APIInteractionGuildMember;
@@ -146,6 +147,33 @@ async function editMessage({
         },
       },
     });
+    // Check if message history count hasn't exceeded the limit, if it has then delete the oldest history
+
+    const messageCount = await instance.prisma.message.count({
+      where: {
+        id: BigInt(messageId),
+      },
+    });
+    if (messageCount > limits.MAX_MESSAGE_HISTORY) {
+      const oldestMessage = await instance.prisma.message.findFirst({
+        where: {
+          id: BigInt(messageId),
+        },
+        orderBy: {
+          editedAt: "asc",
+        },
+      });
+      if (oldestMessage) {
+        await instance.prisma.message.delete({
+          where: {
+            id_editedAt: {
+              id: BigInt(messageId),
+              editedAt: oldestMessage.editedAt,
+            },
+          },
+        });
+      }
+    }
     const embed: APIEmbed = {
       color: embedPink,
       title: "Message Edited",

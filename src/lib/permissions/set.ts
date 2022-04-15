@@ -1,5 +1,7 @@
 import { Snowflake } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
+import { InteractionOrRequestFinalStatus, LimitHit } from "../../errors";
+import limits from "../../limits";
 
 import { Permission, PermissionsData } from "./types";
 
@@ -32,6 +34,16 @@ async function setGuildRolePermissions({
     if (!currentPermissions.roles) {
       currentPermissions.roles = { [roleId]: permission };
     } else {
+      // Check if the amount of roles exceeds the limit
+      if (
+        Object.keys(currentPermissions.roles).length >=
+        limits.MAX_ROLE_PERMISSIONS
+      ) {
+        throw new LimitHit(
+          InteractionOrRequestFinalStatus.MAX_ROLE_PERMISSIONS,
+          `The limit of ${limits.MAX_ROLE_PERMISSIONS} role permissions has been reached on the guild.`
+        );
+      }
       currentPermissions.roles[roleId] = permission;
     }
   }
@@ -77,6 +89,16 @@ async function setGuildUserPermissions({
     if (!currentPermissions.users) {
       currentPermissions.users = { [userId]: permission };
     } else {
+      // Check if the amount of users exceeds the limit
+      if (
+        Object.keys(currentPermissions.users).length >=
+        limits.MAX_USER_PERMISSIONS
+      ) {
+        throw new LimitHit(
+          InteractionOrRequestFinalStatus.MAX_USER_PERMISSIONS,
+          `The limit of ${limits.MAX_USER_PERMISSIONS} user permissions has been reached on the guild.`
+        );
+      }
       currentPermissions.users[userId] = permission;
     }
   }
@@ -123,6 +145,16 @@ async function setChannelRolePermissions({
     if (!currentPermissions.roles) {
       currentPermissions.roles = { [roleId]: permission };
     } else {
+      // Check if the amount of roles exceeds the limit
+      if (
+        Object.keys(currentPermissions.roles).length >=
+        limits.MAX_ROLE_PERMISSIONS
+      ) {
+        throw new LimitHit(
+          InteractionOrRequestFinalStatus.MAX_ROLE_PERMISSIONS,
+          `The limit of ${limits.MAX_ROLE_PERMISSIONS} role permissions has been reached on this channel.`
+        );
+      }
       currentPermissions.roles[roleId] = permission;
     }
   }
@@ -180,6 +212,16 @@ async function setChannelUserPermissions({
     if (!currentPermissions.users) {
       currentPermissions.users = { [userId]: permission };
     } else {
+      // Check if the amount of user permissions is at the limit
+      if (
+        Object.keys(currentPermissions.users).length >=
+        limits.MAX_USER_PERMISSIONS
+      ) {
+        throw new LimitHit(
+          InteractionOrRequestFinalStatus.MAX_USER_CHANNEL_PERMISSIONS,
+          `The limit of ${limits.MAX_USER_PERMISSIONS} user permissions has been reached on this channel.`
+        );
+      }
       currentPermissions.users[userId] = permission;
     }
   }

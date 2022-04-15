@@ -16,6 +16,7 @@ import {
   ExpectedFailure,
   ExpectedPermissionFailure,
   InteractionOrRequestFinalStatus,
+  LimitHit,
   UnexpectedFailure,
 } from "../../../errors";
 
@@ -44,6 +45,7 @@ import {
   removeGuildUserPermissions,
 } from "../../../lib/permissions/remove";
 import { InteractionReturnData } from "../../types";
+import limits from "../../../limits";
 
 export default async function handleConfigCommand(
   internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>,
@@ -163,6 +165,22 @@ async function handleManagementRolesAddSubcommand({
       "Missing role option"
     );
   }
+  // Check if the number of roles exceeds the limit
+  const guild = await instance.prisma.guild.findUnique({
+    where: {
+      id: BigInt(interaction.guild_id),
+    },
+  });
+  if (
+    guild?.managementRoleIds &&
+    guild.managementRoleIds.length >= limits.MAX_MANAGEMENT_ROLES
+  ) {
+    throw new LimitHit(
+      InteractionOrRequestFinalStatus.MAX_MANAGEMENT_ROLES,
+      `The limit of ${limits.MAX_MANAGEMENT_ROLES} management roles has been reached on this guild.`
+    );
+  }
+
   await instance.prisma.guild.upsert({
     where: { id: BigInt(interaction.guild_id) },
     update: {

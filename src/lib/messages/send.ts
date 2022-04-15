@@ -83,16 +83,6 @@ async function checkSendMessagePossible({
     );
   }
 
-  // Check we are not at the limit of messages per channel
-  const messageCount = await instance.prisma.message.count({
-    where: { channelId: BigInt(channelId) },
-  });
-  if (messageCount >= limits.MAX_MESSAGES_PER_CHANNEL) {
-    throw new LimitHit(
-      InteractionOrRequestFinalStatus.EXCEEDED_CHANNEL_MESSAGE_LIMIT,
-      `You have reached the limit of ${limits.MAX_MESSAGES_PER_CHANNEL} messages per channel.`
-    );
-  }
   return true;
 }
 
