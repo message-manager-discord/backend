@@ -896,15 +896,22 @@ async function handleLoggingChannelSubcommandGroup(
   instance: FastifyInstance
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
+  const guild = await instance.prisma.guild.findUnique({
+    where: { id: BigInt(interaction.guild_id) },
+  });
   if (
     !checkDiscordPermissionValue(
       BigInt(interaction.member.permissions),
       Permissions.ADMINISTRATOR
-    )
+    ) &&
+    !checkManagementPermission({
+      managementRoles: guild?.managementRoleIds,
+      userRoles: interaction.member.roles,
+    })
   ) {
     throw new ExpectedPermissionFailure(
-      InteractionOrRequestFinalStatus.USER_MISSING_DISCORD_PERMISSION,
-      "You must be an administrator to use this command"
+      InteractionOrRequestFinalStatus.USER_MISSING_INTERNAL_BOT_MANAGEMENT_PERMISSION,
+      "You must be a bot manager (have a role assigned to be a management role), or an administrator to use this command"
     );
   }
 
