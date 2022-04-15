@@ -145,6 +145,7 @@ async function deleteMessage({
         { name: "Action By:", value: `<@${user.user.id}>`, inline: true },
         { name: "Channel:", value: `<#${channelId}>`, inline: true },
       ],
+      timestamp: new Date().toISOString(),
     };
     // Send log message
     await instance.loggingManager.sendLogMessage({

@@ -87,7 +87,7 @@ async function getMessageActionsPossible({
         await registerAddCommand(guildId, instance);
         throw new ExpectedFailure(
           InteractionOrRequestFinalStatus.MESSAGE_NOT_FOUND_IN_DATABASE_MIGRATION_POSSIBLE,
-          'That message was not sent via the bot! Try using the "Add Message" context menu command (for more info check out `/info migration`'
+          'That message was not sent via the bot! Try using the "Add Message" context menu command (for more info check out `/info migration`)'
         );
       }
     }

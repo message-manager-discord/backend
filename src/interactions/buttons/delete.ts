@@ -1,4 +1,5 @@
 import {
+  APIEmbed,
   APIMessageComponentGuildInteraction,
   ButtonStyle,
   ComponentType,
@@ -12,6 +13,7 @@ import {
   UnexpectedFailure,
 } from "../../errors";
 import { checkDeletePossible } from "../../lib/messages/delete";
+import { addTipToEmbed } from "../../lib/tips";
 import { InternalInteraction } from "../interaction";
 import { InteractionReturnData } from "../types";
 
@@ -36,22 +38,21 @@ export default async function handleDeleteButton(
   });
   const content = databaseMessage.content;
   const maxLength = 150;
+  const embed: APIEmbed = {
+    title: "Delete Message",
+    url: `https://discord.com/channels/${interaction.guild_id}/${databaseMessage.channelId}/${messageId}`,
+    description: `Are you sure you want to delete this message?\n**Content:**\n\n${
+      content.length > maxLength
+        ? `${content.substring(0, maxLength)}...`
+        : content
+    }`,
+
+    color: embedPink,
+  };
   return {
     type: InteractionResponseType.ChannelMessageWithSource,
     data: {
-      embeds: [
-        {
-          title: "Delete Message",
-          url: `https://discord.com/channels/${interaction.guild_id}/${databaseMessage.channelId}/${messageId}`,
-          description: `Are you sure you want to delete this message?\n**Content:**\n\n${
-            content.length > maxLength
-              ? `${content.substring(0, maxLength)}...`
-              : content
-          }`,
-
-          color: embedPink,
-        },
-      ],
+      embeds: [addTipToEmbed(embed)],
       components: [
         {
           type: ComponentType.ActionRow,

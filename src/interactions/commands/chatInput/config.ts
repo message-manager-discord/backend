@@ -46,6 +46,7 @@ import {
 } from "../../../lib/permissions/remove";
 import { InteractionReturnData } from "../../types";
 import limits from "../../../limits";
+import { addTipToEmbed } from "../../../lib/tips";
 
 export default async function handleConfigCommand(
   internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>,
@@ -214,7 +215,7 @@ async function handleManagementRolesAddSubcommand({
     type: InteractionResponseType.ChannelMessageWithSource,
     data: {
       flags: MessageFlags.Ephemeral,
-      embeds: [embed],
+      embeds: [addTipToEmbed(embed)],
     },
   };
 }
@@ -293,7 +294,7 @@ async function handleManagementRolesRemoveSubcommand({
     type: InteractionResponseType.ChannelMessageWithSource,
     data: {
       flags: MessageFlags.Ephemeral,
-      embeds: [embed],
+      embeds: [addTipToEmbed(embed)],
     },
   };
 }
@@ -316,7 +317,7 @@ async function handleManagementRolesListSubcommand({
     data: {
       flags: MessageFlags.Ephemeral,
       embeds: [
-        {
+        addTipToEmbed({
           color: embedPink,
           title: "Management roles:",
           description:
@@ -328,7 +329,7 @@ async function handleManagementRolesListSubcommand({
                 : "No management roles set for the guild."
             }` +
             `\n*Management roles allow non admin members to manage server config on the bot, like permissions, logs, etc*`,
-        },
+        }),
       ],
     },
   };
@@ -543,7 +544,7 @@ async function handlePermissionsSetSubcommand({
     type: InteractionResponseType.ChannelMessageWithSource,
     data: {
       flags: MessageFlags.Ephemeral,
-      embeds: [embed],
+      embeds: [addTipToEmbed(embed)],
     },
   };
 }
@@ -672,7 +673,7 @@ async function handlePermissionsRemoveSubcommand({
     type: InteractionResponseType.ChannelMessageWithSource,
     data: {
       flags: MessageFlags.Ephemeral,
-      embeds: [embed],
+      embeds: [addTipToEmbed(embed)],
     },
   };
 }
@@ -875,15 +876,13 @@ async function handlePermissionsListSubcommand({
     type: InteractionResponseType.ChannelMessageWithSource,
     data: {
       embeds: [
-        {
+        addTipToEmbed({
           title: `${embedTitle}${filterBy ? `, filtered by ${filterBy}` : ""}`,
           color: embedPink,
           timestamp: new Date().toISOString(),
           description,
-          footer: {
-            text: "Tip! Use /config permissions set, to add a user or role to bot permissions",
-          },
-        },
+          
+        }),
       ],
       flags: MessageFlags.Ephemeral,
     },
@@ -1029,7 +1028,7 @@ async function handleLoggingChannelSetSubcommand({
   return {
     type: InteractionResponseType.ChannelMessageWithSource,
     data: {
-      embeds: [embed],
+      embeds: [addTipToEmbed(embed)],
       flags: MessageFlags.Ephemeral,
     },
   };
@@ -1103,7 +1102,7 @@ async function handleLoggingChannelRemoveSubcommand({
   return {
     type: InteractionResponseType.ChannelMessageWithSource,
     data: {
-      embeds: [embed],
+      embeds: [addTipToEmbed(embed)],
       flags: MessageFlags.Ephemeral,
     },
   };
@@ -1143,7 +1142,7 @@ async function handleLoggingChannelGetSubcommand({
   return {
     type: InteractionResponseType.ChannelMessageWithSource,
     data: {
-      embeds: [embed],
+      embeds: [addTipToEmbed(embed)],
       flags: MessageFlags.Ephemeral,
     },
   };

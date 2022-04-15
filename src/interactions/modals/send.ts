@@ -1,14 +1,17 @@
 import {
+  APIEmbed,
   APIModalSubmitGuildInteraction,
   InteractionResponseType,
   MessageFlags,
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
+import { embedPink } from "../../constants";
 import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../../errors";
 import { sendMessage } from "../../lib/messages/send";
+import { addTipToEmbed } from "../../lib/tips";
 import { InternalInteraction } from "../interaction";
 import { InteractionReturnData } from "../types";
 // Guild only
@@ -38,7 +41,7 @@ export default async function handleModalSend(
     );
   }
 
-  await sendMessage({
+  const message = await sendMessage({
     channelId,
     content,
     instance,
@@ -46,10 +49,20 @@ export default async function handleModalSend(
     user: interaction.member,
   });
 
+  const messageLink = `https://discord.com/channels/${interaction.guild_id}/${channelId}/${message.id}`;
+
+  const embed: APIEmbed = {
+    color: embedPink,
+    title: "Message Sent",
+    description: `Message sent! [Jump to message](${messageLink})`,
+    url: messageLink,
+    timestamp: new Date().toISOString(),
+  };
+
   return {
     type: InteractionResponseType.ChannelMessageWithSource,
     data: {
-      content: ":white_check_mark: Message sent!",
+      embeds: [addTipToEmbed(embed)],
       flags: MessageFlags.Ephemeral,
     },
   };

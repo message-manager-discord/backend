@@ -2,14 +2,17 @@ import {
   APIMessageApplicationCommandGuildInteraction,
   InteractionResponseType,
   MessageFlags,
+  MessageType,
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
+import { embedPink } from "../../../constants";
 import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
   ExpectedFailure,
 } from "../../../errors";
 import { checkSendMessagePossible } from "../../../lib/messages/send";
+import { addTipToEmbed } from "../../../lib/tips";
 import { InternalInteraction } from "../../interaction";
 import { InteractionReturnData } from "../../types";
 
@@ -42,6 +45,12 @@ export default async function handleAddMessageCommand(
     throw new ExpectedFailure(
       InteractionOrRequestFinalStatus.MESSAGE_AUTHOR_NOT_BOT_AUTHOR,
       "That message was not sent via the bot."
+    );
+  }
+  if (message.type !== MessageType.Default || message.interaction) {
+    throw new ExpectedFailure(
+      InteractionOrRequestFinalStatus.MIGRATION_ATTEMPTED_ON_NON_STANDARD_MESSAGE,
+      "Message must be a normal message (not an interaction response, system message, etc) to be able to be added!"
     );
   }
   if (
@@ -97,13 +106,21 @@ export default async function handleAddMessageCommand(
     },
   });
 
+  const messageLink = `https://discord.com/channels/${interaction.guild_id}/${message.channel_id}/${message.id}`;
+
   return {
     type: InteractionResponseType.ChannelMessageWithSource,
     data: {
       flags: MessageFlags.Ephemeral,
-      content:
-        `Click on the below buttons to edit, delete, or report [this message](https://discord.com/channels/${interaction.guild_id}/${message.channel_id}/${message.id})` +
-        `\nIf the action is not available, you may be missing the required permissions for that action.`,
+      embeds: [
+        addTipToEmbed({
+          title: "Message Added",
+          color: embedPink,
+          description: `Message added! You can now perform all usual actions on that [message](${messageLink}).`,
+          timestamp: new Date().toISOString(),
+          url: messageLink,
+        }),
+      ],
     },
   };
 }

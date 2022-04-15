@@ -1,6 +1,7 @@
 import {
   APIEmbed,
   APIInteractionGuildMember,
+  APIMessage,
   RESTPostAPIChannelMessageResult,
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
@@ -93,7 +94,7 @@ async function sendMessage({
   instance,
   user,
   thread,
-}: SendMessageOptions) {
+}: SendMessageOptions): Promise<APIMessage> {
   await checkSendMessagePossible({
     channelId,
     guildId,
@@ -147,12 +148,14 @@ async function sendMessage({
         { name: "Action By:", value: `<@${user.user.id}>`, inline: true },
         { name: "Channel:", value: `<#${channelId}>`, inline: true },
       ],
+      timestamp: new Date().toISOString(),
     };
     // Send log message
     await instance.loggingManager.sendLogMessage({
       guildId: guildId,
       embeds: [embed],
     });
+    return messageResult;
   } catch (error) {
     if (error instanceof DiscordHTTPError) {
       if (error.code === 404) {

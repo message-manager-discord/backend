@@ -14,6 +14,7 @@ import {
   UnexpectedFailure,
 } from "../../errors";
 import { deleteMessage } from "../../lib/messages/delete";
+import { addTipToEmbed } from "../../lib/tips";
 import { InternalInteraction } from "../interaction";
 
 export default async function handleConfirmDeleteButton(
@@ -50,10 +51,11 @@ export default async function handleConfirmDeleteButton(
     instance,
     messageId,
   });
+
   return {
     type: InteractionResponseType.UpdateMessage,
     data: {
-      embeds: [embed],
+      embeds: [addTipToEmbed(embed)],
       components: [otherComponent],
       flags: MessageFlags.Ephemeral,
     },

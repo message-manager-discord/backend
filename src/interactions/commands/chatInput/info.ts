@@ -18,6 +18,7 @@ import {
 import { InternalInteraction } from "../../interaction";
 import Fuse from "fuse.js";
 import { InteractionReturnData } from "../../types";
+import { addTipToEmbed } from "../../../lib/tips";
 
 const createInfoEmbed = async (
   instance: FastifyInstance
@@ -196,7 +197,7 @@ const channelMessageResponseWithEmbed = (
 ): APIInteractionResponseChannelMessageWithSource => ({
   type: InteractionResponseType.ChannelMessageWithSource,
   data: {
-    embeds: [embed],
+    embeds: [addTipToEmbed(embed)],
     flags: MessageFlags.Ephemeral,
   },
 });

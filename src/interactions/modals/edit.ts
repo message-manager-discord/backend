@@ -1,14 +1,17 @@
 import {
+  APIEmbed,
   APIModalSubmitGuildInteraction,
   InteractionResponseType,
   MessageFlags,
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
+import { embedPink } from "../../constants";
 import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../../errors";
 import { editMessage } from "../../lib/messages/edit";
+import { addTipToEmbed } from "../../lib/tips";
 import { InternalInteraction } from "../interaction";
 import { InteractionReturnData } from "../types";
 
@@ -52,10 +55,19 @@ export default async function handleModalEdit(
     messageId,
     guildId: interaction.guild_id,
   });
+  const messageLink = `https://discord.com/channels/${interaction.guild_id}/${interaction.channel_id}/${messageId}`;
+
+  const embed: APIEmbed = {
+    color: embedPink,
+    title: "Message Edited",
+    description: `Message edited! [Jump to message](${messageLink})`,
+    url: messageLink,
+    timestamp: new Date().toISOString(),
+  };
   return {
     type: InteractionResponseType.ChannelMessageWithSource,
     data: {
-      content: "Message edited!",
+      embeds: [addTipToEmbed(embed)],
       flags: MessageFlags.Ephemeral,
     },
   };

@@ -9,6 +9,7 @@ import {
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 import { failureRed } from "../../constants";
+import { addTipToEmbed } from "../../lib/tips";
 import { InternalInteraction } from "../interaction";
 
 // eslint-disable-next-line @typescript-eslint/require-await
@@ -37,7 +38,7 @@ export default async function handleCancelDeleteButton(
   return {
     type: InteractionResponseType.UpdateMessage,
     data: {
-      embeds: [embed],
+      embeds: [addTipToEmbed(embed)],
       components: [otherComponent],
       flags: MessageFlags.Ephemeral,
     },

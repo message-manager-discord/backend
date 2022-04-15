@@ -7,11 +7,13 @@ import {
   MessageFlags,
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
+import { embedPink } from "../../../constants";
 import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../../../errors";
 import { getMessageActionsPossible } from "../../../lib/messages/checks";
+import { addTipToEmbed } from "../../../lib/tips";
 import { InternalInteraction } from "../../interaction";
 import { InteractionReturnData } from "../../types";
 
@@ -63,13 +65,24 @@ export default async function handleActionMessageCommand(
     style: ButtonStyle.Danger,
   });
 
+  const messageLink = `https://discord.com/channels/${interaction.guild_id}/${message.channel_id}/${message.id}`;
+
   return {
     type: InteractionResponseType.ChannelMessageWithSource,
     data: {
       flags: MessageFlags.Ephemeral,
-      content:
-        `Click on the below buttons to edit, delete, or report [this message](https://discord.com/channels/${interaction.guild_id}/${message.channel_id}/${message.id})` +
-        `\nIf the action is not available, you may be missing the required permissions for that action.`,
+      embeds: [
+        addTipToEmbed({
+          title: "Message Actions",
+          color: embedPink,
+          description:
+            `Click on the below buttons to edit, delete, or report [this message](${messageLink})` +
+            `\nIf the action is not available, you may be missing the required permissions for that action.`,
+
+          timestamp: new Date().toISOString(),
+          url: messageLink,
+        }),
+      ],
       components: [
         {
           type: ComponentType.ActionRow,
