@@ -5,7 +5,6 @@ import {
   RESTPostAPIChannelMessageResult,
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
-import limits from "../../limits";
 
 import {
   checkAllPermissions,
@@ -16,7 +15,6 @@ import { DiscordHTTPError } from "detritus-client-rest/lib/errors";
 import {
   ExpectedPermissionFailure,
   InteractionOrRequestFinalStatus,
-  LimitHit,
   UnexpectedFailure,
 } from "../../errors";
 import {

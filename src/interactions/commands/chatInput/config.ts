@@ -881,7 +881,6 @@ async function handlePermissionsListSubcommand({
           color: embedPink,
           timestamp: new Date().toISOString(),
           description,
-          
         }),
       ],
       flags: MessageFlags.Ephemeral,
