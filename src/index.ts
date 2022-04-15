@@ -16,8 +16,11 @@ import interactionsPlugin from "./interactions/index";
 import Sentry from "@sentry/node";
 
 import authRoutePlugin from "./authRoutes";
+
 const instance: FastifyInstance = fastify({
-  logger: true,
+  logger: {
+    level: "info",
+  },
 });
 
 await instance.register(envPlugin); // Load env variables
