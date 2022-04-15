@@ -13,6 +13,7 @@ import metricsPlugin from "./plugins/metrics";
 import webhookAndLoggingPlugin from "./plugins/logging";
 import fastifyCookie, { FastifyCookieOptions } from "fastify-cookie";
 import interactionsPlugin from "./interactions/index";
+import Sentry from "@sentry/node";
 
 import authRoutePlugin from "./authRoutes";
 const instance: FastifyInstance = fastify({
@@ -21,6 +22,22 @@ const instance: FastifyInstance = fastify({
 
 await instance.register(envPlugin); // Load env variables
 
+// Sentry is registered before all other plugins incase they throw errors
+// Sentry is not a plugin so all errors are captured
+
+Sentry.init({
+  dsn: instance.envVars.SENTRY_DSN,
+});
+
+instance.setErrorHandler(async (error, request, reply) => {
+  Sentry.captureException(error);
+  instance.log.error(error);
+  return reply.status(500).send({
+    statusCode: 500,
+    error: "Internal Server Error",
+    message: error.message,
+  });
+});
 // These are plugins that are separate from versioning
 await instance.register(prismaPlugin);
 await instance.register(discordRestPlugin, {
