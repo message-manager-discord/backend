@@ -33,8 +33,15 @@ Sentry.init({
 });
 
 instance.setErrorHandler(async (error, request, reply) => {
+  if (error.statusCode && error.statusCode < 500) {
+    return reply.send(error);
+  } // http-errors are thrown for 4xx errors, which should not be sent to sentry
   Sentry.captureException(error);
   instance.log.error(error);
+  if (error.statusCode) {
+    return reply.send(error);
+  } // If any errors were http-errors pretty much, they shouldn't be overwritten
+
   return reply.status(500).send({
     statusCode: 500,
     error: "Internal Server Error",
