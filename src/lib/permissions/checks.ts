@@ -151,8 +151,6 @@ async function checkIfUserCanManageRolePermissions({
       permission: Permission.MANAGE_PERMISSIONS,
     }))
   ) {
-    console.log(`guildPermissions ${guildPermissions}`);
-    console.log("doesn't have permissions");
     return false;
   }
   return userRolesAboveRole;
