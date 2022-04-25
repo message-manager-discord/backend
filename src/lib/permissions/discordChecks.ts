@@ -49,6 +49,40 @@ const missingBotDiscordPermissionMessage = (
 
 type PermissionKeys = keyof typeof Permissions;
 
+async function checkUserDiscordPermissions({
+  guild,
+  channelId,
+  userId,
+  roles,
+  requiredPermissions,
+}: {
+  guild: Guild;
+  channelId: Snowflake | null;
+  userId: Snowflake;
+  roles: Snowflake[];
+  requiredPermissions: PermissionKeys[];
+}): Promise<true> {
+  let permissions: bigint;
+  if (channelId) {
+    permissions = await guild.calculateChannelPermissions(
+      userId,
+      roles,
+      channelId
+    );
+  } else {
+    permissions = await guild.calculateGuildPermissions(userId, roles);
+  }
+  requiredPermissions.forEach((permission) => {
+    if (!checkDiscordPermissionValue(permissions, Permissions[permission])) {
+      throw new ExpectedPermissionFailure(
+        InteractionOrRequestFinalStatus.USER_MISSING_DISCORD_PERMISSION,
+        missingUserDiscordPermissionMessage(permission, channelId)
+      );
+    }
+  });
+  return true;
+}
+
 async function checkDiscordPermissions({
   guild,
   channelId,
@@ -64,18 +98,12 @@ async function checkDiscordPermissions({
   requiredUserPermissions: PermissionKeys[];
   requiredBotPermissions: PermissionKeys[];
 }): Promise<true> {
-  const permissions = await guild.calculateChannelPermissions(
+  await checkUserDiscordPermissions({
+    guild,
+    channelId,
     userId,
     roles,
-    channelId
-  );
-  requiredUserPermissions.forEach((permission) => {
-    if (!checkDiscordPermissionValue(permissions, Permissions[permission])) {
-      throw new ExpectedPermissionFailure(
-        InteractionOrRequestFinalStatus.USER_MISSING_DISCORD_PERMISSION,
-        missingUserDiscordPermissionMessage(permission, channelId)
-      );
-    }
+    requiredPermissions: requiredUserPermissions,
   });
   const permissionsBot = await guild.calculateBotChannelPermissions(channelId);
 
@@ -195,5 +223,6 @@ export {
   checkDiscordPermissionValue,
   checkDefaultDiscordPermissionsPresent,
   checkDiscordPermissions,
+  checkUserDiscordPermissions,
   ThreadOptionObject,
 };

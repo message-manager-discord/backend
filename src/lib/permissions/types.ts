@@ -6,6 +6,8 @@ enum Permission {
   EDIT_MESSAGES,
   SEND_MESSAGES,
   DELETE_MESSAGES,
+  MANAGE_PERMISSIONS,
+  MANAGE_CONFIG,
 }
 
 interface PermissionsData {

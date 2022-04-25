@@ -35,44 +35,7 @@
           }
         ]
       },
-      {
-        "name": "management-roles",
-        "type": 2,
-        "description": "Manage who can manage permissions, and other configuration. Require administrator permissions.",
-        "options": [
-          {
-            "name": "add",
-            "type": 1,
-            "description": "Make a role a bot management role.",
-            "options": [
-              {
-                "type": 8,
-                "name": "role",
-                "required": true,
-                "description": "The role to make a bot management role."
-              }
-            ]
-          },
-          {
-            "name": "remove",
-            "type": 1,
-            "description": "Remove a role from being a bot management role",
-            "options": [
-              {
-                "type": 8,
-                "name": "role",
-                "required": true,
-                "description": "The role to set the permission for"
-              }
-            ]
-          },
-          {
-            "name": "list",
-            "type": 1,
-            "description": "List all bot management roles"
-          }
-        ]
-      },
+
       {
         "name": "permissions",
         "type": 2,
@@ -110,6 +73,14 @@
                   {
                     "name": "Delete Messages",
                     "value": 4
+                  },
+                  {
+                    "name": "Manage Permissions",
+                    "value": 5
+                  },
+                  {
+                    "name": "Manage Config",
+                    "value": 6
                   }
                 ]
               },

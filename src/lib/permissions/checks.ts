@@ -1,9 +1,11 @@
 import { Snowflake } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import { Guild } from "redis-discord-cache";
 import {
   ExpectedPermissionFailure,
   InteractionOrRequestFinalStatus,
+  UnexpectedFailure,
 } from "../../errors";
+import { checkUserDiscordPermissions } from "./discordChecks";
 import { Permission, PermissionsData } from "./types";
 
 function checkPermissions(
@@ -38,19 +40,21 @@ function checkPermissions(
   }
 }
 
-function checkAllPermissions({
+async function checkAllPermissions({
   roles,
   userId,
+  guild,
   guildPermissions,
   channelPermissions,
   permission,
 }: {
   roles: Snowflake[];
   userId: Snowflake;
+  guild: Guild;
   guildPermissions: PermissionsData | undefined | null;
   channelPermissions: PermissionsData | undefined | null;
   permission: Permission;
-}): boolean {
+}): Promise<boolean> {
   // Checks work by checking if the more significant permissions are present, first
   // And then if not working down the hierarchy
   // If the user does not have the permission (but it is present) on one of the levels then other levels are not checked
@@ -58,6 +62,27 @@ function checkAllPermissions({
   // User permissions are more significant than role permissions
   // The user has the permission on each level if their permission level is greater or equal to the permission getting checked
   // channel permissions
+
+  // If user has the `ADMINISTRATOR` permission then they can do any action
+  try {
+    return await checkUserDiscordPermissions({
+      guild,
+      roles,
+      userId,
+      channelId: null,
+      requiredPermissions: ["ADMINISTRATOR"],
+    });
+  } catch (e) {
+    if (
+      e instanceof ExpectedPermissionFailure &&
+      e.status ===
+        InteractionOrRequestFinalStatus.USER_MISSING_DISCORD_PERMISSION
+    ) {
+      // Do nothing, the user does not have the permission
+    } else {
+      throw e;
+    }
+  }
   const channelPermissionResult = checkPermissions(
     roles,
     userId,
@@ -85,66 +110,57 @@ function checkAllPermissions({
   return false;
 }
 
-function checkManagementPermission({
-  managementRoles,
+async function checkIfUserCanManageRolePermissions({
+  guild,
+  roleId,
   userRoles,
+  channelId,
+  userId,
+  guildPermissions,
+  channelPermissions,
 }: {
-  managementRoles?: BigInt[];
+  guild: Guild;
+  roleId: Snowflake;
   userRoles: Snowflake[];
-}): boolean {
-  if (!managementRoles) {
+  channelId: Snowflake | null;
+  guildPermissions: PermissionsData | undefined | null;
+  channelPermissions: PermissionsData | undefined | null;
+  userId: Snowflake;
+}): Promise<boolean> {
+  const userRolesAboveRole = await guild.checkIfRoleIsLowerThanUsersRole(
+    roleId,
+    userRoles,
+    userId
+  );
+  const role = await guild.getRole(roleId);
+
+  if (!role) {
+    throw new UnexpectedFailure(
+      InteractionOrRequestFinalStatus.ROLE_NOT_IN_CACHE,
+      "Role missing from cache"
+    );
+  } // Check, as checkIfRoleIsLowerThanUsersRole just ignores it is the role is missing
+
+  if (
+    !(await checkAllPermissions({
+      roles: userRoles,
+      guild,
+      userId,
+      guildPermissions,
+      channelPermissions: channelId ? channelPermissions : null, // Just in case channelPermissions sneaks in there somehow
+      permission: Permission.MANAGE_PERMISSIONS,
+    }))
+  ) {
+    console.log(`guildPermissions ${guildPermissions}`);
+    console.log("doesn't have permissions");
     return false;
   }
-  for (const managementRole of managementRoles) {
-    if (userRoles.includes(managementRole.toString())) {
-      return true;
-    }
-  }
-  return false;
-}
-
-function checkManagementPermissionThrowIfNot({
-  managementRoles,
-  userRoles,
-}: {
-  managementRoles?: BigInt[];
-  userRoles: Snowflake[];
-}): true {
-  if (!checkManagementPermission({ managementRoles, userRoles })) {
-    throw new ExpectedPermissionFailure(
-      InteractionOrRequestFinalStatus.USER_MISSING_INTERNAL_BOT_MANAGEMENT_PERMISSION,
-      "You must be a bot manager (have a role assigned to be a management role) to use this command"
-    );
-  }
-  return true;
-}
-
-async function checkManagementPermissionThrowIfNotDatabaseQuery({
-  userRoles,
-  guildId,
-  instance,
-}: {
-  userRoles: Snowflake[];
-  guildId: Snowflake;
-  instance: FastifyInstance;
-}) {
-  // This is because in some cases it is more optimized to retrieve the guild separately.
-  // (for example when it is being used later)
-  const guild = await instance.prisma.guild.findUnique({
-    where: { id: BigInt(guildId) },
-    select: { managementRoleIds: true },
-  });
-  return checkManagementPermissionThrowIfNot({
-    managementRoles: guild?.managementRoleIds,
-    userRoles,
-  });
+  return userRolesAboveRole;
 }
 
 export {
   Permission,
   PermissionsData,
   checkAllPermissions,
-  checkManagementPermission,
-  checkManagementPermissionThrowIfNot,
-  checkManagementPermissionThrowIfNotDatabaseQuery,
+  checkIfUserCanManageRolePermissions,
 };

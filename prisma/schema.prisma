@@ -26,7 +26,6 @@ model Guild {
   permissions Json? 
   beforeMigration Boolean @default(false) // This indicates if the guild existed before the migration to storing message content. 
   // If it was it gains access to adding any previous bot sent message to the database.
-  managementRoleIds BigInt[]
   messages Message[]
   channels Channel[]
 }

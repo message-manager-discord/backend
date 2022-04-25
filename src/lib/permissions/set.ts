@@ -1,6 +1,10 @@
 import { Snowflake } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
-import { InteractionOrRequestFinalStatus, LimitHit } from "../../errors";
+import {
+  ExpectedFailure,
+  InteractionOrRequestFinalStatus,
+  LimitHit,
+} from "../../errors";
 import limits from "../../limits";
 
 import { Permission, PermissionsData } from "./types";
@@ -20,7 +24,7 @@ async function setGuildRolePermissions({
   // Permissions not checked here, must be checked before
   const guild = await instance.prisma.guild.findUnique({
     where: { id: BigInt(guildId) },
-    select: { permissions: true, managementRoleIds: true },
+    select: { permissions: true },
   });
   let currentPermissions = guild?.permissions as unknown as
     | PermissionsData
@@ -74,7 +78,7 @@ async function setGuildUserPermissions({
   // Permissions not checked here, must be checked before
   const guild = await instance.prisma.guild.findUnique({
     where: { id: BigInt(guildId) },
-    select: { permissions: true, managementRoleIds: true },
+    select: { permissions: true },
   });
 
   let currentPermissions = guild?.permissions as unknown as
@@ -128,6 +132,12 @@ async function setChannelRolePermissions({
   permission: Permission;
   instance: FastifyInstance;
 }): Promise<void> {
+  if (permission === Permission.MANAGE_CONFIG) {
+    throw new ExpectedFailure(
+      InteractionOrRequestFinalStatus.MANAGE_CONFIG_PERMISSION_CANNOT_BE_SET_ON_CHANNEL_LEVEL,
+      "The manage config permission cannot be set for a user, or a role, on a channel."
+    );
+  }
   // Permissions not checked here, must be checked before
   const channel = await instance.prisma.channel.findUnique({
     where: { id: BigInt(channelId) },
@@ -195,6 +205,12 @@ async function setChannelUserPermissions({
   permission: Permission;
   instance: FastifyInstance;
 }): Promise<void> {
+  if (permission === Permission.MANAGE_CONFIG) {
+    throw new ExpectedFailure(
+      InteractionOrRequestFinalStatus.MANAGE_CONFIG_PERMISSION_CANNOT_BE_SET_ON_CHANNEL_LEVEL,
+      "The manage config permission cannot be set for a user, or a role, on a channel."
+    );
+  }
   // Permissions not checked here, must be checked before
   const channel = await instance.prisma.channel.findUnique({
     where: { id: BigInt(channelId) },

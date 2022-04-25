@@ -16,17 +16,15 @@ import {
   ExpectedFailure,
   ExpectedPermissionFailure,
   InteractionOrRequestFinalStatus,
-  LimitHit,
   UnexpectedFailure,
 } from "../../../errors";
 
 import { InternalInteraction } from "../../interaction";
 import { Permission, PermissionsData } from "../../../lib/permissions/types";
 import { embedPink } from "../../../constants";
-import { checkManagementPermission } from "../../../lib/permissions/checks";
 import { checkDiscordPermissionValue } from "../../../lib/permissions/discordChecks";
 import { Permissions } from "../../../consts";
-import { Guild } from "@prisma/client";
+import { Channel, Guild } from "@prisma/client";
 import {
   setChannelRolePermissions,
   setChannelUserPermissions,
@@ -45,8 +43,12 @@ import {
   removeGuildUserPermissions,
 } from "../../../lib/permissions/remove";
 import { InteractionReturnData } from "../../types";
-import limits from "../../../limits";
+
 import { addTipToEmbed } from "../../../lib/tips";
+import {
+  checkAllPermissions,
+  checkIfUserCanManageRolePermissions,
+} from "../../../lib/permissions/checks";
 
 export default async function handleConfigCommand(
   internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>,
@@ -71,13 +73,6 @@ export default async function handleConfigCommand(
         instance
       );
 
-    case "management-roles":
-      return await handleManagementRolesSubcommand(
-        internalInteraction,
-        subcommand,
-        instance
-      );
-
     case "logging-channel":
       return await handleLoggingChannelSubcommandGroup(
         internalInteraction,
@@ -93,248 +88,6 @@ export default async function handleConfigCommand(
   }
 }
 
-async function handleManagementRolesSubcommand(
-  internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>,
-  subcommandGroup: APIApplicationCommandInteractionDataSubcommandGroupOption,
-  instance: FastifyInstance
-): Promise<InteractionReturnData> {
-  const interaction = internalInteraction.interaction;
-  if (
-    !checkDiscordPermissionValue(
-      BigInt(interaction.member.permissions),
-      Permissions.ADMINISTRATOR
-    )
-  ) {
-    throw new ExpectedPermissionFailure(
-      InteractionOrRequestFinalStatus.USER_MISSING_DISCORD_PERMISSION,
-      "You must be an administrator to use this command"
-    );
-  }
-
-  const subcommand = subcommandGroup.options[0];
-
-  switch (subcommand.name) {
-    case "add":
-      return await handleManagementRolesAddSubcommand({
-        internalInteraction,
-        subcommand,
-        instance,
-      });
-
-    case "remove":
-      return await handleManagementRolesRemoveSubcommand({
-        internalInteraction,
-        subcommand,
-        instance,
-      });
-
-    case "list":
-      return await handleManagementRolesListSubcommand({
-        internalInteraction,
-        instance,
-      });
-
-    default:
-      throw new UnexpectedFailure(
-        InteractionOrRequestFinalStatus.APPLICATION_COMMAND_UNEXPECTED_SUBCOMMAND,
-        `Invalid subcommand: \`${subcommand.name}\``
-      );
-  }
-}
-
-async function handleManagementRolesAddSubcommand({
-  internalInteraction,
-  subcommand,
-  instance,
-}: {
-  internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>;
-  subcommand: APIApplicationCommandInteractionDataSubcommandOption;
-  instance: FastifyInstance;
-}): Promise<InteractionReturnData> {
-  const interaction = internalInteraction.interaction;
-
-  const roleId: string | undefined = (
-    subcommand.options?.find(
-      (option) =>
-        option.name === "role" &&
-        option.type === ApplicationCommandOptionType.Role
-    ) as APIApplicationCommandInteractionDataMentionableOption | undefined
-  )?.value;
-  if (!roleId) {
-    throw new UnexpectedFailure(
-      InteractionOrRequestFinalStatus.APPLICATION_COMMAND_MISSING_EXPECTED_OPTION,
-      "Missing role option"
-    );
-  }
-  // Check if the number of roles exceeds the limit
-  const guild = await instance.prisma.guild.findUnique({
-    where: {
-      id: BigInt(interaction.guild_id),
-    },
-  });
-  if (
-    guild?.managementRoleIds &&
-    guild.managementRoleIds.length >= limits.MAX_MANAGEMENT_ROLES
-  ) {
-    throw new LimitHit(
-      InteractionOrRequestFinalStatus.MAX_MANAGEMENT_ROLES,
-      `The limit of ${limits.MAX_MANAGEMENT_ROLES} management roles has been reached on this guild.`
-    );
-  }
-
-  await instance.prisma.guild.upsert({
-    where: { id: BigInt(interaction.guild_id) },
-    update: {
-      managementRoleIds: {
-        push: BigInt(roleId),
-      },
-    },
-    create: {
-      id: BigInt(interaction.guild_id),
-      managementRoleIds: [BigInt(roleId)],
-    },
-  });
-  const embed: APIEmbed = {
-    color: embedPink,
-    title: "Added role to management roles",
-    description: `Added role <@&${roleId}> to management roles.\n*Management roles allow non admin members to manage server config on the bot, like permissions, logs, etc*`,
-  };
-  const logEmbed = { ...embed };
-  logEmbed.fields = [
-    {
-      name: "Action By:",
-      value: `<@${interaction.member.user.id}>`,
-    },
-  ];
-  // Send log message
-  await instance.loggingManager.sendLogMessage({
-    guildId: interaction.guild_id,
-    embeds: [logEmbed],
-  });
-  return {
-    type: InteractionResponseType.ChannelMessageWithSource,
-    data: {
-      flags: MessageFlags.Ephemeral,
-      embeds: [addTipToEmbed(embed)],
-    },
-  };
-}
-async function handleManagementRolesRemoveSubcommand({
-  internalInteraction,
-  subcommand,
-  instance,
-}: {
-  internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>;
-  subcommand: APIApplicationCommandInteractionDataSubcommandOption;
-  instance: FastifyInstance;
-}): Promise<InteractionReturnData> {
-  const interaction = internalInteraction.interaction;
-
-  const roleId: string | undefined = (
-    subcommand.options?.find(
-      (option) =>
-        option.name === "role" &&
-        option.type === ApplicationCommandOptionType.Role
-    ) as APIApplicationCommandInteractionDataMentionableOption | undefined
-  )?.value;
-  if (!roleId) {
-    throw new UnexpectedFailure(
-      InteractionOrRequestFinalStatus.APPLICATION_COMMAND_MISSING_EXPECTED_OPTION,
-      "Missing role option"
-    );
-  }
-  const guild = await instance.prisma.guild.findUnique({
-    where: { id: BigInt(interaction.guild_id) },
-  });
-
-  if (
-    !guild ||
-    !checkManagementPermission({
-      managementRoles: guild.managementRoleIds,
-      userRoles: [roleId],
-    })
-  ) {
-    throw new ExpectedFailure(
-      InteractionOrRequestFinalStatus.NO_MANAGEMENT_ROLE_TO_REMOVE,
-      "That role is not currently a management role"
-    );
-  }
-  const newManagementRoleIds = guild.managementRoleIds.filter(
-    (id) => id !== BigInt(roleId)
-  );
-  await instance.prisma.guild.upsert({
-    where: { id: BigInt(interaction.guild_id) },
-    update: {
-      managementRoleIds: newManagementRoleIds,
-    },
-    create: {
-      id: BigInt(interaction.guild_id),
-      managementRoleIds: newManagementRoleIds,
-    },
-  });
-  const embed: APIEmbed = {
-    color: embedPink,
-    title: "Removed role from management roles",
-    description: `Removed role <@&${roleId}> from management roles.\n*Management roles allow non admin members to manage server config on the bot, like permissions, logs, etc*`,
-  };
-
-  const logEmbed = { ...embed };
-  logEmbed.fields = [
-    {
-      name: "Action By:",
-      value: `<@${interaction.member.user.id}>`,
-    },
-  ];
-  // Send log message
-  await instance.loggingManager.sendLogMessage({
-    guildId: interaction.guild_id,
-    embeds: [logEmbed],
-  });
-  return {
-    type: InteractionResponseType.ChannelMessageWithSource,
-    data: {
-      flags: MessageFlags.Ephemeral,
-      embeds: [addTipToEmbed(embed)],
-    },
-  };
-}
-
-async function handleManagementRolesListSubcommand({
-  internalInteraction,
-  instance,
-}: {
-  internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>;
-  instance: FastifyInstance;
-}): Promise<InteractionReturnData> {
-  const interaction = internalInteraction.interaction;
-
-  const guild = await instance.prisma.guild.findUnique({
-    where: { id: BigInt(interaction.guild_id) },
-  });
-
-  return {
-    type: InteractionResponseType.ChannelMessageWithSource,
-    data: {
-      flags: MessageFlags.Ephemeral,
-      embeds: [
-        addTipToEmbed({
-          color: embedPink,
-          title: "Management roles:",
-          description:
-            `${
-              guild &&
-              guild.managementRoleIds &&
-              guild.managementRoleIds.length > 0
-                ? `<@&${guild.managementRoleIds.join(">, <@&")}>`
-                : "No management roles set for the guild."
-            }` +
-            `\n*Management roles allow non admin members to manage server config on the bot, like permissions, logs, etc*`,
-        }),
-      ],
-    },
-  };
-}
-
 async function handlePermissionsSubcommand(
   internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>,
   subcommandGroup: APIApplicationCommandInteractionDataSubcommandGroupOption,
@@ -344,22 +97,6 @@ async function handlePermissionsSubcommand(
   const guild = await instance.prisma.guild.findUnique({
     where: { id: BigInt(interaction.guild_id) },
   });
-  if (
-    !checkDiscordPermissionValue(
-      BigInt(interaction.member.permissions),
-      Permissions.ADMINISTRATOR
-    ) &&
-    !checkManagementPermission({
-      managementRoles: guild?.managementRoleIds,
-      userRoles: interaction.member.roles,
-    })
-  ) {
-    throw new ExpectedPermissionFailure(
-      InteractionOrRequestFinalStatus.USER_MISSING_INTERNAL_BOT_MANAGEMENT_PERMISSION,
-      "You must be a bot manager (have a role assigned to be a management role), or an administrator to use this command"
-    );
-  }
-
   const subcommand = subcommandGroup.options[0];
   const channelId: string | undefined = (
     subcommand.options?.find(
@@ -373,6 +110,7 @@ async function handlePermissionsSubcommand(
   switch (subcommand.name) {
     case "list":
       return await handlePermissionsListSubcommand({
+        internalInteraction,
         instance,
         channel,
         subcommand,
@@ -419,7 +157,6 @@ async function handlePermissionsSetSubcommand({
   subcommand: APIApplicationCommandInteractionDataSubcommandOption;
 }): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
-
   const targetId: string | undefined = (
     subcommand.options?.find(
       (option) =>
@@ -433,6 +170,69 @@ async function handlePermissionsSetSubcommand({
       "Missing target option"
     );
   }
+
+  const cachedGuild = instance.redisGuildManager.getGuild(interaction.guild_id);
+  const resolvedData = interaction.data.resolved;
+  let targetType: "role" | "user";
+  if (resolvedData?.roles && resolvedData.roles[targetId]) {
+    targetType = "role";
+  } else if (
+    resolvedData?.members &&
+    resolvedData.members[targetId] &&
+    resolvedData.users &&
+    resolvedData.users[targetId]
+  ) {
+    targetType = "user";
+    const targetUser = resolvedData.users[targetId];
+    if (targetUser.bot) {
+      throw new ExpectedFailure(
+        InteractionOrRequestFinalStatus.BOT_FOUND_WHEN_USER_EXPECTED,
+        "The target cannot be a bot"
+      );
+    }
+  } else {
+    throw new UnexpectedFailure(
+      InteractionOrRequestFinalStatus.APPLICATION_COMMAND_RESOLVED_MISSING_EXPECTED_VALUE,
+      "Target not found in resolved data"
+    );
+  }
+  let channelStored: Channel | undefined | null;
+  if (channel) {
+    channelStored = await instance.prisma.channel.findUnique({
+      where: { id: BigInt(channel.id) },
+    });
+  }
+  if (
+    !checkDiscordPermissionValue(
+      BigInt(interaction.member.permissions),
+      Permissions.ADMINISTRATOR
+    ) &&
+    ((targetType === "role" &&
+      !(await checkIfUserCanManageRolePermissions({
+        guild: cachedGuild,
+        roleId: targetId,
+        userRoles: interaction.member.roles,
+        userId: interaction.member.user.id,
+        channelId: channel ? channel.id : null,
+        guildPermissions: guildStored?.permissions as PermissionsData,
+        channelPermissions: channelStored?.permissions as PermissionsData,
+      }))) || // If the target is a role, the position of the role must not be higher than the user's highest role
+      (targetType === "user" &&
+        !(await checkAllPermissions({
+          roles: interaction.member.roles,
+          guild: cachedGuild,
+          userId: interaction.member.user.id,
+          guildPermissions: guildStored?.permissions as PermissionsData,
+          channelPermissions: channelStored?.permissions as PermissionsData,
+          permission: Permission.MANAGE_PERMISSIONS,
+        }))))
+  ) {
+    throw new ExpectedPermissionFailure(
+      InteractionOrRequestFinalStatus.USER_MISSING_INTERNAL_BOT_PERMISSION,
+      "You must have the `MANAGE_PERMISSIONS` permission, or be an administrator to use this command. You also must have a role above the target role (if the target is a role)."
+    );
+  }
+
   const permission: number | undefined = (
     subcommand.options?.find(
       (option) =>
@@ -446,15 +246,50 @@ async function handlePermissionsSetSubcommand({
       "Missing permission option"
     );
   }
+  if (
+    !(await checkAllPermissions({
+      roles: interaction.member.roles,
+      guild: cachedGuild,
+      userId: interaction.member.user.id,
+      guildPermissions: guildStored?.permissions as PermissionsData,
+      channelPermissions: channelStored?.permissions as PermissionsData,
+      permission: permission,
+    }))
+  ) {
+    throw new ExpectedPermissionFailure(
+      InteractionOrRequestFinalStatus.USER_ATTEMPTED_TO_EDIT_PERMISSION_ABOVE_THEIR_PERMISSION,
+      "The target's permission cannot be higher than your own. Note: This applies to both channel level and guild level"
+    );
+  }
 
-  const resolvedData = interaction.data.resolved;
-  let targetType: "role" | "user";
   let previousPermission: Permission | undefined;
-  if (resolvedData?.roles && resolvedData.roles[targetId]) {
-    targetType = "role";
+  if (targetType === "role") {
     previousPermission = (guildStored?.permissions as PermissionsData).roles?.[
       targetId
     ];
+    // We also have to check if the past permission was higher, to prevent users from "downgrading" people / roles they shouldn't
+    if (!permission) {
+      throw new UnexpectedFailure(
+        InteractionOrRequestFinalStatus.APPLICATION_COMMAND_MISSING_EXPECTED_OPTION,
+        "Missing permission option"
+      );
+    }
+    if (
+      previousPermission &&
+      !(await checkAllPermissions({
+        roles: interaction.member.roles,
+        guild: cachedGuild,
+        userId: interaction.member.user.id,
+        guildPermissions: guildStored?.permissions as PermissionsData,
+        channelPermissions: channelStored?.permissions as PermissionsData,
+        permission: previousPermission,
+      }))
+    ) {
+      throw new ExpectedPermissionFailure(
+        InteractionOrRequestFinalStatus.USER_ATTEMPTED_TO_EDIT_PERMISSION_ABOVE_THEIR_PERMISSION,
+        "The role's previous permission cannot be higher than your own. Note: This applies to both channel level and guild level"
+      );
+    }
     if (channel) {
       await setChannelRolePermissions({
         roleId: targetId,
@@ -473,23 +308,26 @@ async function handlePermissionsSetSubcommand({
         instance,
       });
     }
-  } else if (
-    resolvedData?.members &&
-    resolvedData.members[targetId] &&
-    resolvedData.users &&
-    resolvedData.users[targetId]
-  ) {
-    targetType = "user";
-    const targetUser = resolvedData.users[targetId];
-    if (targetUser.bot) {
-      throw new ExpectedFailure(
-        InteractionOrRequestFinalStatus.BOT_FOUND_WHEN_USER_EXPECTED,
-        "The target cannot be a bot"
-      );
-    }
+  } else if (targetType === "user") {
     previousPermission = (guildStored?.permissions as PermissionsData).users?.[
       targetId
     ];
+    if (
+      previousPermission &&
+      !(await checkAllPermissions({
+        roles: interaction.member.roles,
+        guild: cachedGuild,
+        userId: interaction.member.user.id,
+        guildPermissions: guildStored?.permissions as PermissionsData,
+        channelPermissions: channelStored?.permissions as PermissionsData,
+        permission: previousPermission,
+      }))
+    ) {
+      throw new ExpectedPermissionFailure(
+        InteractionOrRequestFinalStatus.USER_ATTEMPTED_TO_EDIT_PERMISSION_ABOVE_THEIR_PERMISSION,
+        "The user's previous permission cannot be higher than your own. Note: This applies to both channel level and guild level"
+      );
+    }
     if (channel) {
       await setChannelUserPermissions({
         userId: targetId,
@@ -508,11 +346,6 @@ async function handlePermissionsSetSubcommand({
         instance,
       });
     }
-  } else {
-    throw new UnexpectedFailure(
-      InteractionOrRequestFinalStatus.APPLICATION_COMMAND_RESOLVED_MISSING_EXPECTED_VALUE,
-      "Target not found in resolved data"
-    );
   }
   const embed: APIEmbed = {
     color: embedPink,
@@ -578,12 +411,71 @@ async function handlePermissionsRemoveSubcommand({
       "Missing target option"
     );
   }
-  let previousPermission: Permission | undefined;
-
-  const resolvedData = interaction.data.resolved;
   let targetType: "role" | "user";
+  const resolvedData = interaction.data.resolved;
   if (resolvedData?.roles && resolvedData.roles[targetId]) {
     targetType = "role";
+  } else if (
+    resolvedData?.members &&
+    resolvedData.members[targetId] &&
+    resolvedData.users &&
+    resolvedData.users[targetId]
+  ) {
+    targetType = "user";
+    const targetUser = resolvedData.users[targetId];
+    if (targetUser.bot) {
+      throw new ExpectedFailure(
+        InteractionOrRequestFinalStatus.BOT_FOUND_WHEN_USER_EXPECTED,
+        "The target cannot be a bot"
+      );
+    }
+  } else {
+    throw new UnexpectedFailure(
+      InteractionOrRequestFinalStatus.APPLICATION_COMMAND_RESOLVED_MISSING_EXPECTED_VALUE,
+      "Target not found in resolved data"
+    );
+  }
+  const cachedGuild = instance.redisGuildManager.getGuild(interaction.guild_id);
+  let channelStored: Channel | undefined | null;
+  if (channel) {
+    channelStored = await instance.prisma.channel.findUnique({
+      where: { id: BigInt(channel.id) },
+    });
+  }
+  if (
+    !checkDiscordPermissionValue(
+      BigInt(interaction.member.permissions),
+      Permissions.ADMINISTRATOR
+    ) &&
+    ((targetType === "role" &&
+      !(await checkIfUserCanManageRolePermissions({
+        guild: cachedGuild,
+        roleId: targetId,
+        userRoles: interaction.member.roles,
+        userId: interaction.member.user.id,
+        channelId: channel ? channel.id : null,
+        guildPermissions: guildStored?.permissions as PermissionsData,
+        channelPermissions: channelStored?.permissions as PermissionsData,
+      }))) || // If the target is a role, the position of the role must not be higher than the user's highest role
+      (targetType === "user" &&
+        !(await checkAllPermissions({
+          roles: interaction.member.roles,
+          guild: cachedGuild,
+          userId: interaction.member.user.id,
+          guildPermissions: guildStored?.permissions as PermissionsData,
+          channelPermissions: channelStored?.permissions as PermissionsData,
+          permission: Permission.MANAGE_PERMISSIONS,
+        }))))
+  ) {
+    throw new ExpectedPermissionFailure(
+      InteractionOrRequestFinalStatus.USER_MISSING_INTERNAL_BOT_PERMISSION,
+      "You must have the `MANAGE_PERMISSIONS` permission, or be an administrator to use this command. You also must have a role above the target role (if the target is a role)."
+    );
+  }
+
+  let previousPermission: Permission | undefined;
+
+  if (targetType === "role") {
     previousPermission = (guildStored?.permissions as PermissionsData).roles?.[
       targetId
     ];
@@ -592,6 +484,22 @@ async function handlePermissionsRemoveSubcommand({
       throw new ExpectedFailure(
         InteractionOrRequestFinalStatus.NO_PERMISSION_TO_REMOVE,
         "No permission to remove for that role"
+      );
+    }
+    // Check if the past permission was higher, to prevent users from "downgrading" people / roles they shouldn't
+    if (
+      !(await checkAllPermissions({
+        roles: interaction.member.roles,
+        guild: cachedGuild,
+        userId: interaction.member.user.id,
+        guildPermissions: guildStored?.permissions as PermissionsData,
+        channelPermissions: channelStored?.permissions as PermissionsData,
+        permission: previousPermission,
+      }))
+    ) {
+      throw new ExpectedPermissionFailure(
+        InteractionOrRequestFinalStatus.USER_ATTEMPTED_TO_EDIT_PERMISSION_ABOVE_THEIR_PERMISSION,
+        "The role's previous permission cannot be higher than your own. Note: This applies to both channel level and guild level"
       );
     }
 
@@ -609,13 +517,7 @@ async function handlePermissionsRemoveSubcommand({
         instance,
       });
     }
-  } else if (
-    resolvedData?.members &&
-    resolvedData.members[targetId] &&
-    resolvedData.users &&
-    resolvedData.users[targetId]
-  ) {
-    targetType = "user";
+  } else if (targetType === "user") {
     previousPermission = (guildStored?.permissions as PermissionsData).users?.[
       targetId
     ];
@@ -624,6 +526,22 @@ async function handlePermissionsRemoveSubcommand({
       throw new ExpectedFailure(
         InteractionOrRequestFinalStatus.NO_PERMISSION_TO_REMOVE,
         "No permission to remove for that role"
+      );
+    }
+    // Check if the past permission was higher, to prevent users from "downgrading" people / roles they shouldn't
+    if (
+      !(await checkAllPermissions({
+        roles: interaction.member.roles,
+        guild: cachedGuild,
+        userId: interaction.member.user.id,
+        guildPermissions: guildStored?.permissions as PermissionsData,
+        channelPermissions: channelStored?.permissions as PermissionsData,
+        permission: previousPermission,
+      }))
+    ) {
+      throw new ExpectedPermissionFailure(
+        InteractionOrRequestFinalStatus.USER_ATTEMPTED_TO_EDIT_PERMISSION_ABOVE_THEIR_PERMISSION,
+        "The target's previous permission cannot be higher than your own. Note: This applies to both channel level and guild level"
       );
     }
     if (channel) {
@@ -641,11 +559,6 @@ async function handlePermissionsRemoveSubcommand({
         instance,
       });
     }
-  } else {
-    throw new UnexpectedFailure(
-      InteractionOrRequestFinalStatus.APPLICATION_COMMAND_RESOLVED_MISSING_EXPECTED_VALUE,
-      "Target not found in resolved data"
-    );
   }
   const embed: APIEmbed = {
     color: embedPink,
@@ -678,6 +591,8 @@ async function handlePermissionsRemoveSubcommand({
   };
 }
 interface SortPermissionsReturn {
+  config: string[];
+  permissions: string[];
   delete: string[];
   edit: string[];
   send: string[];
@@ -688,6 +603,8 @@ function sortPermissions(
   permissions: Record<string, number> | undefined
 ): SortPermissionsReturn {
   const sorted: SortPermissionsReturn = {
+    config: [],
+    permissions: [],
     delete: [],
     send: [],
     edit: [],
@@ -701,6 +618,12 @@ function sortPermissions(
     if (Object.prototype.hasOwnProperty.call(permissions, objectId)) {
       const permission = permissions[objectId];
       switch (permission) {
+        case Permission.MANAGE_CONFIG:
+          sorted.config.push(objectId);
+          break;
+        case Permission.MANAGE_PERMISSIONS:
+          sorted.permissions.push(objectId);
+          break;
         case Permission.DELETE_MESSAGES:
           sorted.delete.push(objectId);
           break;
@@ -733,17 +656,47 @@ function hasPermissionsSet(permissions: PermissionsData) {
   );
 }
 async function handlePermissionsListSubcommand({
+  internalInteraction,
   instance,
   channel,
   guildStored,
   subcommand,
 }: {
+  internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>;
   instance: FastifyInstance;
   channel?: APIInteractionDataResolvedChannel;
   guildStored: Guild | null;
 
   subcommand: APIApplicationCommandInteractionDataSubcommandOption;
 }): Promise<InteractionReturnData> {
+  const interaction = internalInteraction.interaction;
+  const cachedGuild = instance.redisGuildManager.getGuild(interaction.guild_id);
+  let channelStored: Channel | undefined | null;
+  if (channel) {
+    channelStored = await instance.prisma.channel.findUnique({
+      where: { id: BigInt(channel.id) },
+    });
+  }
+
+  if (
+    !checkDiscordPermissionValue(
+      BigInt(interaction.member.permissions),
+      Permissions.ADMINISTRATOR
+    ) &&
+    !(await checkAllPermissions({
+      roles: interaction.member.roles,
+      guild: cachedGuild,
+      userId: interaction.member.user.id,
+      guildPermissions: guildStored?.permissions as PermissionsData,
+      channelPermissions: channelStored?.permissions as PermissionsData,
+      permission: Permission.MANAGE_PERMISSIONS,
+    }))
+  ) {
+    throw new ExpectedPermissionFailure(
+      InteractionOrRequestFinalStatus.USER_MISSING_INTERNAL_BOT_PERMISSION,
+      "You must have the `MANAGE_PERMISSIONS` permission, or be an administrator to use this command. You also must have a role above the target role (if the target is a role)."
+    );
+  }
   const filterBy: string | undefined = (
     subcommand.options?.find(
       (option) =>
@@ -786,6 +739,18 @@ async function handlePermissionsListSubcommand({
         description =
           `**Roles:**\n` +
           `${
+            rolesSorted.config.length
+              ? `__Manage Config: <@&${rolesSorted.config.join(">, <@&")}>\n`
+              : ""
+          }` +
+          `${
+            rolesSorted.permissions.length
+              ? `__Manage Permissions__: <@&${rolesSorted.permissions.join(
+                  ">, <@&"
+                )}>\n`
+              : ""
+          }` +
+          `${
             rolesSorted.delete.length
               ? `__Delete Messages__: <@&${rolesSorted.delete.join(
                   ">, <@&"
@@ -821,6 +786,18 @@ async function handlePermissionsListSubcommand({
         description =
           description +
           `\n**Users:**\n` +
+          `${
+            usersSorted.config.length
+              ? `__Manage Config: <@&${usersSorted.config.join(">, <@&")}>\n`
+              : ""
+          }` +
+          `${
+            usersSorted.permissions.length
+              ? `__Manage Permissions__: <@&${usersSorted.permissions.join(
+                  ">, <@&"
+                )}>\n`
+              : ""
+          }` +
           `${
             usersSorted.delete.length
               ? `__Delete Messages__: <@${usersSorted.delete.join(">, <@")}>\n`
@@ -897,23 +874,28 @@ async function handleLoggingChannelSubcommandGroup(
   const guild = await instance.prisma.guild.findUnique({
     where: { id: BigInt(interaction.guild_id) },
   });
+  const cachedGuild = instance.redisGuildManager.getGuild(interaction.guild_id);
+  const subcommand = subcommandGroup.options[0];
+
   if (
     !checkDiscordPermissionValue(
       BigInt(interaction.member.permissions),
       Permissions.ADMINISTRATOR
     ) &&
-    !checkManagementPermission({
-      managementRoles: guild?.managementRoleIds,
-      userRoles: interaction.member.roles,
-    })
+    !(await checkAllPermissions({
+      roles: interaction.member.roles,
+      guild: cachedGuild,
+      userId: interaction.member.user.id,
+      guildPermissions: (guild?.permissions as PermissionsData).users,
+      channelPermissions: undefined, // Channel permissions do not effect config
+      permission: Permission.MANAGE_CONFIG,
+    }))
   ) {
     throw new ExpectedPermissionFailure(
-      InteractionOrRequestFinalStatus.USER_MISSING_INTERNAL_BOT_MANAGEMENT_PERMISSION,
-      "You must be a bot manager (have a role assigned to be a management role), or an administrator to use this command"
+      InteractionOrRequestFinalStatus.USER_MISSING_INTERNAL_BOT_PERMISSION,
+      "You are missing the `MANAGE_CONFIG` permission"
     );
   }
-
-  const subcommand = subcommandGroup.options[0];
 
   switch (subcommand.name) {
     case "set":

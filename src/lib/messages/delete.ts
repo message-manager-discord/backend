@@ -65,8 +65,9 @@ const checkDeletePossible = async ({
     where: { id: BigInt(idOrParentId) },
     select: { permissions: true },
   });
+  const cachedGuild = instance.redisGuildManager.getGuild(guildId);
   if (
-    !checkAllPermissions({
+    !(await checkAllPermissions({
       roles: user.roles,
       userId: user.user.id,
       guildPermissions: guild?.permissions as unknown as
@@ -76,7 +77,8 @@ const checkDeletePossible = async ({
         | PermissionsData
         | undefined,
       permission: Permission.DELETE_MESSAGES,
-    })
+      guild: cachedGuild,
+    }))
   ) {
     throw new ExpectedPermissionFailure(
       InteractionOrRequestFinalStatus.USER_MISSING_INTERNAL_BOT_PERMISSION,

@@ -15,7 +15,7 @@ async function removeGuildRolePermissions({
   // Permissions not checked here, must be checked before
   const guild = await instance.prisma.guild.findUnique({
     where: { id: BigInt(guildId) },
-    select: { permissions: true, managementRoleIds: true },
+    select: { permissions: true },
   });
   let currentPermissions = guild?.permissions as unknown as
     | PermissionsData
@@ -51,7 +51,7 @@ async function removeGuildUserPermissions({
   // Permissions not checked here, must be checked before
   const guild = await instance.prisma.guild.findUnique({
     where: { id: BigInt(guildId) },
-    select: { permissions: true, managementRoleIds: true },
+    select: { permissions: true },
   });
 
   let currentPermissions = guild?.permissions as unknown as

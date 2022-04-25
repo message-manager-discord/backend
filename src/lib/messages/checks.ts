@@ -44,28 +44,32 @@ async function getMessageActionsPossible({
     idOrParentId,
     instance
   );
+  const guild = instance.redisGuildManager.getGuild(guildId);
 
   const allowedData = {
-    edit: checkAllPermissions({
+    edit: await checkAllPermissions({
       roles: user.roles,
       userId: user.user.id,
       guildPermissions,
       channelPermissions,
+      guild,
       permission: Permission.EDIT_MESSAGES,
     }),
-    delete: checkAllPermissions({
+    delete: await checkAllPermissions({
       roles: user.roles,
       userId: user.user.id,
       guildPermissions,
       channelPermissions,
+      guild,
       permission: Permission.DELETE_MESSAGES,
     }),
 
-    view: checkAllPermissions({
+    view: await checkAllPermissions({
       roles: user.roles,
       userId: user.user.id,
       guildPermissions,
       channelPermissions,
+      guild,
       permission: Permission.VIEW_MESSAGES,
     }),
   };
