@@ -44,3 +44,14 @@ The flow for working out permissions is with bitwise OR:
 3. User allow
 
 Permissions checked using bitwise AND
+
+## Different levels
+
+On different levels there are three states, either inexplicit inherit, explicit deny and explicit allow
+Which allows a general approach, with small exceptions
+For example:
+A user has roles which allow send, edit
+On all channels without an explicit permission set for that user / that user's roles (in allow or deny) that user has send, edit
+In channel A one of the user's roles allows delete, in that channel the user has send, edit, delete
+In channel B one of the user's roles denies send, edit - in that channel the user has no permissions
+On all other channels the user has send, edit
