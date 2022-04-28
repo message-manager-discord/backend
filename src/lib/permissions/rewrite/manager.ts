@@ -169,15 +169,24 @@ class PermissionManager {
     return total;
   }
 
-  private _hasPermission(userPermission: number, permission: number): boolean {
-    return (userPermission & permission) === permission;
+  private _hasPermissions(
+    userPermission: number,
+    permissions: number | number[]
+  ): boolean {
+    if (typeof permissions === "number") {
+      return (userPermission & permissions) === permissions;
+    }
+    // Check if all permissions in "permissions" are present in the bitfield
+    return permissions.every(
+      (permission: number) => (userPermission & permission) === permission
+    );
   }
 
   public async hasPermission(
     userId: Snowflake,
     userRoles: Snowflake[],
     guildId: Snowflake,
-    permission: number,
+    permissions: number | number[],
     channelId?: Snowflake
   ): Promise<boolean> {
     if (channelId) {
@@ -187,16 +196,17 @@ class PermissionManager {
         guildId,
         channelId
       );
-      return this._hasPermission(channelPermissions, permission);
+      return this._hasPermissions(channelPermissions, permissions);
     } else {
       const guildPermissions = await this.getGuildPermissions(
         userId,
         userRoles,
         guildId
       );
-      return this._hasPermission(guildPermissions, permission);
+      return this._hasPermissions(guildPermissions, permissions);
     }
   }
+
   // These functions deal with the management of permissions
 
   private async _setAllGuildPermissions({
