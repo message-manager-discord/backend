@@ -496,9 +496,6 @@ const interactionsPlugin = async (instance: FastifyInstance) => {
               headers: afterDeferData.headers,
             });
           } else {
-            console.log(
-              `\n\n${discordAPIBaseURL}/webhooks/${instance.envVars.DISCORD_CLIENT_ID}/${internalInteraction.interaction.token}/messages/@original\n\n`
-            );
             await axios.request({
               method: "PATCH",
               url: `${discordAPIBaseURL}/webhooks/${instance.envVars.DISCORD_CLIENT_ID}/${internalInteraction.interaction.token}/messages/@original`,
