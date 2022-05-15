@@ -93,7 +93,7 @@ const createPermissionsEmbed = async ({
         : "Permissions have been updated - but you can keep managing them\n\n") +
       `**✅ Allowed:** ${
         allowedPermissions.length > 0 ? allowedPermissions.join(", ") : "None"
-      }` +
+      }\n` +
       `**❌ Denied:** ${
         deniedPermissions.length > 0 ? deniedPermissions.join(", ") : "None"
       }
