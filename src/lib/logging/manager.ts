@@ -14,7 +14,7 @@ export default class LoggingManager {
     const guild = await this._instance.prisma.guild.findUnique({
       where: { id: BigInt(guildId) },
     });
-    if (!guild || !guild.logChannelId) {
+    if (!guild || guild.logChannelId === null) {
       return null;
     }
     return guild.logChannelId.toString();
@@ -61,7 +61,7 @@ export default class LoggingManager {
     // This means that this function can be called without checking if the log channel is set
     // It's because the logging function is an extra
     const channelId = await this.getGuildLoggingChannel(guildId);
-    if (!channelId) {
+    if (channelId === null) {
       return;
     }
     const data = {
@@ -75,7 +75,7 @@ export default class LoggingManager {
       return this._webhookManager.sendWebhookMessage(channelId, guildId, data);
       // eslint-disable-next-line no-empty
     } catch (error) {
-      if (!ignoreErrors) {
+      if (!(ignoreErrors ?? false)) {
         throw error;
       }
       // Log messages should be sent, but if they fail, it's not a big deal and shouldn't then affect normal running of the bot

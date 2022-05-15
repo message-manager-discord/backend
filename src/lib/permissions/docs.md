@@ -7,7 +7,7 @@ Point of truth for permissions.
 Permissions are stored in integer bitfields.
 They're stored in a object in a column in the database.
 
-Server level roles just have an allow bitfield, whereas server level user, and channel role + user permisisons have both allow and deny.
+Server level roles just have an allow bitfield, whereas server level user, and channel role + user permissions have both allow and deny.
 
 eg
 

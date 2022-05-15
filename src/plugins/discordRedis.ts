@@ -19,7 +19,10 @@ interface DiscordRedisCachePluginOptions extends FastifyPluginOptions {
 const discordRedisCachePlugin = fp(
   // eslint-disable-next-line @typescript-eslint/require-await
   async (server: FastifyInstance, options?: DiscordRedisCachePluginOptions) => {
-    if (!options?.redis?.port || !options?.redis?.host) {
+    if (
+      options?.redis?.port === undefined ||
+      options?.redis?.host === undefined
+    ) {
       throw new Error("Host or port not set");
     }
     server.log.info(

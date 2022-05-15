@@ -1,10 +1,6 @@
 import { Message } from "@prisma/client";
 import { DiscordHTTPError } from "detritus-client-rest/lib/errors";
-import {
-  APIEmbed,
-  APIInteractionGuildMember,
-  Snowflake,
-} from "discord-api-types/v9";
+import { APIEmbed, Snowflake } from "discord-api-types/v9";
 
 import { FastifyInstance } from "fastify";
 import {
@@ -12,39 +8,64 @@ import {
   ExpectedPermissionFailure,
   UnexpectedFailure,
 } from "../../errors";
-import { checkDefaultDiscordPermissionsPresent } from "../permissions/discordChecks";
+
 import {
-  checkAllPermissions,
-  Permission,
-  PermissionsData,
-} from "../permissions/checks";
-import { checkDatabaseMessage } from "./utils";
+  missingBotDiscordPermissionMessage,
+  missingUserDiscordPermissionMessage,
+} from "./utils";
 import { embedPink } from "../../constants";
+import { GuildSession } from "../session";
+import { requiredPermissionsDelete } from "./consts";
+import { checkDatabaseMessage } from "./checks";
+import { InternalPermissions } from "../permissions/consts";
+import { parseDiscordPermissionValuesToStringNames } from "../../consts";
 
 interface DeleteOptions {
-  user: APIInteractionGuildMember;
-  guildId: Snowflake;
   channelId: Snowflake;
   messageId: Snowflake;
   instance: FastifyInstance;
+  session: GuildSession;
 }
 
 const missingAccessMessage =
   "You do not have access to the bot permission for deleting messages via the bot on this guild. Please contact an administrator.";
 
+// Map array of bigints to array of strings, when the string is not undefined
+// Using the function getDiscordPermissionByValue to turn the bigint into a string | undefined
+
 const checkDeletePossible = async ({
-  user,
-  guildId,
   channelId,
   instance,
   messageId,
+  session,
 }: DeleteOptions): Promise<Message> => {
-  const { idOrParentId } = await checkDefaultDiscordPermissionsPresent({
-    instance,
-    user,
-    guildId,
-    channelId,
-  });
+  const userHasViewChannel = await session.hasDiscordPermissions(
+    requiredPermissionsDelete,
+    channelId
+  );
+  if (!userHasViewChannel.allPresent) {
+    throw new ExpectedPermissionFailure(
+      InteractionOrRequestFinalStatus.USER_MISSING_DISCORD_PERMISSION,
+
+      missingUserDiscordPermissionMessage(
+        parseDiscordPermissionValuesToStringNames(userHasViewChannel.missing),
+        channelId
+      )
+    );
+  }
+  const botHasViewChannel = await session.botHasDiscordPermissions(
+    requiredPermissionsDelete,
+    channelId
+  );
+  if (!botHasViewChannel.allPresent) {
+    throw new ExpectedPermissionFailure(
+      InteractionOrRequestFinalStatus.BOT_MISSING_DISCORD_PERMISSION,
+      missingBotDiscordPermissionMessage(
+        parseDiscordPermissionValuesToStringNames(botHasViewChannel.missing),
+        channelId
+      )
+    );
+  }
   const databaseMessage = await instance.prisma.message.findFirst({
     where: { id: BigInt(messageId) },
     orderBy: { editedAt: "desc" }, // Needs to be ordered, as this is returned
@@ -52,50 +73,31 @@ const checkDeletePossible = async ({
   if (!checkDatabaseMessage(databaseMessage)) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.GENERIC_UNEXPECTED_FAILURE,
-      "Message check returned falsy like value"
+      "Message check returned falsy like value when it should only return true"
     );
-    //
   }
 
-  const guild = await instance.prisma.guild.findUnique({
-    where: { id: BigInt(guildId) },
-    select: { permissions: true },
-  });
-  const databaseChannel = await instance.prisma.channel.findUnique({
-    where: { id: BigInt(idOrParentId) },
-    select: { permissions: true },
-  });
-  const cachedGuild = instance.redisGuildManager.getGuild(guildId);
-  if (
-    !(await checkAllPermissions({
-      roles: user.roles,
-      userId: user.user.id,
-      guildPermissions: guild?.permissions as unknown as
-        | PermissionsData
-        | undefined,
-      channelPermissions: databaseChannel?.permissions as unknown as
-        | PermissionsData
-        | undefined,
-      permission: Permission.DELETE_MESSAGES,
-      guild: cachedGuild,
-    }))
-  ) {
+  const userHasDeleteMessagesBotPermission = await session.hasBotPermissions(
+    InternalPermissions.DELETE_MESSAGES,
+    channelId
+  );
+  if (!userHasDeleteMessagesBotPermission.allPresent) {
     throw new ExpectedPermissionFailure(
       InteractionOrRequestFinalStatus.USER_MISSING_INTERNAL_BOT_PERMISSION,
       missingAccessMessage
     );
   }
+
   return databaseMessage;
 };
 
 async function deleteMessage({
   channelId,
-  guildId,
   instance,
-  user,
   messageId,
+  session,
 }: DeleteOptions) {
-  await checkDeletePossible({ user, guildId, channelId, instance, messageId });
+  await checkDeletePossible({ channelId, instance, messageId, session });
   try {
     await instance.restClient.deleteMessage(channelId, messageId);
     const messageBefore = (await instance.prisma.message.findFirst({
@@ -111,7 +113,7 @@ async function deleteMessage({
         deleted: true,
 
         editedAt: new Date(Date.now()),
-        editedBy: BigInt(user.user.id),
+        editedBy: BigInt(session.userId),
         channel: {
           connectOrCreate: {
             where: {
@@ -120,18 +122,18 @@ async function deleteMessage({
 
             create: {
               id: BigInt(channelId),
-              guildId: BigInt(guildId),
+              guildId: BigInt(session.guildId),
             },
           },
         },
         guild: {
           connectOrCreate: {
             where: {
-              id: BigInt(guildId),
+              id: BigInt(session.guildId),
             },
 
             create: {
-              id: BigInt(guildId),
+              id: BigInt(session.guildId),
             },
           },
         },
@@ -144,14 +146,14 @@ async function deleteMessage({
         `Message (${messageId}) deleted` +
         `\n\n**Message Content:**\n${messageBefore.content}`,
       fields: [
-        { name: "Action By:", value: `<@${user.user.id}>`, inline: true },
+        { name: "Action By:", value: `<@${session.userId}>`, inline: true },
         { name: "Channel:", value: `<#${channelId}>`, inline: true },
       ],
       timestamp: new Date().toISOString(),
     };
     // Send log message
     await instance.loggingManager.sendLogMessage({
-      guildId: guildId,
+      guildId: session.guildId,
       embeds: [embed],
     });
   } catch (error) {

@@ -42,72 +42,21 @@
         "description": "Manage bot level permissions. Requires being a manager on the bot.",
         "options": [
           {
-            "name": "set",
+            "name": "manage",
             "type": 1,
-            "description": "Set a user's or a role's bot permission",
+            "description": "Manage and view the target's permissions",
             "options": [
               {
                 "type": 9,
                 "name": "target",
                 "required": true,
-                "description": "The user or role to set the permission for"
-              },
-              {
-                "type": 4,
-                "name": "permission",
-                "required": true,
-                "description": "The permission to set",
-                "choices": [
-                  {
-                    "name": "View Messages",
-                    "value": 1
-                  },
-                  {
-                    "name": "Edit Messages",
-                    "value": 2
-                  },
-                  {
-                    "name": "Send Messages",
-                    "value": 3
-                  },
-                  {
-                    "name": "Delete Messages",
-                    "value": 4
-                  },
-                  {
-                    "name": "Manage Permissions",
-                    "value": 5
-                  },
-                  {
-                    "name": "Manage Config",
-                    "value": 6
-                  }
-                ]
+                "description": "The user or role to manage / view permissions for"
               },
               {
                 "type": 7,
                 "name": "channel",
-                "description": "The channel to set the permission on. Leave empty to set the permission on the guild level.",
-                "channel_types": [0, 5]
-              }
-            ]
-          },
-          {
-            "name": "remove",
-            "type": 1,
-            "description": "Remove a user's or a role's bot permission",
-            "options": [
-              {
-                "type": 9,
-                "name": "target",
-                "required": true,
-                "description": "The user or role to remove permissions for"
-              },
-              {
-                "type": 7,
-                "name": "channel",
-                "description": "The channel to remove the permissions on. Leave empty to remove the permissions on the guild level.",
-                "channel_types": [0, 5]
+                "required": false,
+                "description": "The channel to manage / view permissions of the target on"
               }
             ]
           },
@@ -121,21 +70,6 @@
                 "name": "channel",
                 "description": "The channel to list the permissions on. Leave empty to list the permissions on the guild level.",
                 "channel_types": [0, 5]
-              },
-              {
-                "type": 3,
-                "name": "type-filter",
-                "description": "Filter the set permissions by a specific type (user or role)",
-                "choices": [
-                  {
-                    "name": "Users",
-                    "value": "users"
-                  },
-                  {
-                    "name": "Roles",
-                    "value": "roles"
-                  }
-                ]
               }
             ]
           }

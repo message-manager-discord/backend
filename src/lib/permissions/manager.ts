@@ -1,57 +1,131 @@
 import { PrismaClient, Prisma } from "@prisma/client";
 import { Snowflake } from "discord-api-types/globals";
 import { FastifyInstance } from "fastify";
-import { GuildManager } from "redis-discord-cache";
-import { Permissions } from "../../../consts";
+import { Guild } from "redis-discord-cache";
+import { DiscordPermissions } from "../../consts";
+import { getParentIdIfParentIdExists } from "./channel";
 import { AllInternalPermissions, InternalPermissions } from "./consts";
 import {
+  BotPermissionResult,
   ChannelPermissionData,
   GuildPermissionData,
   PermissionAllowAndDenyData,
 } from "./types";
-
-const checkDiscordPermissionValue = (
-  existingPermission: bigint,
-  permission: bigint
-): boolean => {
-  const adminPerm =
-    (existingPermission & Permissions.ADMINISTRATOR) ===
-    Permissions.ADMINISTRATOR;
-  const otherPerm = (existingPermission & permission) === permission;
-
-  return adminPerm || otherPerm;
-};
+import { checkDiscordPermissionValue } from "./utils";
 
 class PermissionManager {
   private _prisma: PrismaClient;
-  private _guildManagerCache: GuildManager;
-  private _instance: FastifyInstance;
   constructor(instance: FastifyInstance) {
-    this._instance = instance;
     this._prisma = instance.prisma;
-    this._guildManagerCache = instance.redisGuildManager;
   }
 
-  private async getAllGuildPermissions(
+  async getAllGuildPermissions(
     guildId: Snowflake
   ): Promise<GuildPermissionData | null> {
     const guild = await this._prisma.guild.findUnique({
       where: { id: BigInt(guildId) },
       select: { permissions: true },
     });
-    if (!guild || !guild.permissions) return null;
+    //Any falsy values return null
+    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+    if (guild === null || !guild.permissions) return null;
     return guild.permissions as unknown as GuildPermissionData;
   }
 
-  private async getAllChannelPermissions(
+  async getAllChannelPermissions(
     channelId: Snowflake
   ): Promise<ChannelPermissionData | null> {
     const channel = await this._prisma.channel.findUnique({
       where: { id: BigInt(channelId) },
       select: { permissions: true },
     });
+    // Any falsy values return null
+    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
     if (!channel || !channel.permissions) return null;
     return channel.permissions as unknown as ChannelPermissionData;
+  }
+
+  // Get all channels with a guild id that has a permission set to anything more than NONE
+  public async getChannelsWithPermissions(
+    guildId: Snowflake
+  ): Promise<Snowflake[]> {
+    let channels = await this._prisma.channel.findMany({
+      where: {
+        guildId: BigInt(guildId),
+      },
+    });
+    // Filter out channels that have no permissions
+    channels = channels.filter((channel) => {
+      // Any falsy values
+      // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+      if (!channel.permissions) return false;
+      // Return true if at any level there is any permission set to anything other than NONE
+      for (const permission of Object.values(
+        (channel.permissions as unknown as ChannelPermissionData).roles
+      )) {
+        if (permission.allow !== InternalPermissions.NONE) return true;
+        if (permission.deny !== InternalPermissions.NONE) return true;
+      }
+      for (const permission of Object.values(
+        (channel.permissions as unknown as ChannelPermissionData).users
+      )) {
+        if (permission.allow !== InternalPermissions.NONE) return true;
+        if (permission.deny !== InternalPermissions.NONE) return true;
+      }
+      return false;
+    });
+
+    return channels.map((channel) => channel.id.toString());
+  }
+
+  // Get all users / roles with permissions set
+  public async getEntitiesWithPermissions(
+    guildId: Snowflake
+  ): Promise<{ users: Snowflake[]; roles: Snowflake[] }> {
+    const guildPermissions = await this.getAllGuildPermissions(guildId);
+    const permissions = this._parseAndFixBasePermissionData(guildPermissions);
+    return {
+      users: Object.keys(permissions.users).filter((userId) => {
+        const permission = permissions.users[userId];
+        return (
+          permission !== undefined &&
+          (permission.allow !== InternalPermissions.NONE ||
+            permission.deny !== InternalPermissions.NONE)
+        );
+      }),
+      roles: Object.keys(permissions.roles).filter((roleId) => {
+        const permission = permissions.roles[roleId];
+        return (
+          permission !== undefined && permission !== InternalPermissions.NONE
+        );
+      }),
+    };
+  }
+
+  // Get all users / roles with permissions set for a channel
+  public async getChannelEntitiesWithPermissions(
+    channelId: Snowflake
+  ): Promise<{ users: Snowflake[]; roles: Snowflake[] }> {
+    const channelPermissions = await this.getAllChannelPermissions(channelId);
+    const permissions = this._parseAndFixBasePermissionData(channelPermissions);
+    return {
+      users: Object.keys(permissions.users).filter((userId) => {
+        const permission = permissions.users[userId];
+        return (
+          permission !== undefined &&
+          (permission.allow !== InternalPermissions.NONE ||
+            permission.deny !== InternalPermissions.NONE)
+        );
+      }),
+      roles: Object.keys(permissions.roles).filter((roleId) => {
+        const permission = permissions.roles[roleId];
+        return (
+          permission !== undefined &&
+          (permission.allow !== InternalPermissions.NONE ||
+            permission.deny !== InternalPermissions.NONE)
+        );
+      }),
+    };
   }
 
   // Calculate the guild permissions for a user
@@ -72,7 +146,9 @@ class PermissionManager {
       },
       InternalPermissions.NONE
     );
-    const userPermissionData = guildPermissions.users[userId];
+    const userPermissionData = guildPermissions.users[userId] as
+      | PermissionAllowAndDenyData
+      | undefined;
 
     // The user's permissions are the role permissions, not including the deny permissions, and then the allow permissions
     let total = userRolePermissions;
@@ -91,57 +167,72 @@ class PermissionManager {
   public async getGuildPermissions(
     userId: Snowflake,
     userRoles: Snowflake[],
-    guildId: Snowflake
+    guild: Guild
   ): Promise<number> {
     // First check if the user is a discord administrator
-    const cachedGuild = this._guildManagerCache.getGuild(guildId);
-    const userPermissions = await cachedGuild.calculateGuildPermissions(
+    const userPermissions = await guild.calculateGuildPermissions(
       userId,
       userRoles
     );
     if (
-      checkDiscordPermissionValue(userPermissions, Permissions.ADMINISTRATOR)
+      checkDiscordPermissionValue(
+        userPermissions,
+        DiscordPermissions.ADMINISTRATOR
+      )
     ) {
       return AllInternalPermissions;
     }
-    return this._calculateGuildPermissions(userId, userRoles, guildId);
+    return this._calculateGuildPermissions(userId, userRoles, guild.id);
   }
 
   // Public function to get channel permissions for a user, includes a check for discord administrator permission
-  // A note on threads, they inherit permissions from the parent channel, so channelIds passed should not be a thread, but the parent channel
   public async getChannelPermissions(
     userId: Snowflake,
     userRoles: Snowflake[],
-    guildId: Snowflake,
+    guild: Guild,
     channelId: Snowflake
   ): Promise<number> {
     // First check if the user is a discord administrator
-    const cachedGuild = this._guildManagerCache.getGuild(guildId);
-    const userPermissions = await cachedGuild.calculateGuildPermissions(
+
+    const userPermissions = await guild.calculateGuildPermissions(
       userId,
       userRoles
     );
     if (
-      checkDiscordPermissionValue(userPermissions, Permissions.ADMINISTRATOR)
+      checkDiscordPermissionValue(
+        userPermissions,
+        DiscordPermissions.ADMINISTRATOR
+      )
     ) {
       return AllInternalPermissions;
     }
     const guildPermissions = await this._calculateGuildPermissions(
       userId,
       userRoles,
-      guildId
+      guild.id
     );
     let total = guildPermissions;
 
-    const channelPermissions = await this.getAllChannelPermissions(channelId);
+    // Ensure that the channel being checked is not a thread, and if it is, check on the parent channel instead
+    const channelIdOrParentId = await getParentIdIfParentIdExists(
+      channelId,
+      guild
+    );
+
+    const channelPermissions = await this.getAllChannelPermissions(
+      channelIdOrParentId
+    );
     if (!channelPermissions) {
       return guildPermissions;
     }
     // Next is the allow / deny sums for channel role overrides
     const channelRoleDenyPermissions = userRoles.reduce(
       (permissions: number, roleId: Snowflake) => {
-        const rolePermissions = channelPermissions.roles[roleId];
-        if (!rolePermissions || !rolePermissions.deny) return permissions;
+        const rolePermissions = channelPermissions.roles[roleId] as
+          | PermissionAllowAndDenyData
+          | undefined;
+        if (rolePermissions === undefined || !rolePermissions.deny)
+          return permissions;
         return permissions | rolePermissions.deny;
       },
       InternalPermissions.NONE
@@ -149,7 +240,8 @@ class PermissionManager {
     const channelRoleAllowPermissions = userRoles.reduce(
       (permissions: number, roleId: Snowflake) => {
         const rolePermissions = channelPermissions.roles[roleId];
-        if (!rolePermissions || !rolePermissions.allow) return permissions;
+        if (rolePermissions === undefined || !rolePermissions.allow)
+          return permissions;
         return permissions | rolePermissions.allow;
       },
       InternalPermissions.NONE
@@ -157,7 +249,9 @@ class PermissionManager {
     total &= ~channelRoleDenyPermissions;
     total |= channelRoleAllowPermissions;
     // And then finally user deny, allow overrides
-    const userPermissionData = channelPermissions.users[userId];
+    const userPermissionData = channelPermissions.users[userId] as
+      | PermissionAllowAndDenyData
+      | undefined;
     if (userPermissionData) {
       if (userPermissionData.deny) {
         total &= ~userPermissionData.deny;
@@ -172,28 +266,58 @@ class PermissionManager {
   private _hasPermissions(
     userPermission: number,
     permissions: number | number[]
-  ): boolean {
+  ): BotPermissionResult {
     if (typeof permissions === "number") {
-      return (userPermission & permissions) === permissions;
+      if ((userPermission & permissions) === permissions) {
+        return {
+          allPresent: true,
+          present: [permissions],
+        };
+      } else {
+        return {
+          allPresent: false,
+          present: [],
+          missing: [permissions],
+        };
+      }
     }
     // Check if all permissions in "permissions" are present in the bitfield
-    return permissions.every(
-      (permission: number) => (userPermission & permission) === permission
-    );
+    const present: number[] = [];
+    const missing: number[] = [];
+    for (const permission of permissions) {
+      if ((userPermission & permission) === permission) {
+        present.push(permission);
+      } else {
+        missing.push(permission);
+      }
+    }
+
+    if (missing.length > 0) {
+      return {
+        allPresent: false,
+        present,
+        missing,
+      };
+    } else {
+      return {
+        allPresent: true,
+        present,
+      };
+    }
   }
 
-  public async hasPermission(
+  public async hasPermissions(
     userId: Snowflake,
     userRoles: Snowflake[],
-    guildId: Snowflake,
+    guild: Guild,
     permissions: number | number[],
     channelId?: Snowflake
-  ): Promise<boolean> {
-    if (channelId) {
+  ): Promise<BotPermissionResult> {
+    if (channelId !== undefined) {
       const channelPermissions = await this.getChannelPermissions(
         userId,
         userRoles,
-        guildId,
+        guild,
         channelId
       );
       return this._hasPermissions(channelPermissions, permissions);
@@ -201,7 +325,7 @@ class PermissionManager {
       const guildPermissions = await this.getGuildPermissions(
         userId,
         userRoles,
-        guildId
+        guild
       );
       return this._hasPermissions(guildPermissions, permissions);
     }
@@ -282,6 +406,8 @@ class PermissionManager {
     roleId: Snowflake
   ): GuildPermissionData {
     const fixedPermissions = this._parseAndFixBasePermissionData(permissions);
+    // Could potentially be undefined
+    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
     if (!fixedPermissions.roles) {
       fixedPermissions.roles = {};
     }
@@ -295,9 +421,13 @@ class PermissionManager {
     roleId: Snowflake
   ): ChannelPermissionData {
     const fixedPermissions = this._parseAndFixBasePermissionData(permissions);
+    // Could potentially be undefined
+    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
     if (!fixedPermissions.roles) {
       fixedPermissions.roles = {};
     }
+    // Could potentially be undefined
+    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
     if (!fixedPermissions.roles[roleId]) {
       fixedPermissions.roles[roleId] = {
         allow: InternalPermissions.NONE,
@@ -329,9 +459,13 @@ class PermissionManager {
     userId: Snowflake
   ): GuildPermissionData | ChannelPermissionData {
     const fixedPermissions = this._parseAndFixBasePermissionData(permissions);
+    // Could potentially be undefined
+    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
     if (!fixedPermissions.users) {
       fixedPermissions.users = {};
     }
+    // Could potentially be undefined
+    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
     if (!fixedPermissions.users[userId]) {
       fixedPermissions.users[userId] = {
         allow: InternalPermissions.NONE,
@@ -392,10 +526,10 @@ class PermissionManager {
       userId
     );
     // Set the allow and deny values
-    if (allow) {
+    if (allow !== undefined) {
       existingGuildPermissions.users[userId].allow = allow;
     }
-    if (deny) {
+    if (deny !== undefined) {
       existingGuildPermissions.users[userId].deny = deny;
     }
     await this._setAllGuildPermissions({
@@ -429,13 +563,12 @@ class PermissionManager {
       roleId
     );
     // Set the allow and deny values
-    if (allow) {
+    if (allow !== undefined) {
       existingChannelPermissions.roles[roleId].allow = allow;
     }
-    if (deny) {
+    if (deny !== undefined) {
       existingChannelPermissions.roles[roleId].deny = deny;
     }
-
     await this._setAllChannelPermissions({
       channelId,
       permissions: existingChannelPermissions,
@@ -468,10 +601,10 @@ class PermissionManager {
       userId
     );
     // Set the allow and deny values
-    if (allow) {
+    if (allow !== undefined) {
       existingChannelPermissions.users[userId].allow = allow;
     }
-    if (deny) {
+    if (deny !== undefined) {
       existingChannelPermissions.users[userId].deny = deny;
     }
     await this._setAllChannelPermissions({
@@ -485,6 +618,8 @@ class PermissionManager {
     permissions: GuildPermissionData | null,
     roleId: Snowflake
   ): number {
+    // Could potentially be undefined
+    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
     if (!permissions || !permissions.roles || !permissions.roles[roleId]) {
       return InternalPermissions.NONE;
     } else {
@@ -492,14 +627,28 @@ class PermissionManager {
     }
   }
 
-  // This function will allow a permission for a role. It returns the resulting permission
-  public async allowRolePermission({
+  public async getRolePermissions({
     roleId,
-    permission,
     guildId,
   }: {
     roleId: Snowflake;
-    permission: number;
+    guildId: Snowflake;
+  }): Promise<number> {
+    const permissions = await this.getAllGuildPermissions(guildId);
+    return this._getRolePermissionFromPotentiallyUndefinedData(
+      permissions,
+      roleId
+    );
+  }
+
+  // This function will allow a permission for a role. It returns the resulting permission
+  public async allowRolePermissions({
+    roleId,
+    permissions,
+    guildId,
+  }: {
+    roleId: Snowflake;
+    permissions: number[];
     guildId: Snowflake;
   }): Promise<number> {
     const guildPermissions = await this.getAllGuildPermissions(guildId);
@@ -508,23 +657,28 @@ class PermissionManager {
         guildPermissions,
         roleId
       );
-    existingPermission |= permission;
-    await this._setRolePermission({
-      roleId,
-      guildId,
-      permission: existingPermission,
-    });
+    for (const perm of permissions) {
+      existingPermission |= perm;
+    }
+    if (permissions.length > 0) {
+      // No point making a database call if nothing has changed
+      await this._setRolePermission({
+        roleId,
+        guildId,
+        permission: existingPermission,
+      });
+    }
     return existingPermission;
   }
 
   // This function will remove a permission for a role. It returns the resulting permission
-  public async removeRolePermission({
+  public async denyRolePermissions({
     roleId,
-    permission,
+    permissions,
     guildId,
   }: {
     roleId: Snowflake;
-    permission: number;
+    permissions: number[];
     guildId: Snowflake;
   }): Promise<number> {
     const guildPermissions = await this.getAllGuildPermissions(guildId);
@@ -533,12 +687,17 @@ class PermissionManager {
         guildPermissions,
         roleId
       );
-    existingPermission &= ~permission;
-    await this._setRolePermission({
-      roleId,
-      guildId,
-      permission: existingPermission,
-    });
+    for (const perm of permissions) {
+      existingPermission &= ~perm;
+    }
+    if (permissions.length > 0) {
+      // No point making a database call if nothing has changed
+      await this._setRolePermission({
+        roleId,
+        guildId,
+        permission: existingPermission,
+      });
+    }
     return existingPermission;
   }
 
@@ -551,6 +710,8 @@ class PermissionManager {
   }): PermissionAllowAndDenyData {
     let existingAllow: number;
     let existingDeny: number;
+    // Could potentially be undefined
+    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
     if (!permissions || !permissions.users || !permissions.users[userId]) {
       existingAllow = InternalPermissions.NONE;
       existingDeny = InternalPermissions.NONE;
@@ -564,16 +725,30 @@ class PermissionManager {
     };
   }
 
-  // This function will allow a permission for a user.
-  // It will also remove said permission from the user deny bitfield, if it is in the deny bitfield
-  // As that would then have no effect
-  public async allowUserPermission({
+  public async getUserPermissions({
     userId,
-    permission,
     guildId,
   }: {
     userId: Snowflake;
-    permission: number;
+    guildId: Snowflake;
+  }): Promise<PermissionAllowAndDenyData> {
+    const permissions = await this.getAllGuildPermissions(guildId);
+    return this._getAllowAndDenyUserPermissions({
+      permissions,
+      userId,
+    });
+  }
+
+  // This function will allow a permission for a user.
+  // It will also remove said permission from the user deny bitfield, if it is in the deny bitfield
+  // As that would then have no effect
+  public async allowUserPermissions({
+    userId,
+    permissions,
+    guildId,
+  }: {
+    userId: Snowflake;
+    permissions: number[];
     guildId: Snowflake;
   }): Promise<PermissionAllowAndDenyData> {
     const guildPermissions = await this.getAllGuildPermissions(guildId);
@@ -582,18 +757,22 @@ class PermissionManager {
       permissions: guildPermissions,
       userId,
     });
-
-    // Add the permission to the allow bitfield
-    allow |= permission;
-    // Remove the permission from the deny bitfield
-    deny &= ~permission;
-    // Set the new permissions
-    await this._setUserPermission({
-      userId,
-      guildId,
-      allow,
-      deny,
-    });
+    for (const perm of permissions) {
+      // Add the permission to the allow bitfield
+      allow |= perm;
+      // Remove the permission from the deny bitfield
+      deny &= ~perm;
+    }
+    if (permissions.length > 0) {
+      // No point making a database call if nothing has changed
+      // Set the new permissions
+      await this._setUserPermission({
+        userId,
+        guildId,
+        allow,
+        deny,
+      });
+    }
     return {
       allow,
       deny,
@@ -602,13 +781,13 @@ class PermissionManager {
 
   // This function will "reset" a permission for a user. That means it is not present in either the user's allow or deny bitfields
   // It will then return the resulting permissions
-  public async resetUserPermission({
+  public async resetUserPermissions({
     userId,
-    permission,
+    permissions,
     guildId,
   }: {
     userId: Snowflake;
-    permission: number;
+    permissions: number[];
     guildId: Snowflake;
   }): Promise<PermissionAllowAndDenyData> {
     const guildPermissions = await this.getAllGuildPermissions(guildId);
@@ -617,17 +796,22 @@ class PermissionManager {
       permissions: guildPermissions,
       userId,
     });
-    // Remove the permission from the allow bitfield
-    allow &= ~permission;
-    // Remove the permission from the deny bitfield
-    deny &= ~permission;
-    // Set the new permissions
-    await this._setUserPermission({
-      userId,
-      guildId,
-      allow: allow,
-      deny: deny,
-    });
+    for (const perm of permissions) {
+      // Remove the permission from the allow bitfield
+      allow &= ~perm;
+      // Remove the permission from the deny bitfield
+      deny &= ~perm;
+    }
+    if (permissions.length > 0) {
+      // No point making a database call if nothing has changed
+      // Set the new permissions
+      await this._setUserPermission({
+        userId,
+        guildId,
+        allow: allow,
+        deny: deny,
+      });
+    }
     return {
       allow: allow,
       deny: deny,
@@ -637,13 +821,13 @@ class PermissionManager {
   // This function will deny a permission for a user.
   // It will also remove said permission from the user allow bitfield, if it is in the allow bitfield
   // It returns the resulting permission
-  public async denyUserPermission({
+  public async denyUserPermissions({
     userId,
-    permission,
+    permissions,
     guildId,
   }: {
     userId: Snowflake;
-    permission: number;
+    permissions: number[];
     guildId: Snowflake;
   }): Promise<PermissionAllowAndDenyData> {
     const guildPermissions = await this.getAllGuildPermissions(guildId);
@@ -652,17 +836,22 @@ class PermissionManager {
       permissions: guildPermissions,
       userId,
     });
-    // Remove the permission from the allow bitfield
-    allow &= ~permission;
-    // Add the permission to the deny bitfield
-    deny |= permission;
-    // Set the new permissions
-    await this._setUserPermission({
-      userId,
-      guildId,
-      allow,
-      deny,
-    });
+    for (const perm of permissions) {
+      // Remove the permission from the allow bitfield
+      allow &= ~perm;
+      // Add the permission to the deny bitfield
+      deny |= perm;
+    }
+    if (permissions.length > 0) {
+      // No point making a database call if nothing has changed
+      // Set the new permissions
+      await this._setUserPermission({
+        userId,
+        guildId,
+        allow,
+        deny,
+      });
+    }
     return {
       allow: allow,
       deny: deny,
@@ -678,6 +867,8 @@ class PermissionManager {
   }): PermissionAllowAndDenyData {
     let existingAllow: number;
     let existingDeny: number;
+    // Could potentially be undefined
+    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
     if (!permissions || !permissions.roles || !permissions.roles[roleId]) {
       existingAllow = InternalPermissions.NONE;
       existingDeny = InternalPermissions.NONE;
@@ -691,17 +882,31 @@ class PermissionManager {
     };
   }
 
+  public async getChannelRolePermissions({
+    roleId,
+    channelId,
+  }: {
+    roleId: Snowflake;
+    channelId: Snowflake;
+  }): Promise<PermissionAllowAndDenyData> {
+    const permissions = await this.getAllChannelPermissions(channelId);
+    return this._getAllowAndDenyRoleChannelPermissions({
+      permissions,
+      roleId,
+    });
+  }
+
   // This function will allow a permission for a role on a channel overwrite level.
   // It will also remove said permission from the role channel deny bitfield, if it is in the deny bitfield
   // It returns the resulting permission
-  public async allowChannelRolePermission({
+  public async allowChannelRolePermissions({
     roleId,
-    permission,
+    permissions,
     channelId,
     guildId,
   }: {
     roleId: Snowflake;
-    permission: number;
+    permissions: number[];
     channelId: Snowflake;
     guildId: Snowflake;
   }): Promise<PermissionAllowAndDenyData> {
@@ -711,18 +916,23 @@ class PermissionManager {
       permissions: channelPermissions,
       roleId,
     });
-    // Add the permission to the allow bitfield
-    allow |= permission;
-    // Remove the permission from the deny bitfield
-    deny &= ~permission;
-    // Set the new permissions
-    await this._setChannelRolePermission({
-      roleId,
-      channelId,
-      guildId,
-      allow,
-      deny,
-    });
+    for (const perm of permissions) {
+      // Add the permission to the allow bitfield
+      allow |= perm;
+      // Remove the permission from the deny bitfield
+      deny &= ~perm;
+    }
+    if (permissions.length > 0) {
+      // No point making a database call if nothing has changed
+      // Set the new permissions
+      await this._setChannelRolePermission({
+        roleId,
+        channelId,
+        guildId,
+        allow,
+        deny,
+      });
+    }
     return {
       allow: allow,
       deny: deny,
@@ -732,14 +942,14 @@ class PermissionManager {
   // This function will "reset" a permission for a role on a channel overwrite level
   // That means it is not present in either the role's allow or deny bitfields
   // It will then return the resulting permissions
-  public async resetChannelRolePermission({
+  public async resetChannelRolePermissions({
     roleId,
-    permission,
+    permissions,
     channelId,
     guildId,
   }: {
     roleId: Snowflake;
-    permission: number;
+    permissions: number[];
     channelId: Snowflake;
     guildId: Snowflake;
   }): Promise<PermissionAllowAndDenyData> {
@@ -749,18 +959,23 @@ class PermissionManager {
       permissions: channelPermissions,
       roleId,
     });
-    // Remove the permission from the allow bitfield
-    allow &= ~permission;
-    // Remove the permission from the deny bitfield
-    deny &= ~permission;
-    // Set the new permissions
-    await this._setChannelRolePermission({
-      roleId,
-      channelId,
-      guildId,
-      allow,
-      deny,
-    });
+    for (const perm of permissions) {
+      // Remove the permission from the allow bitfield
+      allow &= ~perm;
+      // Remove the permission from the deny bitfield
+      deny &= ~perm;
+    }
+    if (permissions.length > 0) {
+      // No point making a database call if nothing has changed
+      // Set the new permissions
+      await this._setChannelRolePermission({
+        roleId,
+        channelId,
+        guildId,
+        allow,
+        deny,
+      });
+    }
     return {
       allow: allow,
       deny: deny,
@@ -770,14 +985,14 @@ class PermissionManager {
   // This function will deny a permission for a role on a channel overwrite level.
   // It will also remove said permission from the role channel allow bitfield, if it is in the allow bitfield
   // It returns the resulting permission
-  public async denyChannelRolePermission({
+  public async denyChannelRolePermissions({
     roleId,
-    permission,
+    permissions,
     channelId,
     guildId,
   }: {
     roleId: Snowflake;
-    permission: number;
+    permissions: number[];
     channelId: Snowflake;
     guildId: Snowflake;
   }): Promise<PermissionAllowAndDenyData> {
@@ -787,35 +1002,54 @@ class PermissionManager {
       permissions: channelPermissions,
       roleId,
     });
-    // Remove the permission from the allow bitfield
-    allow &= ~permission;
-    // Add the permission to the deny bitfield
-    deny |= permission;
-    // Set the new permissions
-    await this._setChannelRolePermission({
-      roleId,
-      channelId,
-      guildId,
-      allow,
-      deny,
-    });
+    for (const perm of permissions) {
+      // Remove the permission from the allow bitfield
+      allow &= ~perm;
+      // Add the permission to the deny bitfield
+      deny |= perm;
+    }
+    if (permissions.length > 0) {
+      // No point making a database call if nothing has changed
+      // Set the new permissions
+      await this._setChannelRolePermission({
+        roleId,
+        channelId,
+        guildId,
+        allow,
+        deny,
+      });
+    }
     return {
       allow: allow,
       deny: deny,
     };
   }
 
+  public async getChannelUserPermissions({
+    userId,
+    channelId,
+  }: {
+    userId: Snowflake;
+    channelId: Snowflake;
+  }): Promise<PermissionAllowAndDenyData> {
+    const permissions = await this.getAllChannelPermissions(channelId);
+    return this._getAllowAndDenyUserPermissions({
+      permissions,
+      userId,
+    });
+  }
+
   // This function will allow a permission for a user on a channel overwrite level.
   // It will also remove said permission from the user channel deny bitfield, if it is in the deny bitfield
   // It returns the resulting permission
-  public async allowChannelUserPermission({
+  public async allowChannelUserPermissions({
     userId,
-    permission,
+    permissions,
     channelId,
     guildId,
   }: {
     userId: Snowflake;
-    permission: number;
+    permissions: number[];
     channelId: Snowflake;
     guildId: Snowflake;
   }): Promise<PermissionAllowAndDenyData> {
@@ -825,18 +1059,23 @@ class PermissionManager {
       permissions: channelPermissions,
       userId,
     });
-    // Add the permission to the allow bitfield
-    allow |= permission;
-    // Remove the permission from the deny bitfield
-    deny &= ~permission;
-    // Set the new permissions
-    await this._setChannelUserPermission({
-      userId,
-      channelId,
-      guildId,
-      allow,
-      deny,
-    });
+    for (const perm of permissions) {
+      // Add the permission to the allow bitfield
+      allow |= perm;
+      // Remove the permission from the deny bitfield
+      deny &= ~perm;
+    }
+    if (permissions.length > 0) {
+      // No point making a database call if nothing has changed
+      // Set the new permissions
+      await this._setChannelUserPermission({
+        userId,
+        channelId,
+        guildId,
+        allow,
+        deny,
+      });
+    }
     return {
       allow: allow,
       deny: deny,
@@ -846,14 +1085,14 @@ class PermissionManager {
   // This function will "reset" a permission for a user on a channel overwrite level
   // That means it is not present in either the user's allow or deny bitfields
   // It will then return the resulting permissions
-  public async resetChannelUserPermission({
+  public async resetChannelUserPermissions({
     userId,
-    permission,
+    permissions,
     channelId,
     guildId,
   }: {
     userId: Snowflake;
-    permission: number;
+    permissions: number[];
     channelId: Snowflake;
     guildId: Snowflake;
   }): Promise<PermissionAllowAndDenyData> {
@@ -863,18 +1102,23 @@ class PermissionManager {
       permissions: channelPermissions,
       userId,
     });
-    // Remove the permission from the allow bitfield
-    allow &= ~permission;
-    // Remove the permission from the deny bitfield
-    deny &= ~permission;
-    // Set the new permissions
-    await this._setChannelUserPermission({
-      userId,
-      channelId,
-      guildId,
-      allow,
-      deny,
-    });
+    for (const perm of permissions) {
+      // Remove the permission from the allow bitfield
+      allow &= ~perm;
+      // Remove the permission from the deny bitfield
+      deny &= ~perm;
+    }
+    if (permissions.length > 0) {
+      // No point making a database call if nothing has changed
+      // Set the new permissions
+      await this._setChannelUserPermission({
+        userId,
+        channelId,
+        guildId,
+        allow,
+        deny,
+      });
+    }
     return {
       allow: allow,
       deny: deny,
@@ -884,14 +1128,14 @@ class PermissionManager {
   // This function will deny a permission for a user on a channel overwrite level.
   // It will also remove said permission from the user channel allow bitfield, if it is in the allow bitfield
   // It returns the resulting permission
-  public async denyChannelUserPermission({
+  public async denyChannelUserPermissions({
     userId,
-    permission,
+    permissions,
     channelId,
     guildId,
   }: {
     userId: Snowflake;
-    permission: number;
+    permissions: number[];
     channelId: Snowflake;
     guildId: Snowflake;
   }): Promise<PermissionAllowAndDenyData> {
@@ -901,18 +1145,23 @@ class PermissionManager {
       permissions: channelPermissions,
       userId,
     });
-    // Remove the permission from the allow bitfield
-    allow &= ~permission;
-    // Add the permission to the deny bitfield
-    deny |= permission;
-    // Set the new permissions
-    await this._setChannelUserPermission({
-      userId,
-      channelId,
-      guildId,
-      allow,
-      deny,
-    });
+    for (const perm of permissions) {
+      // Remove the permission from the allow bitfield
+      allow &= ~perm;
+      // Add the permission to the deny bitfield
+      deny |= perm;
+    }
+    if (permissions.length > 0) {
+      // No point making a database call if nothing has changed
+      // Set the new permissions
+      await this._setChannelUserPermission({
+        userId,
+        channelId,
+        guildId,
+        allow,
+        deny,
+      });
+    }
     return {
       allow: allow,
       deny: deny,

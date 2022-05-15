@@ -90,7 +90,7 @@ export default class WebhookManager {
       (webhook) => webhook.id === storedChannel?.webhookId?.toString()
     );
     // if the webhook is found, and it has a token, return it
-    if (existingWebhook && existingWebhook.token) {
+    if (existingWebhook && existingWebhook.token !== undefined) {
       await this._updateStoredWebhook(channelId, guildId, {
         token: existingWebhook.token,
         id: existingWebhook.id,
@@ -101,9 +101,11 @@ export default class WebhookManager {
       };
     }
     // Otherwise use the first webhook that matches the application id, and token is not null
-    const firstWebhook = filteredWebhooks.find((webhook) => !!webhook.token);
+    const firstWebhook = filteredWebhooks.find(
+      (webhook) => webhook.token !== undefined
+    );
 
-    if (firstWebhook && firstWebhook.token) {
+    if (firstWebhook && firstWebhook.token !== undefined) {
       await this._updateStoredWebhook(channelId, guildId, {
         token: firstWebhook.token,
         id: firstWebhook.id,
@@ -140,10 +142,10 @@ export default class WebhookManager {
       throw error;
     }
     // This shouldn't happen, but just in case
-    if (!webhook.token) {
+    if (webhook.token === undefined) {
       throw new UnexpectedFailure(
         InteractionOrRequestFinalStatus.CREATE_WEBHOOK_RESULT_MISSING_TOKEN,
-        "Webhook token is null"
+        "Webhook token is not defined"
       );
     }
     await this._updateStoredWebhook(channelId, guildId, {
@@ -167,8 +169,8 @@ export default class WebhookManager {
     });
     if (
       !storedChannel ||
-      !storedChannel.webhookId ||
-      !storedChannel.webhookToken
+      storedChannel.webhookId === null ||
+      storedChannel.webhookToken === null
     ) {
       return await this._getWebhookFromDiscord(channelId, guildId);
     }
@@ -183,7 +185,7 @@ export default class WebhookManager {
     data: RequestTypes.ExecuteWebhook
   ): Promise<APIMessage> {
     const webhook = await this.getWebhook(channelId, guildId);
-    if (!data.wait) {
+    if (data.wait ?? false) {
       // Always wait for the message to send
       data.wait = true;
     }

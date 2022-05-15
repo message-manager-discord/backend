@@ -17,7 +17,7 @@ const requireAuthentication = async (
     throw new Unauthorized();
   }
 
-  if (!session) {
+  if (session === null) {
     throw new Unauthorized();
   }
 
@@ -29,7 +29,7 @@ const requireAuthentication = async (
       select: { oauthToken: true, staff: true },
       where: { id: BigInt(sessionData.userId) },
     });
-    if (!userData || !userData.oauthToken) {
+    if (!userData || userData.oauthToken === null) {
       return reply.send(new Unauthorized());
     }
     request.user = {

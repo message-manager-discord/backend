@@ -17,11 +17,13 @@ import {
   createModal,
   createTextInputWithRow,
 } from "../../modals/createStructures";
-import { InternalInteraction } from "../../interaction";
+import { InternalInteractionType } from "../../interaction";
 import { InteractionReturnData } from "../../types";
+import { GuildSession } from "../../../lib/session";
 
 export default async function handleSendCommand(
-  internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>,
+  internalInteraction: InternalInteractionType<APIChatInputApplicationCommandGuildInteraction>,
+  session: GuildSession,
   instance: FastifyInstance
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
@@ -62,10 +64,9 @@ export default async function handleSendCommand(
 
   await checkSendMessagePossible({
     channelId,
-    guildId: interaction.guild_id,
     instance,
-    user: interaction.member,
     thread: threadData,
+    session,
   });
 
   return createModal({

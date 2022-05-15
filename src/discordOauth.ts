@@ -83,7 +83,7 @@ class DiscordOauthRequests {
     cacheExpiry?: number;
     userId?: Snowflake;
   }): Promise<UncachedResponse | CachedResponse> {
-    if (cacheExpiry && userId) {
+    if (cacheExpiry !== undefined && userId !== undefined) {
       // TODO: Should cacheExpiry be checked / used
       // Requests without a token are not cached
       const cachedResponse = (await this._instance.redisCache.getOauthCache(
@@ -91,7 +91,7 @@ class DiscordOauthRequests {
         userId
       )) as string | null;
 
-      if (cachedResponse) {
+      if (cachedResponse !== null) {
         return { cached: true, data: cachedResponse };
       }
       const response = await this._makeRequest({
@@ -108,7 +108,7 @@ class DiscordOauthRequests {
       );
       return response;
     }
-    if (token) {
+    if (token !== undefined) {
       headers = { ...headers, Authorization: `Bearer ${token}` };
     }
     let response: AxiosResponse;
@@ -139,7 +139,8 @@ class DiscordOauthRequests {
       return new UnexpectedFailure(
         InteractionOrRequestFinalStatus.OAUTH_REQUEST_FAILED,
         `Oauth request to ${
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,  @typescript-eslint/restrict-template-expressions
+          // TODO: Fix this type mess. Most likely by changing request libs
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,  @typescript-eslint/restrict-template-expressions, @typescript-eslint/strict-boolean-expressions
           response.request.path || "Unknown path"
         } failed with the status ${statusCode}`
       );
@@ -152,7 +153,7 @@ class DiscordOauthRequests {
   }): Promise<RESTGetAPICurrentUserResult> {
     let cacheExpiry: number | undefined;
     let response;
-    if (user.userId) {
+    if (user.userId !== undefined) {
       cacheExpiry = 1000 * 60 * 5; // 5 minutes
       response = await this._makeRequest({
         path: "/users/@me",

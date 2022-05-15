@@ -9,12 +9,16 @@ import {
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 import { failureRed } from "../../constants";
+import { GuildSession } from "../../lib/session";
 import { addTipToEmbed } from "../../lib/tips";
-import { InternalInteraction } from "../interaction";
+import { InternalInteractionType } from "../interaction";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function handleCancelDeleteButton(
-  internalInteraction: InternalInteraction<APIMessageComponentGuildInteraction>,
+  internalInteraction: InternalInteractionType<APIMessageComponentGuildInteraction>,
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  session: GuildSession,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   instance: FastifyInstance
 ): Promise<APIInteractionResponseUpdateMessage> {

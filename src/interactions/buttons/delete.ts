@@ -13,12 +13,14 @@ import {
   UnexpectedFailure,
 } from "../../errors";
 import { checkDeletePossible } from "../../lib/messages/delete";
+import { GuildSession } from "../../lib/session";
 import { addTipToEmbed } from "../../lib/tips";
-import { InternalInteraction } from "../interaction";
+import { InternalInteractionType } from "../interaction";
 import { InteractionReturnData } from "../types";
 
 export default async function handleDeleteButton(
-  internalInteraction: InternalInteraction<APIMessageComponentGuildInteraction>,
+  internalInteraction: InternalInteractionType<APIMessageComponentGuildInteraction>,
+  session: GuildSession,
   instance: FastifyInstance
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
@@ -30,8 +32,7 @@ export default async function handleDeleteButton(
     );
   }
   const databaseMessage = await checkDeletePossible({
-    user: interaction.member,
-    guildId: interaction.guild_id,
+    session,
     channelId: interaction.channel_id,
     instance,
     messageId,

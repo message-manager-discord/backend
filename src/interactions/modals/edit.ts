@@ -11,12 +11,14 @@ import {
   UnexpectedFailure,
 } from "../../errors";
 import { editMessage } from "../../lib/messages/edit";
+import { GuildSession } from "../../lib/session";
 import { addTipToEmbed } from "../../lib/tips";
-import { InternalInteraction } from "../interaction";
+import { InternalInteractionType } from "../interaction";
 import { InteractionReturnData } from "../types";
 
 export default async function handleModalEdit(
-  internalInteraction: InternalInteraction<APIModalSubmitGuildInteraction>,
+  internalInteraction: InternalInteractionType<APIModalSubmitGuildInteraction>,
+  session: GuildSession,
   instance: FastifyInstance
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
@@ -34,13 +36,13 @@ export default async function handleModalEdit(
     (component) => component.components[0].custom_id === "content"
   )?.components[0].value;
 
-  if (!content) {
+  if (content === undefined) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.MODAL_SUBMIT_MISSING_REQUIRED_INPUT,
       "No content on modal submit"
     );
   }
-  if (!interaction.channel_id) {
+  if (interaction.channel_id === undefined) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.GENERIC_UNEXPECTED_FAILURE,
       "Missing channel_id on modal submit"
@@ -51,9 +53,8 @@ export default async function handleModalEdit(
 
     channelId: interaction.channel_id,
     instance,
-    user: interaction.member,
     messageId,
-    guildId: interaction.guild_id,
+    session,
   });
   const messageLink = `https://discord.com/channels/${interaction.guild_id}/${interaction.channel_id}/${messageId}`;
 

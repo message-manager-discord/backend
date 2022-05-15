@@ -15,10 +15,11 @@ import {
   ExpectedFailure,
   InteractionOrRequestFinalStatus,
 } from "../../../errors";
-import { InternalInteraction } from "../../interaction";
+import { InternalInteractionType } from "../../interaction";
 import Fuse from "fuse.js";
 import { InteractionReturnData } from "../../types";
 import { addTipToEmbed } from "../../../lib/tips";
+import { GuildSession, NonGuildSession } from "../../../lib/session";
 
 const createInfoEmbed = async (
   instance: FastifyInstance
@@ -203,7 +204,8 @@ const channelMessageResponseWithEmbed = (
 });
 
 export default async function handleInfoCommand(
-  internalInteraction: InternalInteraction<APIChatInputApplicationCommandInteraction>,
+  internalInteraction: InternalInteractionType<APIChatInputApplicationCommandInteraction>,
+  session: GuildSession | NonGuildSession,
   instance: FastifyInstance
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
@@ -232,7 +234,7 @@ export default async function handleInfoCommand(
 
 // eslint-disable-next-line @typescript-eslint/require-await
 async function handleInfoAutocomplete(
-  internalInteraction: InternalInteraction<APIApplicationCommandAutocompleteInteraction>,
+  internalInteraction: InternalInteractionType<APIApplicationCommandAutocompleteInteraction>,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   instance: FastifyInstance
 ): Promise<APIApplicationCommandAutocompleteResponse> {
