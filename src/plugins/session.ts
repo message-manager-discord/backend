@@ -1,5 +1,6 @@
 import { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
+
 import PermissionManager from "../lib/permissions/manager";
 import SessionManager from "../lib/session";
 

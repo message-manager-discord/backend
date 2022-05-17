@@ -8,6 +8,7 @@ import {
   MessageFlags,
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
+
 import { failureRed } from "../../constants";
 import { GuildSession } from "../../lib/session";
 import { addTipToEmbed } from "../../lib/tips";

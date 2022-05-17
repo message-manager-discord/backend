@@ -97,11 +97,11 @@ class UnexpectedFailure extends CustomError {
 }
 
 export {
-  InteractionOrRequestFinalStatus,
+  CustomError,
   ExpectedFailure,
-  ExpectedPermissionFailure,
   ExpectedOauth2Failure,
+  ExpectedPermissionFailure,
+  InteractionOrRequestFinalStatus,
   LimitHit,
   UnexpectedFailure,
-  CustomError,
 };

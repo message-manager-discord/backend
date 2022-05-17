@@ -23,43 +23,44 @@ import { FastifyInstance } from "fastify";
 import FastifyRawBody from "fastify-raw-body";
 import httpErrors from "http-errors";
 const { Forbidden } = httpErrors;
-import { FastifyRequest } from "fastify";
+import axios from "axios";
 import { verifyKey } from "discord-interactions";
-import handleInfoCommand, {
-  handleInfoAutocomplete,
-} from "./commands/chatInput/info";
-import handleSendCommand from "./commands/chatInput/send";
-import handleConfigCommand from "./commands/chatInput/config";
-import handleModalSend from "./modals/send";
-import {
-  createInternalInteraction,
-  InternalInteractionType,
-} from "./interaction";
+import { FastifyRequest } from "fastify";
+
+import { discordAPIBaseURL } from "../constants";
 import {
   CustomError,
   ExpectedFailure,
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../errors";
-import handleActionMessageCommand from "./commands/message/actions";
+import { GuildSession, NonGuildSession } from "../lib/session";
+import handleCancelDeleteButton from "./buttons/cancel-delete";
+import handleConfirmDeleteButton from "./buttons/confirm-delete";
+import handleDeleteButton from "./buttons/delete";
+import handleEditButton from "./buttons/edit";
+import handleManagePermissionsSelect from "./buttons/manage-permissions-select";
 import handleReportButton from "./buttons/report";
+import handleConfigCommand from "./commands/chatInput/config";
+import handleInfoCommand, {
+  handleInfoAutocomplete,
+} from "./commands/chatInput/info";
+import handleSendCommand from "./commands/chatInput/send";
+import handleActionMessageCommand from "./commands/message/actions";
+import handleAddMessageCommand from "./commands/message/addMessage";
 import handleFetchMessageCommand from "./commands/message/fetch";
+import {
+  createInternalInteraction,
+  InternalInteractionType,
+} from "./interaction";
+import handleModalEdit from "./modals/edit";
+import handleModalReport from "./modals/report";
+import handleModalSend from "./modals/send";
 import {
   InteractionReturnData,
   isFormDataReturnData,
   isInteractionReturnDataDeferred,
 } from "./types";
-import handleEditButton from "./buttons/edit";
-import handleDeleteButton from "./buttons/delete";
-import handleModalEdit from "./modals/edit";
-import handleConfirmDeleteButton from "./buttons/confirm-delete";
-import handleCancelDeleteButton from "./buttons/cancel-delete";
-import handleModalReport from "./modals/report";
-import handleAddMessageCommand from "./commands/message/addMessage";
-import axios from "axios";
-import { discordAPIBaseURL } from "../constants";
-import { GuildSession, NonGuildSession } from "../lib/session";
-import handleManagePermissionsSelect from "./buttons/manage-permissions-select";
 
 class InteractionHandler {
   private readonly _client: FastifyInstance;

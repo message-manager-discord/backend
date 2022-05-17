@@ -105,11 +105,11 @@ const parseInternalPermissionValuesToStringNames = (
 };
 
 export {
-  InternalPermissions,
   AllInternalPermissions,
-  UsableInternalPermissions,
-  UsableInternalPermissionValues,
   getInternalPermissionByName,
   getInternalPermissionByValue,
+  InternalPermissions,
   parseInternalPermissionValuesToStringNames,
+  UsableInternalPermissions,
+  UsableInternalPermissionValues,
 };

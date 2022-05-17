@@ -1,5 +1,6 @@
 import { APIMessageComponentGuildInteraction } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
+
 import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,

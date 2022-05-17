@@ -5,6 +5,7 @@ import {
   GuildNotFound,
   GuildUnavailable,
 } from "redis-discord-cache/dist/errors";
+
 import { DiscordPermissions } from "../../consts";
 import {
   ExpectedPermissionFailure,
@@ -98,7 +99,7 @@ async function checkIfUserCanManageRolePermissions({
 
 export {
   checkDiscordPermissionValue,
-  tryAndHandleGuildErrors,
   checkIfUserCanManageRolePermissions,
   checkInternalPermissionValue,
+  tryAndHandleGuildErrors,
 };

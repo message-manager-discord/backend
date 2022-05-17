@@ -1,11 +1,11 @@
-import { Type, Static } from "@sinclair/typebox";
+import { Static,Type } from "@sinclair/typebox";
 import httpErrors from "http-errors";
 const { Forbidden, NotFound, BadRequest } = httpErrors;
-import { FastifyInstance } from "fastify";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
+import { FastifyInstance } from "fastify";
 
-import { UserRequestData } from "../../plugins/authentication";
 import { DiscordPermissions } from "../../consts";
+import { UserRequestData } from "../../plugins/authentication";
 const rootPath = "/users";
 
 const UserParams = Type.Object({

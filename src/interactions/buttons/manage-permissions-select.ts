@@ -1,3 +1,4 @@
+import { Snowflake } from "discord-api-types/globals";
 import {
   APIMessageComponentGuildInteraction,
   APIMessageSelectMenuInteractionData,
@@ -6,13 +7,12 @@ import {
   InteractionResponseType,
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
-import { Snowflake } from "discord-api-types/globals";
 
+import { getInternalPermissionByName } from "../../lib/permissions/consts";
 import { GuildSession } from "../../lib/session";
 import { InternalInteractionType } from "../interaction";
-import { InteractionReturnData } from "../types";
-import { getInternalPermissionByName } from "../../lib/permissions/consts";
 import createPermissionsEmbed from "../shared/permissions-config";
+import { InteractionReturnData } from "../types";
 
 export default async function handleManagePermissionsSelect(
   internalInteraction: InternalInteractionType<APIMessageComponentGuildInteraction>,

@@ -1,6 +1,7 @@
 import { Snowflake } from "discord-api-types/globals";
 import { APIEmbed, APIMessage } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
+
 import { DiscordPermissions } from "../../consts";
 import {
   ExpectedPermissionFailure,

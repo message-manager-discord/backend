@@ -15,8 +15,8 @@ const requiredPermissionsSendBotThread = [
 const requiredPermissionsSendUser = requiredPermissionsEdit;
 
 export {
-  requiredPermissionsEdit,
   requiredPermissionsDelete,
+  requiredPermissionsEdit,
   requiredPermissionsSendBot,
   requiredPermissionsSendBotThread,
   requiredPermissionsSendUser,

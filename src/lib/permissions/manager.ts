@@ -1,7 +1,8 @@
-import { PrismaClient, Prisma } from "@prisma/client";
+import { Prisma,PrismaClient } from "@prisma/client";
 import { Snowflake } from "discord-api-types/globals";
 import { FastifyInstance } from "fastify";
 import { Guild } from "redis-discord-cache";
+
 import { DiscordPermissions } from "../../consts";
 import {
   ExpectedPermissionFailure,

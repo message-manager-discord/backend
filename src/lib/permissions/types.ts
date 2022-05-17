@@ -55,13 +55,13 @@ type DiscordPermissionResult =
   | MissingDiscordPermissionsResult;
 
 export {
-  PermissionAllowAndDenyData,
-  GuildPermissionData,
-  ChannelPermissionData,
-  PresentBotPermissionResult,
-  MissingBotPermissionsResult,
   BotPermissionResult,
-  PresentDiscordPermissionResult,
-  MissingDiscordPermissionsResult,
+  ChannelPermissionData,
   DiscordPermissionResult,
+  GuildPermissionData,
+  MissingBotPermissionsResult,
+  MissingDiscordPermissionsResult,
+  PermissionAllowAndDenyData,
+  PresentBotPermissionResult,
+  PresentDiscordPermissionResult,
 };

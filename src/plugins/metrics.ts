@@ -1,10 +1,7 @@
-import fp from "fastify-plugin";
-
 import { FastifyInstance } from "fastify";
-
-import { register, Counter, Summary } from "prom-client";
-
+import fp from "fastify-plugin";
 import httpErrors from "http-errors";
+import { Counter, register, Summary } from "prom-client";
 const { Unauthorized } = httpErrors;
 
 const metricsPrefix = "api_";

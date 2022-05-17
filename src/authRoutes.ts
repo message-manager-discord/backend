@@ -3,8 +3,9 @@ import { FastifyInstance } from "fastify";
 import httpErrors from "http-errors";
 const { Forbidden } = httpErrors;
 import { Static, Type } from "@sinclair/typebox";
-import { v5 as uuidv5 } from "uuid";
 import crypto from "crypto";
+import { v5 as uuidv5 } from "uuid";
+
 import DiscordOauthRequests from "./discordOauth";
 
 const CallbackQuerystring = Type.Object({

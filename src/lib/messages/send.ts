@@ -1,3 +1,4 @@
+import { DiscordHTTPError } from "detritus-client-rest/lib/errors";
 import {
   APIEmbed,
   APIMessage,
@@ -6,14 +7,14 @@ import {
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 
-import { DiscordHTTPError } from "detritus-client-rest/lib/errors";
+import { embedPink } from "../../constants";
+import { parseDiscordPermissionValuesToStringNames } from "../../consts";
 import {
   ExpectedPermissionFailure,
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../../errors";
-
-import { embedPink } from "../../constants";
+import { InternalPermissions } from "../permissions/consts";
 import { GuildSession } from "../session";
 import {
   requiredPermissionsSendBot,
@@ -24,8 +25,6 @@ import {
   missingBotDiscordPermissionMessage,
   missingUserDiscordPermissionMessage,
 } from "./utils";
-import { parseDiscordPermissionValuesToStringNames } from "../../consts";
-import { InternalPermissions } from "../permissions/consts";
 
 const missingAccessMessage =
   "You do not have access to the bot permission for sending messages via the bot on this guild. Please contact an administrator.";
@@ -199,4 +198,4 @@ async function sendMessage({
   }
 }
 
-export { sendMessage, checkSendMessagePossible, ThreadOptionObject };
+export { checkSendMessagePossible, sendMessage, ThreadOptionObject };

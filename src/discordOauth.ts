@@ -1,13 +1,14 @@
 import axios, { AxiosError, AxiosResponse } from "axios";
 import {
+  RESTGetAPICurrentUserGuildsResult,
   RESTGetAPICurrentUserResult,
+  RESTGetCurrentUserGuildMemberResult,
   RESTPostOAuth2AccessTokenResult,
   Snowflake,
-  RESTGetAPICurrentUserGuildsResult,
-  RESTGetCurrentUserGuildMemberResult,
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 import { URLSearchParams } from "url";
+
 import { discordAPIBaseURL, requiredScopes } from "./constants";
 import {
   ExpectedOauth2Failure,

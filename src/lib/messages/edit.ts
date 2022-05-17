@@ -3,23 +3,23 @@ import { DiscordHTTPError } from "detritus-client-rest/lib/errors";
 import { APIEmbed, Snowflake } from "discord-api-types/v9";
 import { RESTPatchAPIChannelMessageResult } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
-import {
-  InteractionOrRequestFinalStatus,
-  ExpectedPermissionFailure,
-  UnexpectedFailure,
-} from "../../errors";
 
 import { embedPink } from "../../constants";
+import { parseDiscordPermissionValuesToStringNames } from "../../consts";
+import {
+  ExpectedPermissionFailure,
+  InteractionOrRequestFinalStatus,
+  UnexpectedFailure,
+} from "../../errors";
 import limits from "../../limits";
+import { InternalPermissions } from "../permissions/consts";
 import { GuildSession } from "../session";
+import { checkDatabaseMessage } from "./checks";
 import { requiredPermissionsEdit } from "./consts";
 import {
   missingBotDiscordPermissionMessage,
   missingUserDiscordPermissionMessage,
 } from "./utils";
-import { checkDatabaseMessage } from "./checks";
-import { InternalPermissions } from "../permissions/consts";
-import { parseDiscordPermissionValuesToStringNames } from "../../consts";
 
 interface CheckEditPossibleOptions {
   channelId: Snowflake;

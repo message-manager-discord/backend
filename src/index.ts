@@ -1,22 +1,21 @@
-import fastify, { FastifyInstance } from "fastify";
-
-import envPlugin from "./plugins/envCheck";
-import versionOnePlugin from "./v1";
-import fastifyAuth from "fastify-auth";
-import authPlugin from "./plugins/authentication";
-import fastifyCors from "fastify-cors";
-import prismaPlugin from "./plugins/prisma";
-import discordRestPlugin from "./plugins/discord-rest";
-import redisRestPlugin from "./plugins/redis";
-import discordRedisCachePlugin from "./plugins/discordRedis";
-import metricsPlugin from "./plugins/metrics";
-import webhookAndLoggingPlugin from "./plugins/logging";
-import fastifyCookie, { FastifyCookieOptions } from "fastify-cookie";
-import interactionsPlugin from "./interactions/index";
-import sessionPlugin from "./plugins/session";
 import Sentry from "@sentry/node";
+import fastify, { FastifyInstance } from "fastify";
+import fastifyAuth from "fastify-auth";
+import fastifyCookie, { FastifyCookieOptions } from "fastify-cookie";
+import fastifyCors from "fastify-cors";
 
 import authRoutePlugin from "./authRoutes";
+import interactionsPlugin from "./interactions/index";
+import authPlugin from "./plugins/authentication";
+import discordRestPlugin from "./plugins/discord-rest";
+import discordRedisCachePlugin from "./plugins/discordRedis";
+import envPlugin from "./plugins/envCheck";
+import webhookAndLoggingPlugin from "./plugins/logging";
+import metricsPlugin from "./plugins/metrics";
+import prismaPlugin from "./plugins/prisma";
+import redisRestPlugin from "./plugins/redis";
+import sessionPlugin from "./plugins/session";
+import versionOnePlugin from "./v1";
 
 const instance: FastifyInstance = fastify({
   logger: {

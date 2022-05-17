@@ -10,16 +10,17 @@ import {
   MessageFlags,
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
+import Fuse from "fuse.js";
+
 import { embedPink, inviteUrl } from "../../../constants";
 import {
   ExpectedFailure,
   InteractionOrRequestFinalStatus,
 } from "../../../errors";
-import { InternalInteractionType } from "../../interaction";
-import Fuse from "fuse.js";
-import { InteractionReturnData } from "../../types";
-import { addTipToEmbed } from "../../../lib/tips";
 import { GuildSession, NonGuildSession } from "../../../lib/session";
+import { addTipToEmbed } from "../../../lib/tips";
+import { InternalInteractionType } from "../../interaction";
+import { InteractionReturnData } from "../../types";
 
 const createInfoEmbed = async (
   instance: FastifyInstance

@@ -1,7 +1,8 @@
 import { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
-import WebhookManager from "../lib/webhook/manager";
+
 import LoggingManager from "../lib/logging/manager";
+import WebhookManager from "../lib/webhook/manager";
 
 declare module "fastify" {
   interface FastifyInstance {

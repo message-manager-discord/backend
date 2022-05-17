@@ -1,3 +1,4 @@
+import { Snowflake } from "discord-api-types/globals";
 import {
   APIApplicationCommandInteractionDataChannelOption,
   APIApplicationCommandInteractionDataMentionableOption,
@@ -11,25 +12,22 @@ import {
   InteractionResponseType,
   MessageFlags,
 } from "discord-api-types/v9";
-import { Snowflake } from "discord-api-types/globals";
 import { FastifyInstance } from "fastify";
+
+import { embedPink } from "../../../constants";
 import {
   ExpectedFailure,
   ExpectedPermissionFailure,
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../../../errors";
-
-import { embedPink } from "../../../constants";
-
-import { InteractionReturnData } from "../../types";
-
+import { checkIfRoleIsBelowUsersHighestRole } from "../../../lib/permissions/checks";
+import { InternalPermissions } from "../../../lib/permissions/consts";
+import { GuildSession } from "../../../lib/session";
 import { addTipToEmbed } from "../../../lib/tips";
 import { InternalInteractionType } from "../../interaction";
-import { GuildSession } from "../../../lib/session";
-import { InternalPermissions } from "../../../lib/permissions/consts";
 import createPermissionsEmbed from "../../shared/permissions-config";
-import { checkIfRoleIsBelowUsersHighestRole } from "../../../lib/permissions/checks";
+import { InteractionReturnData } from "../../types";
 
 export default async function handleConfigCommand(
   internalInteraction: InternalInteractionType<APIChatInputApplicationCommandGuildInteraction>,

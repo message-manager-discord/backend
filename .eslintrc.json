@@ -1,7 +1,7 @@
 {
   "root": true,
   "parser": "@typescript-eslint/parser",
-  "plugins": ["@typescript-eslint"],
+  "plugins": ["@typescript-eslint", "simple-import-sort"],
   "parserOptions": {
     "tsconfigRootDir": ".",
     "project": ["./tsconfig.json"]
@@ -14,6 +14,8 @@
     "plugin:@typescript-eslint/recommended-requiring-type-checking"
   ],
   "rules": {
-    "@typescript-eslint/strict-boolean-expressions": "warn"
+    "@typescript-eslint/strict-boolean-expressions": "warn",
+    "simple-import-sort/imports": "warn",
+    "simple-import-sort/exports": "warn"
   }
 }

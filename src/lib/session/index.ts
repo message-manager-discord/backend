@@ -5,6 +5,7 @@ import {
   GuildNotFound,
   GuildUnavailable,
 } from "redis-discord-cache/dist/errors";
+
 import {
   ExpectedPermissionFailure,
   InteractionOrRequestFinalStatus,
@@ -14,7 +15,6 @@ import {
   checkBotDiscordPermission,
   checkUserDiscordPermission,
 } from "../permissions/discord";
-
 import PermissionManager from "../permissions/manager";
 import {
   BotPermissionResult,

@@ -1,7 +1,6 @@
-import { createRedisClient, GuildManager } from "redis-discord-cache";
-
 import { FastifyInstance, FastifyPluginOptions } from "fastify";
 import fp from "fastify-plugin";
+import { createRedisClient, GuildManager } from "redis-discord-cache";
 
 declare module "fastify" {
   interface FastifyInstance {

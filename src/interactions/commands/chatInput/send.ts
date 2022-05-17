@@ -5,6 +5,7 @@ import {
   ChannelType,
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
+
 import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
@@ -13,13 +14,13 @@ import {
   checkSendMessagePossible,
   ThreadOptionObject,
 } from "../../../lib/messages/send";
+import { GuildSession } from "../../../lib/session";
+import { InternalInteractionType } from "../../interaction";
 import {
   createModal,
   createTextInputWithRow,
 } from "../../modals/createStructures";
-import { InternalInteractionType } from "../../interaction";
 import { InteractionReturnData } from "../../types";
-import { GuildSession } from "../../../lib/session";
 
 export default async function handleSendCommand(
   internalInteraction: InternalInteractionType<APIChatInputApplicationCommandGuildInteraction>,

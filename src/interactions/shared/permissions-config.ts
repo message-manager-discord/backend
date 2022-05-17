@@ -1,21 +1,20 @@
+import { Snowflake } from "discord-api-types/globals";
 import {
+  APIActionRowComponent,
   APIEmbed,
+  APIMessageActionRowComponent,
   APISelectMenuOption,
   ButtonStyle,
   ComponentType,
-  APIMessageActionRowComponent,
-  APIActionRowComponent,
 } from "discord-api-types/v9";
-import { Snowflake } from "discord-api-types/globals";
 import { FastifyInstance } from "fastify";
 
 import { embedPink } from "../../constants";
-
-import { addTipToEmbed } from "../../lib/tips";
-import { GuildSession } from "../../lib/session";
-import { checkInternalPermissionValue } from "../../lib/permissions/utils";
 import { UsableInternalPermissions } from "../../lib/permissions/consts";
 import { PermissionAllowAndDenyData } from "../../lib/permissions/types";
+import { checkInternalPermissionValue } from "../../lib/permissions/utils";
+import { GuildSession } from "../../lib/session";
+import { addTipToEmbed } from "../../lib/tips";
 
 interface CreatePermissionsEmbedOptions {
   targetType: string;

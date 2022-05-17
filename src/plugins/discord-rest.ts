@@ -1,8 +1,7 @@
+import { Client } from "detritus-client-rest";
+import { FastifyInstance, FastifyPluginOptions } from "fastify";
 import fp from "fastify-plugin";
 
-import { FastifyInstance, FastifyPluginOptions } from "fastify";
-
-import { Client } from "detritus-client-rest";
 import DiscordOauthRequests from "../discordOauth";
 
 declare module "fastify" {

@@ -11,9 +11,9 @@ const inviteUrl =
 
 export {
   discordAPIBaseURL,
-  requiredScopes,
   embedPink,
-  successGreen,
   failureRed,
   inviteUrl,
+  requiredScopes,
+  successGreen,
 };

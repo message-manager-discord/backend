@@ -1,9 +1,6 @@
-import fp from "fastify-plugin";
-
-import { FastifyPluginAsync } from "fastify";
-
 import prismaClientImport from "@prisma/client";
-
+import { FastifyPluginAsync } from "fastify";
+import fp from "fastify-plugin";
 import { fieldEncryptionMiddleware } from "prisma-field-encryption";
 
 declare module "fastify" {

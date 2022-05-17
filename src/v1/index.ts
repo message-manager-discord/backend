@@ -1,5 +1,6 @@
 import { FastifyInstance } from "fastify";
 import fastifySwagger from "fastify-swagger";
+
 import rootPlugin from "./routes/rootTesting";
 import userPlugin from "./routes/user";
 

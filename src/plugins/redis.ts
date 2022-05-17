@@ -1,7 +1,8 @@
-import RedisClient, { Redis } from "ioredis";
+import { Snowflake } from "discord-api-types/v9";
 import { FastifyInstance, FastifyPluginOptions } from "fastify";
 import fp from "fastify-plugin";
-import { Snowflake } from "discord-api-types/v9";
+import RedisClient, { Redis } from "ioredis";
+
 import { StoredStateResponse } from "../authRoutes";
 
 type ArgType = Array<string | number>;

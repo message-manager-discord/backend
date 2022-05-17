@@ -5,6 +5,7 @@ import {
   GuildUnavailable,
 } from "redis-discord-cache/dist/errors";
 import { MinimalChannel } from "redis-discord-cache/dist/structures/types";
+
 import {
   ExpectedPermissionFailure,
   InteractionOrRequestFinalStatus,

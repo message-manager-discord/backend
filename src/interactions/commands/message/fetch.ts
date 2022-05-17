@@ -8,19 +8,17 @@ import {
   MessageFlags,
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
+import { FormDataEncoder } from "form-data-encoder";
+import { Blob, FormData } from "formdata-node";
+import { Readable } from "stream";
+
 import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../../../errors";
-
-import { Blob, FormData } from "formdata-node";
-import { Readable } from "stream";
-
-import { FormDataEncoder } from "form-data-encoder";
-
-import { InteractionReturnData } from "../../types";
-import { InternalInteractionType } from "../../interaction";
 import { GuildSession } from "../../../lib/session";
+import { InternalInteractionType } from "../../interaction";
+import { InteractionReturnData } from "../../types";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function handleFetchMessageCommand(

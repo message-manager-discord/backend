@@ -1,7 +1,7 @@
 import { Snowflake } from "discord-api-types/globals";
 import { Guild } from "redis-discord-cache";
-import { DiscordPermissionResult } from "./types";
 
+import { DiscordPermissionResult } from "./types";
 import { checkDiscordPermissionValue, tryAndHandleGuildErrors } from "./utils";
 
 const getUserDiscordPermission = ({
@@ -160,4 +160,4 @@ const checkBotDiscordPermission = ({
   });
 };
 
-export { checkUserDiscordPermission, checkBotDiscordPermission };
+export { checkBotDiscordPermission,checkUserDiscordPermission };

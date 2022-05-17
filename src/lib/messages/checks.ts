@@ -1,6 +1,7 @@
 import { Message } from "@prisma/client";
 import { APIMessage, Snowflake } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
+
 import { ExpectedFailure, InteractionOrRequestFinalStatus } from "../../errors";
 import { registerAddCommand } from "../applicationCommands/registerHelper";
 import { InternalPermissions } from "../permissions/consts";
@@ -140,7 +141,7 @@ async function getMessageActionsPossible({
   };
 }
 export {
-  getMessageActionsPossible,
-  checkIfMessageExistsAndHandleAdding,
   checkDatabaseMessage,
+  checkIfMessageExistsAndHandleAdding,
+  getMessageActionsPossible,
 };

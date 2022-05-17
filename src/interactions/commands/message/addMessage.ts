@@ -6,11 +6,12 @@ import {
   MessageType,
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
+
 import { embedPink } from "../../../constants";
 import {
+  ExpectedFailure,
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
-  ExpectedFailure,
 } from "../../../errors";
 import { checkSendMessagePossible } from "../../../lib/messages/send";
 import { GuildSession } from "../../../lib/session";

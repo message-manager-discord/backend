@@ -68,8 +68,8 @@ const parseDiscordPermissionValuesToStringNames = (
   return parsed.filter((permission) => permission !== undefined) as string[];
 };
 export {
+  DiscordPermissions,
   getDiscordPermissionByName,
   getDiscordPermissionByValue,
-  DiscordPermissions,
   parseDiscordPermissionValuesToStringNames,
 };
