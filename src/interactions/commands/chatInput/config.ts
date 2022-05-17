@@ -21,16 +21,15 @@ import {
 } from "../../../errors";
 
 import { embedPink } from "../../../constants";
-import { DiscordPermissions } from "../../../consts";
 
 import { InteractionReturnData } from "../../types";
 
 import { addTipToEmbed } from "../../../lib/tips";
 import { InternalInteractionType } from "../../interaction";
 import { GuildSession } from "../../../lib/session";
-import { checkDiscordPermissionValue } from "../../../lib/permissions/utils";
 import { InternalPermissions } from "../../../lib/permissions/consts";
 import createPermissionsEmbed from "../../shared/permissions-config";
+import { checkIfRoleIsBelowUsersHighestRole } from "../../../lib/permissions/checks";
 
 export default async function handleConfigCommand(
   internalInteraction: InternalInteractionType<APIChatInputApplicationCommandGuildInteraction>,
@@ -217,6 +216,7 @@ async function handlePermissionsManageSubcommand({
 
   const resolvedData = interaction.data.resolved;
   let targetType: "role" | "user";
+
   if (resolvedData?.roles && resolvedData.roles[targetId] !== undefined) {
     targetType = "role";
   } else if (
@@ -238,6 +238,33 @@ async function handlePermissionsManageSubcommand({
       InteractionOrRequestFinalStatus.APPLICATION_COMMAND_RESOLVED_MISSING_EXPECTED_VALUE,
       "Target not found in resolved data"
     );
+  }
+  // Permissions are checked here, just so that users cannot view a settings config that they cannot then change
+  if (
+    !(
+      await session.hasBotPermissions(
+        InternalPermissions.MANAGE_PERMISSIONS,
+        undefined
+      )
+    ).allPresent
+  ) {
+    throw new ExpectedPermissionFailure(
+      InteractionOrRequestFinalStatus.USER_MISSING_INTERNAL_BOT_PERMISSION,
+      "You need the MANAGE_PERMISSIONS permission to manage permissions"
+    );
+  }
+  if (targetType === "role") {
+    if (
+      !(await checkIfRoleIsBelowUsersHighestRole({
+        session,
+        roleId: targetId,
+      }))
+    ) {
+      throw new ExpectedPermissionFailure(
+        InteractionOrRequestFinalStatus.USER_ROLES_NOT_HIGH_ENOUGH,
+        "The role you are trying to manage permissions for is not below your highest role"
+      );
+    }
   }
 
   // Not deferred as no logic is 'heavy'
@@ -265,26 +292,7 @@ async function handleLoggingChannelSubcommandGroup(
   instance: FastifyInstance,
   session: GuildSession
 ): Promise<InteractionReturnData> {
-  const interaction = internalInteraction.interaction;
   const subcommand = subcommandGroup.options[0];
-
-  if (
-    !checkDiscordPermissionValue(
-      BigInt(interaction.member.permissions),
-      DiscordPermissions.ADMINISTRATOR
-    ) &&
-    !(
-      await session.hasBotPermissions(
-        InternalPermissions.MANAGE_CONFIG,
-        undefined
-      )
-    ).allPresent
-  ) {
-    throw new ExpectedPermissionFailure(
-      InteractionOrRequestFinalStatus.USER_MISSING_INTERNAL_BOT_PERMISSION,
-      "You are missing the `MANAGE_CONFIG` permission"
-    );
-  }
 
   switch (subcommand.name) {
     case "set":
@@ -346,10 +354,7 @@ async function handleLoggingChannelSetSubcommand({
   // This allows the logging channel to be set to a channel the bot has already created a webhook in, even if it does not currently have
   // the required permissions to create a webhook
   const previousChannelId =
-    await instance.loggingManager.setGuildLoggingChannel(
-      interaction.guild_id,
-      channelId
-    );
+    await instance.loggingManager.setGuildLoggingChannel(channelId, session);
 
   let description: string;
   let title: string;
@@ -412,9 +417,7 @@ async function handleLoggingChannelRemoveSubcommand({
   // This allows the logging channel to be set to a channel the bot has already created a webhook in, even if it does not currently have
   // the required permissions to create a webhook
   const previousChannelId =
-    await instance.loggingManager.removeGuildLoggingChannel(
-      interaction.guild_id
-    );
+    await instance.loggingManager.removeGuildLoggingChannel(session);
 
   let description: string;
   let title: string;

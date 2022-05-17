@@ -8,10 +8,6 @@ import {
 } from "discord-api-types/v9";
 import { Snowflake } from "discord-api-types/globals";
 import { FastifyInstance } from "fastify";
-import {
-  ExpectedPermissionFailure,
-  InteractionOrRequestFinalStatus,
-} from "../../errors";
 
 import { embedPink } from "../../constants";
 
@@ -20,7 +16,6 @@ import { GuildSession } from "../../lib/session";
 import { checkInternalPermissionValue } from "../../lib/permissions/utils";
 import { UsableInternalPermissions } from "../../lib/permissions/consts";
 import { PermissionAllowAndDenyData } from "../../lib/permissions/types";
-import { checkIfRoleIsBelowUsersHighestRole } from "../../lib/permissions/checks";
 
 interface CreatePermissionsEmbedOptions {
   targetType: string;
@@ -44,19 +39,8 @@ const createPermissionsEmbed = async ({
   instance,
   first,
 }: CreatePermissionsEmbedOptions): Promise<CreatePermissionsEmbedResult> => {
-  if (targetType === "role") {
-    if (
-      !(await checkIfRoleIsBelowUsersHighestRole({
-        session,
-        roleId: targetId,
-      }))
-    ) {
-      throw new ExpectedPermissionFailure(
-        InteractionOrRequestFinalStatus.USER_ROLES_NOT_HIGH_ENOUGH,
-        "The role you are trying to manage permissions for is not below your highest role"
-      );
-    }
-  }
+  // No permission checks are required here as they are either checked when the /config ... command is ran
+  // or when the permissions are updated
 
   if (targetType === "role" && channelId === null) {
     // Different behavior as does not have an explicit deny

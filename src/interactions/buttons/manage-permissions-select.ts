@@ -7,18 +7,11 @@ import {
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 import { Snowflake } from "discord-api-types/globals";
-import {
-  ExpectedPermissionFailure,
-  InteractionOrRequestFinalStatus,
-} from "../../errors";
+
 import { GuildSession } from "../../lib/session";
 import { InternalInteractionType } from "../interaction";
 import { InteractionReturnData } from "../types";
-import {
-  getInternalPermissionByName,
-  InternalPermissions,
-} from "../../lib/permissions/consts";
-import { checkIfRoleIsBelowUsersHighestRole } from "../../lib/permissions/checks";
+import { getInternalPermissionByName } from "../../lib/permissions/consts";
 import createPermissionsEmbed from "../shared/permissions-config";
 
 export default async function handleManagePermissionsSelect(
@@ -33,32 +26,9 @@ export default async function handleManagePermissionsSelect(
   const targetId = customIdData[3];
   const channelId = JSON.parse(customIdData[4]) as Snowflake | null;
 
-  if (
-    !(
-      await session.hasBotPermissions(
-        InternalPermissions.MANAGE_PERMISSIONS,
-        undefined
-      )
-    ).allPresent
-  ) {
-    throw new ExpectedPermissionFailure(
-      InteractionOrRequestFinalStatus.USER_MISSING_INTERNAL_BOT_PERMISSION,
-      "You need the MANAGE_PERMISSIONS permission to manage permissions"
-    );
-  }
-  if (targetType === "role") {
-    if (
-      !(await checkIfRoleIsBelowUsersHighestRole({
-        session,
-        roleId: targetId,
-      }))
-    ) {
-      throw new ExpectedPermissionFailure(
-        InteractionOrRequestFinalStatus.USER_ROLES_NOT_HIGH_ENOUGH,
-        "The role you are trying to manage permissions for is not below your highest role"
-      );
-    }
-  }
+  // No permission checks are required here as they are either checked when the /config ... command is ran
+  // or when the permissions are updated
+  // This interaction **will** cause permissions to be updated
 
   // Make the changes that were made just now
   const values = (interaction.data as APIMessageSelectMenuInteractionData)
@@ -90,11 +60,13 @@ export default async function handleManagePermissionsSelect(
       roleId: targetId,
       permissions: permissionsToAllow,
       guildId: session.guildId,
+      session,
     });
     await instance.permissionManager.denyRolePermissions({
       roleId: targetId,
       permissions: permissionsToDeny,
       guildId: session.guildId,
+      session,
     });
   }
 
@@ -128,12 +100,14 @@ export default async function handleManagePermissionsSelect(
         channelId,
         permissions: permissionsToDeny,
         guildId: session.guildId,
+        session,
       });
       await instance.permissionManager.resetChannelRolePermissions({
         roleId: targetId,
         channelId,
         permissions: permissionsToReset,
         guildId: session.guildId,
+        session,
       });
     } else if (targetType === "user" && channelId !== null) {
       await instance.permissionManager.denyChannelUserPermissions({
@@ -141,12 +115,14 @@ export default async function handleManagePermissionsSelect(
         permissions: permissionsToDeny,
         guildId: session.guildId,
         channelId,
+        session,
       });
       await instance.permissionManager.resetChannelUserPermissions({
         userId: targetId,
         permissions: permissionsToReset,
         guildId: session.guildId,
         channelId,
+        session,
       });
     } else {
       // User on a guild level
@@ -154,11 +130,13 @@ export default async function handleManagePermissionsSelect(
         userId: targetId,
         permissions: permissionsToDeny,
         guildId: session.guildId,
+        session,
       });
       await instance.permissionManager.resetUserPermissions({
         userId: targetId,
         permissions: permissionsToReset,
         guildId: session.guildId,
+        session,
       });
     }
     // TODO Allow
@@ -190,12 +168,14 @@ export default async function handleManagePermissionsSelect(
         channelId,
         permissions: permissionsToAllow,
         guildId: session.guildId,
+        session,
       });
       await instance.permissionManager.resetChannelRolePermissions({
         roleId: targetId,
         channelId,
         permissions: permissionsToReset,
         guildId: session.guildId,
+        session,
       });
     } else if (targetType === "user" && channelId !== null) {
       await instance.permissionManager.allowChannelUserPermissions({
@@ -203,12 +183,14 @@ export default async function handleManagePermissionsSelect(
         permissions: permissionsToAllow,
         guildId: session.guildId,
         channelId,
+        session,
       });
       await instance.permissionManager.resetChannelUserPermissions({
         userId: targetId,
         permissions: permissionsToReset,
         guildId: session.guildId,
         channelId,
+        session,
       });
     } else {
       // User on a guild level
@@ -216,11 +198,13 @@ export default async function handleManagePermissionsSelect(
         userId: targetId,
         permissions: permissionsToAllow,
         guildId: session.guildId,
+        session,
       });
       await instance.permissionManager.resetUserPermissions({
         userId: targetId,
         permissions: permissionsToReset,
         guildId: session.guildId,
+        session,
       });
     }
   }

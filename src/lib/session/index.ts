@@ -24,6 +24,7 @@ import {
 class GuildSession {
   userId: Snowflake;
   userRoles: Snowflake[];
+  userInteractionCalculatedChannelPermissions: bigint;
   guildId: Snowflake;
   private _cachedGuild: Guild | undefined;
   private _permissionsManager: PermissionManager;
@@ -32,18 +33,24 @@ class GuildSession {
     userId,
     userRoles,
     guildId,
+
+    userInteractionCalculatedChannelPermissions,
     permissionsManager,
     guildManager,
   }: {
     userId: Snowflake;
     userRoles: Snowflake[];
     guildId: Snowflake;
+    userInteractionCalculatedChannelPermissions: bigint;
     permissionsManager: PermissionManager;
     guildManager: GuildManager;
   }) {
     this.userId = userId;
     this.userRoles = userRoles;
     this.guildId = guildId;
+
+    this.userInteractionCalculatedChannelPermissions =
+      userInteractionCalculatedChannelPermissions;
     this._permissionsManager = permissionsManager;
     this._guildManager = guildManager;
   }
@@ -147,6 +154,9 @@ export default class SessionManager {
         userId: interaction.member.user.id,
         userRoles: interaction.member.roles,
         guildId: interaction.guild_id,
+        userInteractionCalculatedChannelPermissions: BigInt(
+          interaction.member.permissions
+        ),
         permissionsManager: this._permissionsManager,
         guildManager: this._guildManager,
       });

@@ -3,8 +3,18 @@ import { Snowflake } from "discord-api-types/globals";
 import { FastifyInstance } from "fastify";
 import { Guild } from "redis-discord-cache";
 import { DiscordPermissions } from "../../consts";
+import {
+  ExpectedPermissionFailure,
+  InteractionOrRequestFinalStatus,
+} from "../../errors";
+import { GuildSession } from "../session";
 import { getParentIdIfParentIdExists } from "./channel";
-import { AllInternalPermissions, InternalPermissions } from "./consts";
+import { checkIfRoleIsBelowUsersHighestRole } from "./checks";
+import {
+  AllInternalPermissions,
+  InternalPermissions,
+  parseInternalPermissionValuesToStringNames,
+} from "./consts";
 import {
   BotPermissionResult,
   ChannelPermissionData,
@@ -627,6 +637,45 @@ class PermissionManager {
     }
   }
 
+  private async checkPermissions({
+    channelId,
+    session,
+    roleId,
+  }: {
+    channelId?: Snowflake;
+    session: GuildSession;
+    roleId?: Snowflake;
+  }): Promise<true> {
+    // Check if user has a role higher than the role being managed
+    if (
+      roleId !== undefined &&
+      !(await checkIfRoleIsBelowUsersHighestRole({
+        session,
+        roleId,
+      }))
+    ) {
+      throw new ExpectedPermissionFailure(
+        InteractionOrRequestFinalStatus.USER_ROLES_NOT_HIGH_ENOUGH,
+        "The role you are trying to manage permissions for is not below your highest role"
+      );
+    }
+    const permissionResult = await session.hasBotPermissions(
+      InternalPermissions.MANAGE_PERMISSIONS,
+      channelId
+    );
+    if (!permissionResult.allPresent) {
+      const parsedMissingPermissions =
+        parseInternalPermissionValuesToStringNames(permissionResult.missing);
+      throw new ExpectedPermissionFailure(
+        InteractionOrRequestFinalStatus.USER_MISSING_INTERNAL_BOT_PERMISSION,
+        `You are missing the ${parsedMissingPermissions.join(", ")} permission${
+          parsedMissingPermissions.length > 1 ? "s" : ""
+        }${channelId !== undefined ? ` on the channel <#${channelId}>` : ""}`
+      );
+    }
+    return true;
+  }
+
   public async getRolePermissions({
     roleId,
     guildId,
@@ -646,11 +695,18 @@ class PermissionManager {
     roleId,
     permissions,
     guildId,
+    session,
   }: {
+    session: GuildSession;
     roleId: Snowflake;
     permissions: number[];
     guildId: Snowflake;
   }): Promise<number> {
+    // Check if the user has all permissions being managed
+    await this.checkPermissions({
+      roleId,
+      session,
+    });
     const guildPermissions = await this.getAllGuildPermissions(guildId);
     let existingPermission =
       this._getRolePermissionFromPotentiallyUndefinedData(
@@ -676,11 +732,18 @@ class PermissionManager {
     roleId,
     permissions,
     guildId,
+    session,
   }: {
+    session: GuildSession;
     roleId: Snowflake;
     permissions: number[];
     guildId: Snowflake;
   }): Promise<number> {
+    // Check if the user has all permissions being managed
+    await this.checkPermissions({
+      roleId,
+      session,
+    });
     const guildPermissions = await this.getAllGuildPermissions(guildId);
     let existingPermission =
       this._getRolePermissionFromPotentiallyUndefinedData(
@@ -746,11 +809,17 @@ class PermissionManager {
     userId,
     permissions,
     guildId,
+    session,
   }: {
+    session: GuildSession;
     userId: Snowflake;
     permissions: number[];
     guildId: Snowflake;
   }): Promise<PermissionAllowAndDenyData> {
+    // Check if the user has all permissions being managed
+    await this.checkPermissions({
+      session,
+    });
     const guildPermissions = await this.getAllGuildPermissions(guildId);
     // Get existing allow and deny for the user
     let { allow, deny } = this._getAllowAndDenyUserPermissions({
@@ -785,11 +854,18 @@ class PermissionManager {
     userId,
     permissions,
     guildId,
+    session,
   }: {
+    session: GuildSession;
     userId: Snowflake;
     permissions: number[];
     guildId: Snowflake;
   }): Promise<PermissionAllowAndDenyData> {
+    // Check if the user has all permissions being managed
+    await this.checkPermissions({
+      session,
+    });
+
     const guildPermissions = await this.getAllGuildPermissions(guildId);
     // Get existing allow and deny for the user
     let { allow, deny } = this._getAllowAndDenyUserPermissions({
@@ -825,11 +901,18 @@ class PermissionManager {
     userId,
     permissions,
     guildId,
+    session,
   }: {
+    session: GuildSession;
     userId: Snowflake;
     permissions: number[];
     guildId: Snowflake;
   }): Promise<PermissionAllowAndDenyData> {
+    // Check if the user has all permissions being managed
+    await this.checkPermissions({
+      session,
+    });
+
     const guildPermissions = await this.getAllGuildPermissions(guildId);
     // Get existing allow and deny for the user
     let { allow, deny } = this._getAllowAndDenyUserPermissions({
@@ -904,12 +987,20 @@ class PermissionManager {
     permissions,
     channelId,
     guildId,
+    session,
   }: {
+    session: GuildSession;
     roleId: Snowflake;
     permissions: number[];
     channelId: Snowflake;
     guildId: Snowflake;
   }): Promise<PermissionAllowAndDenyData> {
+    // Check if the user has all permissions being managed
+    await this.checkPermissions({
+      roleId,
+      session,
+      channelId,
+    });
     const channelPermissions = await this.getAllChannelPermissions(channelId);
     // Get existing allow and deny for the user
     let { allow, deny } = this._getAllowAndDenyRoleChannelPermissions({
@@ -947,12 +1038,21 @@ class PermissionManager {
     permissions,
     channelId,
     guildId,
+    session,
   }: {
+    session: GuildSession;
     roleId: Snowflake;
     permissions: number[];
     channelId: Snowflake;
     guildId: Snowflake;
   }): Promise<PermissionAllowAndDenyData> {
+    // Check if the user has all permissions being managed
+    await this.checkPermissions({
+      roleId,
+      session,
+      channelId,
+    });
+
     const channelPermissions = await this.getAllChannelPermissions(channelId);
     // Get existing allow and deny for the user
     let { allow, deny } = this._getAllowAndDenyRoleChannelPermissions({
@@ -990,12 +1090,20 @@ class PermissionManager {
     permissions,
     channelId,
     guildId,
+    session,
   }: {
+    session: GuildSession;
     roleId: Snowflake;
     permissions: number[];
     channelId: Snowflake;
     guildId: Snowflake;
   }): Promise<PermissionAllowAndDenyData> {
+    // Check if the user has all permissions being managed
+    await this.checkPermissions({
+      roleId,
+      session,
+      channelId,
+    });
     const channelPermissions = await this.getAllChannelPermissions(channelId);
     // Get existing allow and deny for the user
     let { allow, deny } = this._getAllowAndDenyRoleChannelPermissions({
@@ -1047,12 +1155,20 @@ class PermissionManager {
     permissions,
     channelId,
     guildId,
+    session,
   }: {
+    session: GuildSession;
     userId: Snowflake;
     permissions: number[];
     channelId: Snowflake;
     guildId: Snowflake;
   }): Promise<PermissionAllowAndDenyData> {
+    // Check if the user has all permissions being managed
+    await this.checkPermissions({
+      session,
+      channelId,
+    });
+
     const channelPermissions = await this.getAllChannelPermissions(channelId);
     // Get existing allow and deny for the user
     let { allow, deny } = this._getAllowAndDenyUserPermissions({
@@ -1090,12 +1206,19 @@ class PermissionManager {
     permissions,
     channelId,
     guildId,
+    session,
   }: {
+    session: GuildSession;
     userId: Snowflake;
     permissions: number[];
     channelId: Snowflake;
     guildId: Snowflake;
   }): Promise<PermissionAllowAndDenyData> {
+    // Check if the user has all permissions being managed
+    await this.checkPermissions({
+      session,
+      channelId,
+    });
     const channelPermissions = await this.getAllChannelPermissions(channelId);
     // Get existing allow and deny for the user
     let { allow, deny } = this._getAllowAndDenyUserPermissions({
@@ -1133,12 +1256,19 @@ class PermissionManager {
     permissions,
     channelId,
     guildId,
+    session,
   }: {
+    session: GuildSession;
     userId: Snowflake;
     permissions: number[];
     channelId: Snowflake;
     guildId: Snowflake;
   }): Promise<PermissionAllowAndDenyData> {
+    // Check if the user has all permissions being managed
+    await this.checkPermissions({
+      session,
+      channelId,
+    });
     const channelPermissions = await this.getAllChannelPermissions(channelId);
     // Get existing allow and deny for the user
     let { allow, deny } = this._getAllowAndDenyUserPermissions({
