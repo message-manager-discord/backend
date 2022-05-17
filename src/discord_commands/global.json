@@ -56,7 +56,8 @@
                 "type": 7,
                 "name": "channel",
                 "required": false,
-                "description": "The channel to manage / view permissions of the target on"
+                "description": "The channel to manage / view permissions of the target on",
+                "channel_types": [0, 5]
               }
             ]
           },
