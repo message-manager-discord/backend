@@ -62,6 +62,38 @@
             ]
           },
           {
+            "name": "quickstart",
+            "type": 1,
+            "description": "Get permissions setup with presets. Use the manage command to have finer control over permissions",
+            "options": [
+              {
+                "type": 9,
+                "name": "target",
+                "required": true,
+                "description": "The user or role to setup permissions for"
+              },
+              {
+                "type": 7,
+                "name": "channel",
+                "required": false,
+                "description": "The channel to setup permissions of the target on",
+                "channel_types": [0, 5]
+              },
+              {
+                "type": 5,
+                "name": "message-access",
+                "required": true,
+                "description": "Grants permissions required to manage messages. Note: setting this to false won't deny permissions"
+              },
+              {
+                "type": 5,
+                "name": "management-access",
+                "required": true,
+                "description": "Grants permissions required to manage bot setup. Note: setting this to false won't deny permissions"
+              }
+            ]
+          },
+          {
             "name": "list",
             "type": 1,
             "description": "List all users and roles with bot permissions",

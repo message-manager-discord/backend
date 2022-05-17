@@ -59,13 +59,11 @@ export default async function handleManagePermissionsSelect(
     await instance.permissionManager.allowRolePermissions({
       roleId: targetId,
       permissions: permissionsToAllow,
-      guildId: session.guildId,
       session,
     });
     await instance.permissionManager.denyRolePermissions({
       roleId: targetId,
       permissions: permissionsToDeny,
-      guildId: session.guildId,
       session,
     });
   }
@@ -99,28 +97,28 @@ export default async function handleManagePermissionsSelect(
         roleId: targetId,
         channelId,
         permissions: permissionsToDeny,
-        guildId: session.guildId,
+
         session,
       });
       await instance.permissionManager.resetChannelRolePermissions({
         roleId: targetId,
         channelId,
         permissions: permissionsToReset,
-        guildId: session.guildId,
+
         session,
       });
     } else if (targetType === "user" && channelId !== null) {
       await instance.permissionManager.denyChannelUserPermissions({
         userId: targetId,
         permissions: permissionsToDeny,
-        guildId: session.guildId,
+
         channelId,
         session,
       });
       await instance.permissionManager.resetChannelUserPermissions({
         userId: targetId,
         permissions: permissionsToReset,
-        guildId: session.guildId,
+
         channelId,
         session,
       });
@@ -129,13 +127,13 @@ export default async function handleManagePermissionsSelect(
       await instance.permissionManager.denyUserPermissions({
         userId: targetId,
         permissions: permissionsToDeny,
-        guildId: session.guildId,
+
         session,
       });
       await instance.permissionManager.resetUserPermissions({
         userId: targetId,
         permissions: permissionsToReset,
-        guildId: session.guildId,
+
         session,
       });
     }
@@ -167,28 +165,28 @@ export default async function handleManagePermissionsSelect(
         roleId: targetId,
         channelId,
         permissions: permissionsToAllow,
-        guildId: session.guildId,
+
         session,
       });
       await instance.permissionManager.resetChannelRolePermissions({
         roleId: targetId,
         channelId,
         permissions: permissionsToReset,
-        guildId: session.guildId,
+
         session,
       });
     } else if (targetType === "user" && channelId !== null) {
       await instance.permissionManager.allowChannelUserPermissions({
         userId: targetId,
         permissions: permissionsToAllow,
-        guildId: session.guildId,
+
         channelId,
         session,
       });
       await instance.permissionManager.resetChannelUserPermissions({
         userId: targetId,
         permissions: permissionsToReset,
-        guildId: session.guildId,
+
         channelId,
         session,
       });
@@ -197,13 +195,13 @@ export default async function handleManagePermissionsSelect(
       await instance.permissionManager.allowUserPermissions({
         userId: targetId,
         permissions: permissionsToAllow,
-        guildId: session.guildId,
+
         session,
       });
       await instance.permissionManager.resetUserPermissions({
         userId: targetId,
         permissions: permissionsToReset,
-        guildId: session.guildId,
+
         session,
       });
     }

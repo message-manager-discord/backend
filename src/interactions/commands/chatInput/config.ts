@@ -4,6 +4,7 @@ import {
   APIApplicationCommandInteractionDataMentionableOption,
   APIApplicationCommandInteractionDataSubcommandGroupOption,
   APIApplicationCommandInteractionDataSubcommandOption,
+  APIApplicationCommandInteractionDataBooleanOption,
   APIChatInputApplicationCommandGuildInteraction,
   APIEmbed,
   APIInteractionDataResolvedChannel,
@@ -98,6 +99,15 @@ async function handlePermissionsSubcommand(
 
     case "manage":
       return await handlePermissionsManageSubcommand({
+        internalInteraction,
+        instance,
+        channel,
+        subcommand,
+        session,
+      });
+
+    case "quickstart":
+      return await handlePermissionsQuickstartSubcommand({
         internalInteraction,
         instance,
         channel,
@@ -284,6 +294,160 @@ async function handlePermissionsManageSubcommand({
     },
   };
 }
+
+async function handlePermissionsQuickstartSubcommand({
+  internalInteraction,
+  instance,
+  channel,
+  subcommand,
+  session,
+}: {
+  internalInteraction: InternalInteractionType<APIChatInputApplicationCommandGuildInteraction>;
+  instance: FastifyInstance;
+  channel?: APIInteractionDataResolvedChannel;
+  subcommand: APIApplicationCommandInteractionDataSubcommandOption;
+  session: GuildSession;
+}): Promise<APIInteractionResponseChannelMessageWithSource> {
+  const interaction = internalInteraction.interaction;
+  const targetId: string | undefined = (
+    subcommand.options?.find(
+      (option) =>
+        option.name === "target" &&
+        option.type === ApplicationCommandOptionType.Mentionable
+    ) as APIApplicationCommandInteractionDataMentionableOption | undefined
+  )?.value;
+  if (targetId === undefined) {
+    throw new UnexpectedFailure(
+      InteractionOrRequestFinalStatus.APPLICATION_COMMAND_MISSING_EXPECTED_OPTION,
+      "Missing target option"
+    );
+  }
+  let targetType: "role" | "user";
+  const resolvedData = interaction.data.resolved;
+
+  if (resolvedData?.roles && resolvedData.roles[targetId] !== undefined) {
+    targetType = "role";
+  } else if (
+    resolvedData?.members &&
+    resolvedData.members[targetId] !== undefined &&
+    resolvedData.users &&
+    resolvedData.users[targetId] !== undefined
+  ) {
+    targetType = "user";
+    const targetUser = resolvedData.users[targetId];
+    if (targetUser.bot ?? false) {
+      throw new ExpectedFailure(
+        InteractionOrRequestFinalStatus.BOT_FOUND_WHEN_USER_EXPECTED,
+        "The target cannot be a bot"
+      );
+    }
+  } else {
+    throw new UnexpectedFailure(
+      InteractionOrRequestFinalStatus.APPLICATION_COMMAND_RESOLVED_MISSING_EXPECTED_VALUE,
+      "Target not found in resolved data"
+    );
+  }
+  const messagePreset =
+    (
+      subcommand.options?.find(
+        (option) =>
+          option.name === "message-access" &&
+          option.type === ApplicationCommandOptionType.Boolean
+      ) as APIApplicationCommandInteractionDataBooleanOption | undefined
+    )?.value ?? false;
+  const managementPreset =
+    (
+      subcommand.options?.find(
+        (option) =>
+          option.name === "management-access" &&
+          option.type === ApplicationCommandOptionType.Boolean
+      ) as APIApplicationCommandInteractionDataBooleanOption | undefined
+    )?.value ?? false;
+  if (!messagePreset && !managementPreset) {
+    throw new ExpectedFailure(
+      InteractionOrRequestFinalStatus.NO_PERMISSIONS_PRESET_SELECTED,
+      "You need to select at least one permission preset"
+    );
+  }
+
+  let permissions: number[] = [];
+  if (messagePreset) {
+    permissions = [
+      InternalPermissions.VIEW_MESSAGES,
+      InternalPermissions.EDIT_MESSAGES,
+      InternalPermissions.SEND_MESSAGES,
+      InternalPermissions.DELETE_MESSAGES,
+    ];
+  }
+  if (managementPreset) {
+    permissions = [
+      ...permissions,
+      InternalPermissions.MANAGE_PERMISSIONS,
+      InternalPermissions.MANAGE_CONFIG,
+    ];
+  }
+
+  if (targetType === "role" && channel === undefined) {
+    await instance.permissionManager.allowRolePermissions({
+      roleId: targetId,
+      permissions,
+      session,
+    });
+  } else if (targetType === "user" && channel !== undefined) {
+    // User channel
+    await instance.permissionManager.allowChannelUserPermissions({
+      userId: targetId,
+      permissions,
+      channelId: channel.id,
+      session,
+    });
+  } else if (targetType === "role" && channel !== undefined) {
+    await instance.permissionManager.allowChannelRolePermissions({
+      roleId: targetId,
+      permissions,
+      channelId: channel.id,
+      session,
+    });
+  } else {
+    // User channel
+    await instance.permissionManager.allowUserPermissions({
+      userId: targetId,
+      permissions,
+      session,
+    });
+  }
+  return {
+    type: InteractionResponseType.ChannelMessageWithSource,
+    data: {
+      embeds: [
+        addTipToEmbed({
+          title: "Permissions Quickstart",
+          description:
+            `The permissions preset ${
+              messagePreset
+                ? "message access with the permissions `VIEW_MESSAGES`, `EDIT_MESSAGES`, `SEND_MESSAGES`, `DELETE_MESSAGES` "
+                : ""
+            }` +
+            `${messagePreset && managementPreset ? "and " : ""}` +
+            `${
+              managementPreset
+                ? "the permissions preset management access with the permissions `MANAGE_PERMISSIONS`, `MANAGE_CONFIG` "
+                : ""
+            }` +
+            `have been allowed for ${
+              targetType === "user" ? `<@${targetId}>` : `<@&${targetId}>`
+            }${
+              channel !== undefined ? ` on the channel <#${channel.id}>` : ""
+            }.`,
+          color: embedPink,
+          timestamp: new Date().toISOString(),
+        }),
+      ],
+      flags: MessageFlags.Ephemeral,
+    },
+  };
+}
+
 async function handleLoggingChannelSubcommandGroup(
   internalInteraction: InternalInteractionType<APIChatInputApplicationCommandGuildInteraction>,
   subcommandGroup: APIApplicationCommandInteractionDataSubcommandGroupOption,
