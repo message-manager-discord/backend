@@ -39,7 +39,7 @@ import handleCancelDeleteButton from "./buttons/cancel-delete";
 import handleConfirmDeleteButton from "./buttons/confirm-delete";
 import handleDeleteButton from "./buttons/delete";
 import handleEditButton from "./buttons/edit";
-import handleManagePermissionsSelect from "./buttons/manage-permissions-select";
+import handleManagePermissionsSelect from "./selects/manage-permissions-select";
 import handleReportButton from "./buttons/report";
 import handleConfigCommand from "./commands/chatInput/config";
 import handleInfoCommand, {
