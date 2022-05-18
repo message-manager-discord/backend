@@ -1,10 +1,10 @@
 import { Snowflake } from "discord-api-types/globals";
 import {
+  APIApplicationCommandInteractionDataBooleanOption,
   APIApplicationCommandInteractionDataChannelOption,
   APIApplicationCommandInteractionDataMentionableOption,
   APIApplicationCommandInteractionDataSubcommandGroupOption,
   APIApplicationCommandInteractionDataSubcommandOption,
-  APIApplicationCommandInteractionDataBooleanOption,
   APIChatInputApplicationCommandGuildInteraction,
   APIEmbed,
   APIInteractionDataResolvedChannel,

@@ -160,4 +160,4 @@ const checkBotDiscordPermission = ({
   });
 };
 
-export { checkBotDiscordPermission,checkUserDiscordPermission };
+export { checkBotDiscordPermission, checkUserDiscordPermission };

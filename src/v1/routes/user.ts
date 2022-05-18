@@ -1,4 +1,4 @@
-import { Static,Type } from "@sinclair/typebox";
+import { Static, Type } from "@sinclair/typebox";
 import httpErrors from "http-errors";
 const { Forbidden, NotFound, BadRequest } = httpErrors;
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
