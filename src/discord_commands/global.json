@@ -72,13 +72,7 @@
                 "required": true,
                 "description": "The user or role to setup permissions for"
               },
-              {
-                "type": 7,
-                "name": "channel",
-                "required": false,
-                "description": "The channel to setup permissions of the target on",
-                "channel_types": [0, 5]
-              },
+
               {
                 "type": 5,
                 "name": "message-access",
@@ -90,6 +84,13 @@
                 "name": "management-access",
                 "required": true,
                 "description": "Grants permissions required to manage bot setup. Note: setting this to false won't deny permissions"
+              },
+              {
+                "type": 7,
+                "name": "channel",
+                "required": false,
+                "description": "The channel to setup permissions of the target on",
+                "channel_types": [0, 5]
               }
             ]
           },
