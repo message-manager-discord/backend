@@ -104,8 +104,27 @@ const parseInternalPermissionValuesToStringNames = (
   return parsed.filter((permission) => permission !== undefined) as string[];
 };
 
+const getAllPermissionsInValue = (permission: number): number[] => {
+  const permissions: number[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  for (const [key, value] of Object.entries(_permissionsByName)) {
+    if ((permission & value) === value) {
+      permissions.push(value);
+    }
+  }
+  return permissions;
+};
+
+const getAllPermissionsAsNameInValue = (permission: number): string[] => {
+  return parseInternalPermissionValuesToStringNames(
+    getAllPermissionsInValue(permission)
+  );
+};
+
 export {
   AllInternalPermissions,
+  getAllPermissionsAsNameInValue,
+  getAllPermissionsInValue,
   getInternalPermissionByName,
   getInternalPermissionByValue,
   InternalPermissions,

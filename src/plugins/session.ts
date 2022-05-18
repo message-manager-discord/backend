@@ -18,8 +18,7 @@ const sessionPlugin = fp(
     instance.decorate(
       "sessionManager",
       new SessionManager({
-        permissionsManager: instance.permissionManager,
-        guildManager: instance.redisGuildManager,
+        instance,
       })
     );
   }

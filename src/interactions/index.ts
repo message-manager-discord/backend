@@ -39,7 +39,6 @@ import handleCancelDeleteButton from "./buttons/cancel-delete";
 import handleConfirmDeleteButton from "./buttons/confirm-delete";
 import handleDeleteButton from "./buttons/delete";
 import handleEditButton from "./buttons/edit";
-import handleManagePermissionsSelect from "./selects/manage-permissions-select";
 import handleReportButton from "./buttons/report";
 import handleConfigCommand from "./commands/chatInput/config";
 import handleInfoCommand, {
@@ -56,6 +55,7 @@ import {
 import handleModalEdit from "./modals/edit";
 import handleModalReport from "./modals/report";
 import handleModalSend from "./modals/send";
+import handleManagePermissionsSelect from "./selects/manage-permissions-select";
 import {
   InteractionReturnData,
   isFormDataReturnData,

@@ -13,8 +13,11 @@ import { getParentIdIfParentIdExists } from "./channel";
 import { checkIfRoleIsBelowUsersHighestRole } from "./checks";
 import {
   AllInternalPermissions,
+  getAllPermissionsAsNameInValue,
+  getInternalPermissionByValue,
   InternalPermissions,
   parseInternalPermissionValuesToStringNames,
+  UsableInternalPermissionValues,
 } from "./consts";
 import {
   BotPermissionResult,
@@ -22,12 +25,154 @@ import {
   GuildPermissionData,
   PermissionAllowAndDenyData,
 } from "./types";
-import { checkDiscordPermissionValue } from "./utils";
+import {
+  checkDiscordPermissionValue,
+  checkInternalPermissionValue,
+} from "./utils";
 
+import { ActionType, createLoggingEmbed } from "../logging/embed";
 class PermissionManager {
   private _prisma: PrismaClient;
   constructor(instance: FastifyInstance) {
     this._prisma = instance.prisma;
+  }
+
+  private _getPermissionsDifference(
+    before: number,
+    after: number
+  ): { removed: number; added: number } {
+    // use bitfield flags to compare and show what has changed
+    const added = after & ~before;
+    const removed = before & ~after;
+    return { added, removed };
+  }
+
+  private async _sendRoleLogMessage({
+    newPermissions,
+    oldPermissions,
+    roleId,
+    session,
+  }: {
+    newPermissions: number;
+    oldPermissions: number;
+    roleId: Snowflake;
+    session: GuildSession;
+  }): Promise<void> {
+    // Handles both add and remove
+    const difference = this._getPermissionsDifference(
+      oldPermissions,
+      newPermissions
+    );
+    const added = getAllPermissionsAsNameInValue(difference.added);
+    const removed = getAllPermissionsAsNameInValue(difference.removed);
+
+    let description = `The permissions for role <@&${roleId}> have been updated`;
+    if (added.length > 0) {
+      description += `\nThe following permissions have been added: \`${added.join(
+        "`, `"
+      )}\``;
+    }
+    if (removed.length > 0) {
+      description += `\nThe following permissions have been removed: \`${removed.join(
+        "`, `"
+      )}\``;
+    }
+    if (added.length === 0 && removed.length === 0) {
+      description += "\nNo permissions have been changed";
+    }
+
+    const embed = createLoggingEmbed({
+      title: "Role Permissions Updated",
+      description,
+      fields: [],
+      actionBy: session.userId,
+      actionType: ActionType.GENERAL,
+    });
+    await session.sendLoggingMessage(embed);
+  }
+
+  private async _sendAllowDenyLogMessage({
+    allowBefore,
+    allowAfter,
+    denyBefore,
+    denyAfter,
+    targetId,
+    targetType,
+    session,
+    channelId,
+  }: {
+    allowBefore: number;
+    allowAfter: number;
+    denyBefore: number;
+    denyAfter: number;
+    targetId: Snowflake;
+    targetType: "role" | "user";
+    session: GuildSession;
+    channelId?: Snowflake;
+  }): Promise<void> {
+    // This differs from sendRoleLogMessage in that it also handles allow and deny permission changes
+    // Any permission that is added to allow, should be considered allowed
+    // Any permission added to deny, should be consider denied
+    // Any permission that was previously in allow or denied but now in neither is consider reset, and now will be inherited
+    const allowDifference = this._getPermissionsDifference(
+      allowBefore,
+      allowAfter
+    );
+    const denyDifference = this._getPermissionsDifference(
+      denyBefore,
+      denyAfter
+    );
+    // Use AllInternalPermissions to loop over all differences, and then sort them into respective arrays
+    const allowed: number[] = [];
+    const denied: number[] = [];
+    const reset: number[] = [];
+    for (const perm of UsableInternalPermissionValues) {
+      if (checkInternalPermissionValue(allowDifference.added, perm)) {
+        allowed.push(perm);
+      } else if (checkInternalPermissionValue(denyDifference.added, perm)) {
+        denied.push(perm);
+      } else if (
+        checkInternalPermissionValue(allowDifference.removed, perm) ||
+        checkInternalPermissionValue(denyDifference.removed, perm)
+      ) {
+        // Not added to either, but was removed
+        reset.push(perm);
+      }
+    }
+    let description = `The permissions for ${targetType} ${
+      targetType === "role" ? `<@&${targetId}>` : `<@${targetId}>`
+    } have been updated`;
+    if (channelId !== undefined) {
+      description += ` on the channel <#${channelId}>`;
+    }
+    if (allowed.length > 0) {
+      description += `\nThe following permissions have been allowed: \`${allowed
+        .map((value) => getInternalPermissionByValue(value))
+        .join("`, `")}\``;
+    }
+    if (reset.length > 0) {
+      description += `\nThe following permissions have been reset: \`${reset
+        .map((value) => getInternalPermissionByValue(value))
+        .join("`, `")}\``;
+    }
+    if (denied.length > 0) {
+      description += `\nThe following permissions have been denied: \`${denied
+        .map((value) => getInternalPermissionByValue(value))
+        .join("`, `")}\``;
+    }
+    if (allowed.length === 0 && denied.length === 0 && reset.length === 0) {
+      description += "\nNo permissions have been changed";
+    }
+    const embed = createLoggingEmbed({
+      title: `${
+        targetType[0].toUpperCase() + targetType.slice(1)
+      } Permissions Updated`,
+      description,
+      fields: [],
+      actionBy: session.userId,
+      actionType: ActionType.GENERAL,
+    });
+    await session.sendLoggingMessage(embed);
   }
 
   async getAllGuildPermissions(
@@ -707,23 +852,30 @@ class PermissionManager {
       session,
     });
     const guildPermissions = await this.getAllGuildPermissions(session.guildId);
-    let existingPermission =
+    const existingPermission =
       this._getRolePermissionFromPotentiallyUndefinedData(
         guildPermissions,
         roleId
       );
+    let newPermission = existingPermission;
     for (const perm of permissions) {
-      existingPermission |= perm;
+      newPermission |= perm;
     }
     if (permissions.length > 0) {
       // No point making a database call if nothing has changed
       await this._setRolePermission({
         roleId,
         guildId: session.guildId,
-        permission: existingPermission,
+        permission: newPermission,
       });
     }
-    return existingPermission;
+    await this._sendRoleLogMessage({
+      newPermissions: newPermission,
+      oldPermissions: existingPermission,
+      roleId,
+      session,
+    });
+    return newPermission;
   }
 
   // This function will remove a permission for a role. It returns the resulting permission
@@ -742,23 +894,30 @@ class PermissionManager {
       session,
     });
     const guildPermissions = await this.getAllGuildPermissions(session.guildId);
-    let existingPermission =
+    const existingPermission =
       this._getRolePermissionFromPotentiallyUndefinedData(
         guildPermissions,
         roleId
       );
+    let newPermission = existingPermission;
     for (const perm of permissions) {
-      existingPermission &= ~perm;
+      newPermission &= ~perm;
     }
     if (permissions.length > 0) {
       // No point making a database call if nothing has changed
       await this._setRolePermission({
         roleId,
         guildId: session.guildId,
-        permission: existingPermission,
+        permission: newPermission,
       });
     }
-    return existingPermission;
+    await this._sendRoleLogMessage({
+      newPermissions: newPermission,
+      oldPermissions: existingPermission,
+      roleId,
+      session,
+    });
+    return newPermission;
   }
 
   private _getAllowAndDenyUserPermissions({
@@ -817,15 +976,17 @@ class PermissionManager {
     });
     const guildPermissions = await this.getAllGuildPermissions(session.guildId);
     // Get existing allow and deny for the user
-    let { allow, deny } = this._getAllowAndDenyUserPermissions({
+    const { allow, deny } = this._getAllowAndDenyUserPermissions({
       permissions: guildPermissions,
       userId,
     });
+    let newAllow = allow;
+    let newDeny = deny;
     for (const perm of permissions) {
       // Add the permission to the allow bitfield
-      allow |= perm;
+      newAllow |= perm;
       // Remove the permission from the deny bitfield
-      deny &= ~perm;
+      newDeny &= ~perm;
     }
     if (permissions.length > 0) {
       // No point making a database call if nothing has changed
@@ -833,13 +994,22 @@ class PermissionManager {
       await this._setUserPermission({
         userId,
         guildId: session.guildId,
-        allow,
-        deny,
+        allow: newAllow,
+        deny: newDeny,
       });
     }
+    await this._sendAllowDenyLogMessage({
+      allowBefore: allow,
+      allowAfter: newAllow,
+      denyBefore: deny,
+      denyAfter: newDeny,
+      targetId: userId,
+      session,
+      targetType: "user",
+    });
     return {
-      allow,
-      deny,
+      allow: newAllow,
+      deny: newDeny,
     };
   }
 
@@ -861,15 +1031,18 @@ class PermissionManager {
 
     const guildPermissions = await this.getAllGuildPermissions(session.guildId);
     // Get existing allow and deny for the user
-    let { allow, deny } = this._getAllowAndDenyUserPermissions({
+    const { allow, deny } = this._getAllowAndDenyUserPermissions({
       permissions: guildPermissions,
       userId,
     });
+    let newAllow = allow;
+    let newDeny = deny;
+
     for (const perm of permissions) {
       // Remove the permission from the allow bitfield
-      allow &= ~perm;
+      newAllow &= ~perm;
       // Remove the permission from the deny bitfield
-      deny &= ~perm;
+      newDeny &= ~perm;
     }
     if (permissions.length > 0) {
       // No point making a database call if nothing has changed
@@ -877,13 +1050,22 @@ class PermissionManager {
       await this._setUserPermission({
         userId,
         guildId: session.guildId,
-        allow: allow,
-        deny: deny,
+        allow: newAllow,
+        deny: newDeny,
       });
     }
+    await this._sendAllowDenyLogMessage({
+      allowBefore: allow,
+      allowAfter: newAllow,
+      denyBefore: deny,
+      denyAfter: newDeny,
+      targetId: userId,
+      session,
+      targetType: "user",
+    });
     return {
-      allow: allow,
-      deny: deny,
+      allow: newAllow,
+      deny: newDeny,
     };
   }
 
@@ -906,15 +1088,18 @@ class PermissionManager {
 
     const guildPermissions = await this.getAllGuildPermissions(session.guildId);
     // Get existing allow and deny for the user
-    let { allow, deny } = this._getAllowAndDenyUserPermissions({
+    const { allow, deny } = this._getAllowAndDenyUserPermissions({
       permissions: guildPermissions,
       userId,
     });
+    let newAllow = allow;
+    let newDeny = deny;
+
     for (const perm of permissions) {
       // Remove the permission from the allow bitfield
-      allow &= ~perm;
+      newAllow &= ~perm;
       // Add the permission to the deny bitfield
-      deny |= perm;
+      newDeny |= perm;
     }
     if (permissions.length > 0) {
       // No point making a database call if nothing has changed
@@ -922,13 +1107,22 @@ class PermissionManager {
       await this._setUserPermission({
         userId,
         guildId: session.guildId,
-        allow,
-        deny,
+        allow: newAllow,
+        deny: newDeny,
       });
     }
+    await this._sendAllowDenyLogMessage({
+      allowBefore: allow,
+      allowAfter: newAllow,
+      denyBefore: deny,
+      denyAfter: newDeny,
+      targetId: userId,
+      session,
+      targetType: "user",
+    });
     return {
-      allow: allow,
-      deny: deny,
+      allow: newAllow,
+      deny: newDeny,
     };
   }
 
@@ -992,15 +1186,17 @@ class PermissionManager {
     });
     const channelPermissions = await this.getAllChannelPermissions(channelId);
     // Get existing allow and deny for the user
-    let { allow, deny } = this._getAllowAndDenyRoleChannelPermissions({
+    const { allow, deny } = this._getAllowAndDenyRoleChannelPermissions({
       permissions: channelPermissions,
       roleId,
     });
+    let newAllow = allow;
+    let newDeny = deny;
     for (const perm of permissions) {
       // Add the permission to the allow bitfield
-      allow |= perm;
+      newAllow |= perm;
       // Remove the permission from the deny bitfield
-      deny &= ~perm;
+      newDeny &= ~perm;
     }
     if (permissions.length > 0) {
       // No point making a database call if nothing has changed
@@ -1009,13 +1205,23 @@ class PermissionManager {
         roleId,
         channelId,
         guildId: session.guildId,
-        allow,
-        deny,
+        allow: newAllow,
+        deny: newDeny,
       });
     }
+    await this._sendAllowDenyLogMessage({
+      allowBefore: allow,
+      allowAfter: newAllow,
+      denyBefore: deny,
+      denyAfter: newDeny,
+      targetId: roleId,
+      session,
+      targetType: "role",
+      channelId: channelId,
+    });
     return {
-      allow: allow,
-      deny: deny,
+      allow: newAllow,
+      deny: newDeny,
     };
   }
 
@@ -1042,15 +1248,18 @@ class PermissionManager {
 
     const channelPermissions = await this.getAllChannelPermissions(channelId);
     // Get existing allow and deny for the user
-    let { allow, deny } = this._getAllowAndDenyRoleChannelPermissions({
+    const { allow, deny } = this._getAllowAndDenyRoleChannelPermissions({
       permissions: channelPermissions,
       roleId,
     });
+    let newAllow = allow;
+    let newDeny = deny;
+
     for (const perm of permissions) {
       // Remove the permission from the allow bitfield
-      allow &= ~perm;
+      newAllow &= ~perm;
       // Remove the permission from the deny bitfield
-      deny &= ~perm;
+      newDeny &= ~perm;
     }
     if (permissions.length > 0) {
       // No point making a database call if nothing has changed
@@ -1059,13 +1268,23 @@ class PermissionManager {
         roleId,
         channelId,
         guildId: session.guildId,
-        allow,
-        deny,
+        allow: newAllow,
+        deny: newDeny,
       });
     }
+    await this._sendAllowDenyLogMessage({
+      allowBefore: allow,
+      allowAfter: newAllow,
+      denyBefore: deny,
+      denyAfter: newDeny,
+      targetId: roleId,
+      session,
+      targetType: "role",
+      channelId: channelId,
+    });
     return {
-      allow: allow,
-      deny: deny,
+      allow: newAllow,
+      deny: newDeny,
     };
   }
 
@@ -1091,15 +1310,18 @@ class PermissionManager {
     });
     const channelPermissions = await this.getAllChannelPermissions(channelId);
     // Get existing allow and deny for the user
-    let { allow, deny } = this._getAllowAndDenyRoleChannelPermissions({
+    const { allow, deny } = this._getAllowAndDenyRoleChannelPermissions({
       permissions: channelPermissions,
       roleId,
     });
+    let newAllow = allow;
+    let newDeny = deny;
+
     for (const perm of permissions) {
       // Remove the permission from the allow bitfield
-      allow &= ~perm;
+      newAllow &= ~perm;
       // Add the permission to the deny bitfield
-      deny |= perm;
+      newDeny |= perm;
     }
     if (permissions.length > 0) {
       // No point making a database call if nothing has changed
@@ -1108,13 +1330,23 @@ class PermissionManager {
         roleId,
         channelId,
         guildId: session.guildId,
-        allow,
-        deny,
+        allow: newAllow,
+        deny: newDeny,
       });
     }
+    await this._sendAllowDenyLogMessage({
+      allowBefore: allow,
+      allowAfter: newAllow,
+      denyBefore: deny,
+      denyAfter: newDeny,
+      targetId: roleId,
+      session,
+      targetType: "role",
+      channelId: channelId,
+    });
     return {
-      allow: allow,
-      deny: deny,
+      allow: newAllow,
+      deny: newDeny,
     };
   }
 
@@ -1154,15 +1386,17 @@ class PermissionManager {
 
     const channelPermissions = await this.getAllChannelPermissions(channelId);
     // Get existing allow and deny for the user
-    let { allow, deny } = this._getAllowAndDenyUserPermissions({
+    const { allow, deny } = this._getAllowAndDenyUserPermissions({
       permissions: channelPermissions,
       userId,
     });
+    let newAllow = allow;
+    let newDeny = deny;
     for (const perm of permissions) {
       // Add the permission to the allow bitfield
-      allow |= perm;
+      newAllow |= perm;
       // Remove the permission from the deny bitfield
-      deny &= ~perm;
+      newDeny &= ~perm;
     }
     if (permissions.length > 0) {
       // No point making a database call if nothing has changed
@@ -1171,13 +1405,23 @@ class PermissionManager {
         userId,
         channelId,
         guildId: session.guildId,
-        allow,
-        deny,
+        allow: newAllow,
+        deny: newDeny,
       });
     }
+    await this._sendAllowDenyLogMessage({
+      allowBefore: allow,
+      allowAfter: newAllow,
+      denyBefore: deny,
+      denyAfter: newDeny,
+      targetId: userId,
+      session,
+      targetType: "user",
+      channelId: channelId,
+    });
     return {
-      allow: allow,
-      deny: deny,
+      allow: newAllow,
+      deny: newDeny,
     };
   }
 
@@ -1202,15 +1446,17 @@ class PermissionManager {
     });
     const channelPermissions = await this.getAllChannelPermissions(channelId);
     // Get existing allow and deny for the user
-    let { allow, deny } = this._getAllowAndDenyUserPermissions({
+    const { allow, deny } = this._getAllowAndDenyUserPermissions({
       permissions: channelPermissions,
       userId,
     });
+    let newAllow = allow;
+    let newDeny = deny;
     for (const perm of permissions) {
       // Remove the permission from the allow bitfield
-      allow &= ~perm;
+      newAllow &= ~perm;
       // Remove the permission from the deny bitfield
-      deny &= ~perm;
+      newDeny &= ~perm;
     }
     if (permissions.length > 0) {
       // No point making a database call if nothing has changed
@@ -1219,13 +1465,23 @@ class PermissionManager {
         userId,
         channelId,
         guildId: session.guildId,
-        allow,
-        deny,
+        allow: newAllow,
+        deny: newDeny,
       });
     }
+    await this._sendAllowDenyLogMessage({
+      allowBefore: allow,
+      allowAfter: newAllow,
+      denyBefore: deny,
+      denyAfter: newDeny,
+      targetId: userId,
+      session,
+      targetType: "user",
+      channelId: channelId,
+    });
     return {
-      allow: allow,
-      deny: deny,
+      allow: newAllow,
+      deny: newDeny,
     };
   }
 
@@ -1250,15 +1506,17 @@ class PermissionManager {
     });
     const channelPermissions = await this.getAllChannelPermissions(channelId);
     // Get existing allow and deny for the user
-    let { allow, deny } = this._getAllowAndDenyUserPermissions({
+    const { allow, deny } = this._getAllowAndDenyUserPermissions({
       permissions: channelPermissions,
       userId,
     });
+    let newAllow = allow;
+    let newDeny = deny;
     for (const perm of permissions) {
       // Remove the permission from the allow bitfield
-      allow &= ~perm;
+      newAllow &= ~perm;
       // Add the permission to the deny bitfield
-      deny |= perm;
+      newDeny |= perm;
     }
     if (permissions.length > 0) {
       // No point making a database call if nothing has changed
@@ -1267,13 +1525,23 @@ class PermissionManager {
         userId,
         channelId,
         guildId: session.guildId,
-        allow,
-        deny,
+        allow: newAllow,
+        deny: newDeny,
       });
     }
+    await this._sendAllowDenyLogMessage({
+      allowBefore: allow,
+      allowAfter: newAllow,
+      denyBefore: deny,
+      denyAfter: newDeny,
+      targetId: userId,
+      session,
+      targetType: "user",
+      channelId: channelId,
+    });
     return {
-      allow: allow,
-      deny: deny,
+      allow: newAllow,
+      deny: newDeny,
     };
   }
 }

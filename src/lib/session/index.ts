@@ -1,5 +1,10 @@
 import { Snowflake } from "discord-api-types/globals";
-import { APIDMInteraction, APIGuildInteraction } from "discord-api-types/v9";
+import {
+  APIDMInteraction,
+  APIEmbed,
+  APIGuildInteraction,
+} from "discord-api-types/v9";
+import { FastifyInstance } from "fastify";
 import { Guild, GuildManager } from "redis-discord-cache";
 import {
   GuildNotFound,
@@ -28,6 +33,7 @@ class GuildSession {
   guildId: Snowflake;
   private _cachedGuild: Guild | undefined;
   private _permissionsManager: PermissionManager;
+  private _instance: FastifyInstance;
   private _guildManager: GuildManager;
   constructor({
     userId,
@@ -35,15 +41,13 @@ class GuildSession {
     guildId,
 
     userInteractionCalculatedChannelPermissions,
-    permissionsManager,
-    guildManager,
+    instance,
   }: {
     userId: Snowflake;
     userRoles: Snowflake[];
     guildId: Snowflake;
     userInteractionCalculatedChannelPermissions: bigint;
-    permissionsManager: PermissionManager;
-    guildManager: GuildManager;
+    instance: FastifyInstance;
   }) {
     this.userId = userId;
     this.userRoles = userRoles;
@@ -51,8 +55,9 @@ class GuildSession {
 
     this.userInteractionCalculatedChannelPermissions =
       userInteractionCalculatedChannelPermissions;
-    this._permissionsManager = permissionsManager;
-    this._guildManager = guildManager;
+    this._permissionsManager = instance.permissionManager;
+    this._guildManager = instance.redisGuildManager;
+    this._instance = instance;
   }
 
   private async _getCachedGuild(): Promise<Guild> {
@@ -120,6 +125,14 @@ class GuildSession {
       requiredPermissions: permissions,
     });
   }
+
+  async sendLoggingMessage(logEmbed: APIEmbed): Promise<void> {
+    await this._instance.loggingManager.sendLogMessage({
+      embeds: [logEmbed],
+      guildId: this.guildId,
+      ignoreErrors: true,
+    });
+  }
 }
 
 class NonGuildSession {}
@@ -131,17 +144,9 @@ const interactionIsFromGuild = (
 };
 
 export default class SessionManager {
-  private _permissionsManager: PermissionManager;
-  private _guildManager: GuildManager;
-  constructor({
-    permissionsManager,
-    guildManager,
-  }: {
-    permissionsManager: PermissionManager;
-    guildManager: GuildManager;
-  }) {
-    this._permissionsManager = permissionsManager;
-    this._guildManager = guildManager;
+  private _instance: FastifyInstance;
+  constructor({ instance }: { instance: FastifyInstance }) {
+    this._instance = instance;
   }
 
   createSessionFromInteraction(interaction: APIGuildInteraction): GuildSession;
@@ -157,8 +162,7 @@ export default class SessionManager {
         userInteractionCalculatedChannelPermissions: BigInt(
           interaction.member.permissions
         ),
-        permissionsManager: this._permissionsManager,
-        guildManager: this._guildManager,
+        instance: this._instance,
       });
     } else {
       return new NonGuildSession();
