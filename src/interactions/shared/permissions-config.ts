@@ -174,7 +174,7 @@ const createPermissionsEmbed = async ({
       `\n\n**✅ Allowed:** ${
         allowedPermissions.length > 0 ? allowedPermissions.join(", ") : "None"
       }\n` +
-      `**⚠️ Inherited:** ${
+      `**➡️ Inherited:** ${
         inheritedPermissions.length > 0
           ? inheritedPermissions.join(", ")
           : "None"

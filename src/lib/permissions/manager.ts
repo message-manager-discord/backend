@@ -68,12 +68,12 @@ class PermissionManager {
 
     let description = `The permissions for role <@&${roleId}> have been updated`;
     if (added.length > 0) {
-      description += `\nThe following permissions have been added: \`${added.join(
+      description += `\n✅ The following permissions have been allowed: \`${added.join(
         "`, `"
       )}\``;
     }
     if (removed.length > 0) {
-      description += `\nThe following permissions have been removed: \`${removed.join(
+      description += `\n❌ The following permissions have been removed: \`${removed.join(
         "`, `"
       )}\``;
     }
@@ -146,17 +146,17 @@ class PermissionManager {
       description += ` on the channel <#${channelId}>`;
     }
     if (allowed.length > 0) {
-      description += `\nThe following permissions have been allowed: \`${allowed
+      description += `\n✅ The following permissions have been allowed: \`${allowed
         .map((value) => getInternalPermissionByValue(value))
         .join("`, `")}\``;
     }
     if (reset.length > 0) {
-      description += `\nThe following permissions have been reset: \`${reset
+      description += `\n➡️ The following permissions have been reset: \`${reset
         .map((value) => getInternalPermissionByValue(value))
         .join("`, `")}\``;
     }
     if (denied.length > 0) {
-      description += `\nThe following permissions have been denied: \`${denied
+      description += `\n❌ The following permissions have been denied: \`${denied
         .map((value) => getInternalPermissionByValue(value))
         .join("`, `")}\``;
     }
