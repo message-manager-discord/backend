@@ -393,27 +393,23 @@ async function handlePermissionsQuickstartSubcommand({
       permissions,
       session,
     });
-  } else if (targetType === "user" && channel !== undefined) {
-    // User channel
-    await instance.permissionManager.allowChannelUserPermissions({
-      userId: targetId,
-      permissions,
-      channelId: channel.id,
-      session,
-    });
   } else if (targetType === "role" && channel !== undefined) {
-    await instance.permissionManager.allowChannelRolePermissions({
-      roleId: targetId,
-      permissions,
+    await instance.permissionManager.setChannelRolePermissions({
       channelId: channel.id,
+      roleId: targetId,
+      permissionsToAllow: permissions,
+      permissionsToDeny: [],
+      permissionsToReset: [],
       session,
     });
   } else {
-    // User channel
-    await instance.permissionManager.allowUserPermissions({
+    await instance.permissionManager.setUserPermissions({
       userId: targetId,
-      permissions,
+      permissionsToAllow: permissions,
+      permissionsToDeny: [],
+      permissionsToReset: [],
       session,
+      channelId: channel?.id,
     });
   }
   return {

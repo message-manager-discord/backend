@@ -61,6 +61,7 @@ enum InteractionOrRequestFinalStatus {
   OAUTH_REQUEST_FAILED,
   CREATE_WEBHOOK_RESULT_MISSING_TOKEN,
   ROLE_NOT_IN_CACHE,
+  PERMISSIONS_CANNOT_CROSSOVER_WHEN_UPDATING,
 }
 
 class CustomError extends Error {

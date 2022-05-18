@@ -7,7 +7,9 @@ import { DiscordPermissions } from "../../consts";
 import {
   ExpectedPermissionFailure,
   InteractionOrRequestFinalStatus,
+  UnexpectedFailure,
 } from "../../errors";
+import { ActionType, createLoggingEmbed } from "../logging/embed";
 import { GuildSession } from "../session";
 import { getParentIdIfParentIdExists } from "./channel";
 import { checkIfRoleIsBelowUsersHighestRole } from "./checks";
@@ -29,8 +31,6 @@ import {
   checkDiscordPermissionValue,
   checkInternalPermissionValue,
 } from "./utils";
-
-import { ActionType, createLoggingEmbed } from "../logging/embed";
 class PermissionManager {
   private _prisma: PrismaClient;
   constructor(instance: FastifyInstance) {
@@ -846,7 +846,6 @@ class PermissionManager {
     roleId: Snowflake;
     permissions: number[];
   }): Promise<number> {
-    // Check if the user has all permissions being managed
     await this.checkPermissions({
       roleId,
       session,
@@ -888,7 +887,6 @@ class PermissionManager {
     roleId: Snowflake;
     permissions: number[];
   }): Promise<number> {
-    // Check if the user has all permissions being managed
     await this.checkPermissions({
       roleId,
       session,
@@ -958,95 +956,92 @@ class PermissionManager {
     });
   }
 
-  // This function will allow a permission for a user.
-  // It will also remove said permission from the user deny bitfield, if it is in the deny bitfield
-  // As that would then have no effect
-  public async allowUserPermissions({
-    userId,
-    permissions,
-    session,
+  private _computePermissionsFromUpdate({
+    oldPermissions,
+    permissionsToAllow,
+    permissionsToReset,
+    permissionsToDeny,
   }: {
-    session: GuildSession;
-    userId: Snowflake;
-    permissions: number[];
-  }): Promise<PermissionAllowAndDenyData> {
-    // Check if the user has all permissions being managed
-    await this.checkPermissions({
-      session,
-    });
-    const guildPermissions = await this.getAllGuildPermissions(session.guildId);
-    // Get existing allow and deny for the user
-    const { allow, deny } = this._getAllowAndDenyUserPermissions({
-      permissions: guildPermissions,
-      userId,
-    });
-    let newAllow = allow;
-    let newDeny = deny;
-    for (const perm of permissions) {
-      // Add the permission to the allow bitfield
-      newAllow |= perm;
-      // Remove the permission from the deny bitfield
-      newDeny &= ~perm;
+    oldPermissions: PermissionAllowAndDenyData;
+    permissionsToAllow: number[];
+    permissionsToReset: number[];
+    permissionsToDeny: number[];
+  }): PermissionAllowAndDenyData {
+    const toAllow = permissionsToAllow.reduce((acc, perm) => acc | perm, 0);
+    const toReset = permissionsToReset.reduce((acc, perm) => acc | perm, 0);
+    const toDeny = permissionsToDeny.reduce((acc, perm) => acc | perm, 0);
+    // Check if there is any overlap
+    if (
+      (toAllow & toDeny) !== InternalPermissions.NONE ||
+      (toReset & toDeny) !== InternalPermissions.NONE ||
+      (toReset & toAllow) !== InternalPermissions.NONE
+    ) {
+      throw new UnexpectedFailure(
+        InteractionOrRequestFinalStatus.PERMISSIONS_CANNOT_CROSSOVER_WHEN_UPDATING,
+        "Cannot have crossover permissions on allow, deny, or reset (inherit)"
+      );
     }
-    if (permissions.length > 0) {
-      // No point making a database call if nothing has changed
-      // Set the new permissions
-      await this._setUserPermission({
-        userId,
-        guildId: session.guildId,
-        allow: newAllow,
-        deny: newDeny,
-      });
-    }
-    await this._sendAllowDenyLogMessage({
-      allowBefore: allow,
-      allowAfter: newAllow,
-      denyBefore: deny,
-      denyAfter: newDeny,
-      targetId: userId,
-      session,
-      targetType: "user",
-    });
+
+    let { allow, deny } = oldPermissions;
+    allow |= toAllow;
+    deny &= ~toAllow;
+    allow &= ~toReset;
+    deny &= ~toReset;
+    allow &= ~toDeny;
+    deny |= toDeny;
     return {
-      allow: newAllow,
-      deny: newDeny,
+      allow,
+      deny,
     };
   }
 
-  // This function will "reset" a permission for a user. That means it is not present in either the user's allow or deny bitfields
-  // It will then return the resulting permissions
-  public async resetUserPermissions({
+  // This function updates allow, reset and deny for a user
+  // There cannot be any crossover
+  public async setUserPermissions({
     userId,
-    permissions,
+    permissionsToAllow,
+    permissionsToReset,
+    permissionsToDeny,
     session,
+    channelId,
   }: {
-    session: GuildSession;
     userId: Snowflake;
-    permissions: number[];
+    permissionsToAllow: number[];
+    permissionsToReset: number[];
+    permissionsToDeny: number[];
+    session: GuildSession;
+    channelId?: Snowflake;
   }): Promise<PermissionAllowAndDenyData> {
-    // Check if the user has all permissions being managed
     await this.checkPermissions({
       session,
     });
 
-    const guildPermissions = await this.getAllGuildPermissions(session.guildId);
-    // Get existing allow and deny for the user
+    let permissions: ChannelPermissionData | GuildPermissionData | null;
+    if (channelId !== undefined) {
+      permissions = await this.getAllChannelPermissions(channelId);
+    } else {
+      permissions = await this.getAllGuildPermissions(session.guildId);
+    }
     const { allow, deny } = this._getAllowAndDenyUserPermissions({
-      permissions: guildPermissions,
+      permissions,
       userId,
     });
-    let newAllow = allow;
-    let newDeny = deny;
-
-    for (const perm of permissions) {
-      // Remove the permission from the allow bitfield
-      newAllow &= ~perm;
-      // Remove the permission from the deny bitfield
-      newDeny &= ~perm;
-    }
-    if (permissions.length > 0) {
-      // No point making a database call if nothing has changed
-      // Set the new permissions
+    const { allow: newAllow, deny: newDeny } =
+      this._computePermissionsFromUpdate({
+        oldPermissions: { allow, deny },
+        permissionsToAllow,
+        permissionsToReset,
+        permissionsToDeny,
+      });
+    if (channelId !== undefined) {
+      await this._setChannelUserPermission({
+        userId,
+        channelId,
+        guildId: session.guildId,
+        allow: newAllow,
+        deny: newDeny,
+      });
+    } else {
       await this._setUserPermission({
         userId,
         guildId: session.guildId,
@@ -1062,63 +1057,7 @@ class PermissionManager {
       targetId: userId,
       session,
       targetType: "user",
-    });
-    return {
-      allow: newAllow,
-      deny: newDeny,
-    };
-  }
-
-  // This function will deny a permission for a user.
-  // It will also remove said permission from the user allow bitfield, if it is in the allow bitfield
-  // It returns the resulting permission
-  public async denyUserPermissions({
-    userId,
-    permissions,
-    session,
-  }: {
-    session: GuildSession;
-    userId: Snowflake;
-    permissions: number[];
-  }): Promise<PermissionAllowAndDenyData> {
-    // Check if the user has all permissions being managed
-    await this.checkPermissions({
-      session,
-    });
-
-    const guildPermissions = await this.getAllGuildPermissions(session.guildId);
-    // Get existing allow and deny for the user
-    const { allow, deny } = this._getAllowAndDenyUserPermissions({
-      permissions: guildPermissions,
-      userId,
-    });
-    let newAllow = allow;
-    let newDeny = deny;
-
-    for (const perm of permissions) {
-      // Remove the permission from the allow bitfield
-      newAllow &= ~perm;
-      // Add the permission to the deny bitfield
-      newDeny |= perm;
-    }
-    if (permissions.length > 0) {
-      // No point making a database call if nothing has changed
-      // Set the new permissions
-      await this._setUserPermission({
-        userId,
-        guildId: session.guildId,
-        allow: newAllow,
-        deny: newDeny,
-      });
-    }
-    await this._sendAllowDenyLogMessage({
-      allowBefore: allow,
-      allowAfter: newAllow,
-      denyBefore: deny,
-      denyAfter: newDeny,
-      targetId: userId,
-      session,
-      targetType: "user",
+      channelId,
     });
     return {
       allow: newAllow,
@@ -1164,114 +1103,45 @@ class PermissionManager {
     });
   }
 
-  // This function will allow a permission for a role on a channel overwrite level.
-  // It will also remove said permission from the role channel deny bitfield, if it is in the deny bitfield
-  // It returns the resulting permission
-  public async allowChannelRolePermissions({
+  public async setChannelRolePermissions({
     roleId,
-    permissions,
-    channelId,
+    permissionsToAllow,
+    permissionsToReset,
+    permissionsToDeny,
     session,
+    channelId,
   }: {
-    session: GuildSession;
     roleId: Snowflake;
-    permissions: number[];
+    permissionsToAllow: number[];
+    permissionsToReset: number[];
+    permissionsToDeny: number[];
+    session: GuildSession;
     channelId: Snowflake;
   }): Promise<PermissionAllowAndDenyData> {
-    // Check if the user has all permissions being managed
     await this.checkPermissions({
-      roleId,
       session,
-      channelId,
     });
     const channelPermissions = await this.getAllChannelPermissions(channelId);
-    // Get existing allow and deny for the user
     const { allow, deny } = this._getAllowAndDenyRoleChannelPermissions({
       permissions: channelPermissions,
       roleId,
     });
-    let newAllow = allow;
-    let newDeny = deny;
-    for (const perm of permissions) {
-      // Add the permission to the allow bitfield
-      newAllow |= perm;
-      // Remove the permission from the deny bitfield
-      newDeny &= ~perm;
-    }
-    if (permissions.length > 0) {
-      // No point making a database call if nothing has changed
-      // Set the new permissions
-      await this._setChannelRolePermission({
-        roleId,
-        channelId,
-        guildId: session.guildId,
-        allow: newAllow,
-        deny: newDeny,
+
+    const { allow: newAllow, deny: newDeny } =
+      this._computePermissionsFromUpdate({
+        oldPermissions: { allow, deny },
+        permissionsToAllow,
+        permissionsToReset,
+        permissionsToDeny,
       });
-    }
-    await this._sendAllowDenyLogMessage({
-      allowBefore: allow,
-      allowAfter: newAllow,
-      denyBefore: deny,
-      denyAfter: newDeny,
-      targetId: roleId,
-      session,
-      targetType: "role",
-      channelId: channelId,
-    });
-    return {
+
+    await this._setChannelRolePermission({
+      roleId,
+      guildId: session.guildId,
+      channelId,
       allow: newAllow,
       deny: newDeny,
-    };
-  }
-
-  // This function will "reset" a permission for a role on a channel overwrite level
-  // That means it is not present in either the role's allow or deny bitfields
-  // It will then return the resulting permissions
-  public async resetChannelRolePermissions({
-    roleId,
-    permissions,
-    channelId,
-    session,
-  }: {
-    session: GuildSession;
-    roleId: Snowflake;
-    permissions: number[];
-    channelId: Snowflake;
-  }): Promise<PermissionAllowAndDenyData> {
-    // Check if the user has all permissions being managed
-    await this.checkPermissions({
-      roleId,
-      session,
-      channelId,
     });
-
-    const channelPermissions = await this.getAllChannelPermissions(channelId);
-    // Get existing allow and deny for the user
-    const { allow, deny } = this._getAllowAndDenyRoleChannelPermissions({
-      permissions: channelPermissions,
-      roleId,
-    });
-    let newAllow = allow;
-    let newDeny = deny;
-
-    for (const perm of permissions) {
-      // Remove the permission from the allow bitfield
-      newAllow &= ~perm;
-      // Remove the permission from the deny bitfield
-      newDeny &= ~perm;
-    }
-    if (permissions.length > 0) {
-      // No point making a database call if nothing has changed
-      // Set the new permissions
-      await this._setChannelRolePermission({
-        roleId,
-        channelId,
-        guildId: session.guildId,
-        allow: newAllow,
-        deny: newDeny,
-      });
-    }
     await this._sendAllowDenyLogMessage({
       allowBefore: allow,
       allowAfter: newAllow,
@@ -1280,69 +1150,6 @@ class PermissionManager {
       targetId: roleId,
       session,
       targetType: "role",
-      channelId: channelId,
-    });
-    return {
-      allow: newAllow,
-      deny: newDeny,
-    };
-  }
-
-  // This function will deny a permission for a role on a channel overwrite level.
-  // It will also remove said permission from the role channel allow bitfield, if it is in the allow bitfield
-  // It returns the resulting permission
-  public async denyChannelRolePermissions({
-    roleId,
-    permissions,
-    channelId,
-    session,
-  }: {
-    session: GuildSession;
-    roleId: Snowflake;
-    permissions: number[];
-    channelId: Snowflake;
-  }): Promise<PermissionAllowAndDenyData> {
-    // Check if the user has all permissions being managed
-    await this.checkPermissions({
-      roleId,
-      session,
-      channelId,
-    });
-    const channelPermissions = await this.getAllChannelPermissions(channelId);
-    // Get existing allow and deny for the user
-    const { allow, deny } = this._getAllowAndDenyRoleChannelPermissions({
-      permissions: channelPermissions,
-      roleId,
-    });
-    let newAllow = allow;
-    let newDeny = deny;
-
-    for (const perm of permissions) {
-      // Remove the permission from the allow bitfield
-      newAllow &= ~perm;
-      // Add the permission to the deny bitfield
-      newDeny |= perm;
-    }
-    if (permissions.length > 0) {
-      // No point making a database call if nothing has changed
-      // Set the new permissions
-      await this._setChannelRolePermission({
-        roleId,
-        channelId,
-        guildId: session.guildId,
-        allow: newAllow,
-        deny: newDeny,
-      });
-    }
-    await this._sendAllowDenyLogMessage({
-      allowBefore: allow,
-      allowAfter: newAllow,
-      denyBefore: deny,
-      denyAfter: newDeny,
-      targetId: roleId,
-      session,
-      targetType: "role",
-      channelId: channelId,
     });
     return {
       allow: newAllow,
@@ -1362,187 +1169,6 @@ class PermissionManager {
       permissions,
       userId,
     });
-  }
-
-  // This function will allow a permission for a user on a channel overwrite level.
-  // It will also remove said permission from the user channel deny bitfield, if it is in the deny bitfield
-  // It returns the resulting permission
-  public async allowChannelUserPermissions({
-    userId,
-    permissions,
-    channelId,
-    session,
-  }: {
-    session: GuildSession;
-    userId: Snowflake;
-    permissions: number[];
-    channelId: Snowflake;
-  }): Promise<PermissionAllowAndDenyData> {
-    // Check if the user has all permissions being managed
-    await this.checkPermissions({
-      session,
-      channelId,
-    });
-
-    const channelPermissions = await this.getAllChannelPermissions(channelId);
-    // Get existing allow and deny for the user
-    const { allow, deny } = this._getAllowAndDenyUserPermissions({
-      permissions: channelPermissions,
-      userId,
-    });
-    let newAllow = allow;
-    let newDeny = deny;
-    for (const perm of permissions) {
-      // Add the permission to the allow bitfield
-      newAllow |= perm;
-      // Remove the permission from the deny bitfield
-      newDeny &= ~perm;
-    }
-    if (permissions.length > 0) {
-      // No point making a database call if nothing has changed
-      // Set the new permissions
-      await this._setChannelUserPermission({
-        userId,
-        channelId,
-        guildId: session.guildId,
-        allow: newAllow,
-        deny: newDeny,
-      });
-    }
-    await this._sendAllowDenyLogMessage({
-      allowBefore: allow,
-      allowAfter: newAllow,
-      denyBefore: deny,
-      denyAfter: newDeny,
-      targetId: userId,
-      session,
-      targetType: "user",
-      channelId: channelId,
-    });
-    return {
-      allow: newAllow,
-      deny: newDeny,
-    };
-  }
-
-  // This function will "reset" a permission for a user on a channel overwrite level
-  // That means it is not present in either the user's allow or deny bitfields
-  // It will then return the resulting permissions
-  public async resetChannelUserPermissions({
-    userId,
-    permissions,
-    channelId,
-    session,
-  }: {
-    session: GuildSession;
-    userId: Snowflake;
-    permissions: number[];
-    channelId: Snowflake;
-  }): Promise<PermissionAllowAndDenyData> {
-    // Check if the user has all permissions being managed
-    await this.checkPermissions({
-      session,
-      channelId,
-    });
-    const channelPermissions = await this.getAllChannelPermissions(channelId);
-    // Get existing allow and deny for the user
-    const { allow, deny } = this._getAllowAndDenyUserPermissions({
-      permissions: channelPermissions,
-      userId,
-    });
-    let newAllow = allow;
-    let newDeny = deny;
-    for (const perm of permissions) {
-      // Remove the permission from the allow bitfield
-      newAllow &= ~perm;
-      // Remove the permission from the deny bitfield
-      newDeny &= ~perm;
-    }
-    if (permissions.length > 0) {
-      // No point making a database call if nothing has changed
-      // Set the new permissions
-      await this._setChannelUserPermission({
-        userId,
-        channelId,
-        guildId: session.guildId,
-        allow: newAllow,
-        deny: newDeny,
-      });
-    }
-    await this._sendAllowDenyLogMessage({
-      allowBefore: allow,
-      allowAfter: newAllow,
-      denyBefore: deny,
-      denyAfter: newDeny,
-      targetId: userId,
-      session,
-      targetType: "user",
-      channelId: channelId,
-    });
-    return {
-      allow: newAllow,
-      deny: newDeny,
-    };
-  }
-
-  // This function will deny a permission for a user on a channel overwrite level.
-  // It will also remove said permission from the user channel allow bitfield, if it is in the allow bitfield
-  // It returns the resulting permission
-  public async denyChannelUserPermissions({
-    userId,
-    permissions,
-    channelId,
-    session,
-  }: {
-    session: GuildSession;
-    userId: Snowflake;
-    permissions: number[];
-    channelId: Snowflake;
-  }): Promise<PermissionAllowAndDenyData> {
-    // Check if the user has all permissions being managed
-    await this.checkPermissions({
-      session,
-      channelId,
-    });
-    const channelPermissions = await this.getAllChannelPermissions(channelId);
-    // Get existing allow and deny for the user
-    const { allow, deny } = this._getAllowAndDenyUserPermissions({
-      permissions: channelPermissions,
-      userId,
-    });
-    let newAllow = allow;
-    let newDeny = deny;
-    for (const perm of permissions) {
-      // Remove the permission from the allow bitfield
-      newAllow &= ~perm;
-      // Add the permission to the deny bitfield
-      newDeny |= perm;
-    }
-    if (permissions.length > 0) {
-      // No point making a database call if nothing has changed
-      // Set the new permissions
-      await this._setChannelUserPermission({
-        userId,
-        channelId,
-        guildId: session.guildId,
-        allow: newAllow,
-        deny: newDeny,
-      });
-    }
-    await this._sendAllowDenyLogMessage({
-      allowBefore: allow,
-      allowAfter: newAllow,
-      denyBefore: deny,
-      denyAfter: newDeny,
-      targetId: userId,
-      session,
-      targetType: "user",
-      channelId: channelId,
-    });
-    return {
-      allow: newAllow,
-      deny: newDeny,
-    };
   }
 }
 
