@@ -561,7 +561,9 @@ const interactionsPlugin = async (instance: FastifyInstance) => {
     },
 
     async (request, reply) => {
-      const internalInteraction = createInternalInteraction(request.body);
+      const internalInteraction = createInternalInteraction<APIInteraction>(
+        request.body
+      );
 
       try {
         const returnData = await handler.handleInteraction(internalInteraction);
@@ -644,6 +646,33 @@ const interactionsPlugin = async (instance: FastifyInstance) => {
             "\n*PS: This shouldn't happen, and if it does, congratulations you've managed to find something unexpected*";
         }
         if (!internalInteraction.deferred) {
+          if (internalInteraction.interaction.message !== undefined) {
+            const message = internalInteraction.interaction.message;
+            // Update message components with the original components
+            // This is to prevent the changing of default values in selects when an error occurs
+            void (async () => {
+              // wait 1/4 of a second so that the interaction has been "responded" to before the follow up is sent
+              await new Promise((resolve) => setTimeout(resolve, 250));
+              await axios.request({
+                method: "POST",
+                url: `${discordAPIBaseURL}/webhooks/${instance.envVars.DISCORD_CLIENT_ID}/${internalInteraction.interaction.token}`,
+                data: {
+                  content: errorMessage,
+                  components,
+                  flags: MessageFlags.Ephemeral,
+                },
+              });
+            })();
+
+            return {
+              type: InteractionResponseType.UpdateMessage,
+              data: {
+                content: message.content,
+                embeds: message.embeds,
+                components: message.components,
+              },
+            };
+          }
           return {
             type: InteractionResponseType.ChannelMessageWithSource,
             data: {
