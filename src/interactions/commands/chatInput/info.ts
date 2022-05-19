@@ -144,6 +144,16 @@ const infoTags: Record<string, Tag> = {
 
     extraTags: ["new", "missing"],
   },
+  permissions: {
+    title: "The permissions system",
+    description:
+      "Permissions allow server managers to have fine tuned control over what actions user's can take via the bot on that server." +
+      "\nThey work on an override basis, with base guild role permissions and then user, channel role, and channel user overrides." +
+      "\nFor simple use-cases there are useful defaults, use `/config permissions quickstart` to assign these defaults." +
+      "\nFor more information, see the [permissions docs page](https://message.anothercat.me/docs/permissions).",
+    extraTags: ["access", "restrict", "management", "role"],
+    url: "https://message.anothercat.me/docs/permissions",
+  },
 };
 
 interface NonTextTag {
