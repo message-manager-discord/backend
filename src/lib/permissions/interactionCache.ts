@@ -116,7 +116,7 @@ class PermissionInteractionCache {
         messageId,
         guildId,
       });
-    }, 60 * 1000);
+    }, 10 * 60 * 1000);
     this._interactionCache[messageCacheId] = {
       interactionId,
       interactionToken,
