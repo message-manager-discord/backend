@@ -164,12 +164,12 @@ class PermissionInteractionCache {
         first: false,
       });
       for (const messageCacheId of messageCacheIds.messageIds) {
+        const interactionCache = this._interactionCache[messageCacheId];
         if (
           triggerMessageId !== null &&
-          messageCacheId !== this._makeMessageId(triggerMessageId, guildId)
+          messageCacheId !== this._makeMessageId(triggerMessageId, guildId) &&
+          interactionCache !== undefined
         ) {
-          const interactionCache = this._interactionCache[messageCacheId];
-
           await axios.request({
             method: "PATCH",
             url: `${discordAPIBaseURL}/webhooks/${this._instance.envVars.DISCORD_CLIENT_ID}/${interactionCache.interactionToken}/messages/@original`,
