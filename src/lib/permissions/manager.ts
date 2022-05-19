@@ -868,7 +868,7 @@ class PermissionManager {
         permission: newPermission,
       });
     }
-    await this._sendRoleLogMessage({
+    void this._sendRoleLogMessage({
       newPermissions: newPermission,
       oldPermissions: existingPermission,
       roleId,
@@ -909,7 +909,7 @@ class PermissionManager {
         permission: newPermission,
       });
     }
-    await this._sendRoleLogMessage({
+    void this._sendRoleLogMessage({
       newPermissions: newPermission,
       oldPermissions: existingPermission,
       roleId,
@@ -1049,7 +1049,7 @@ class PermissionManager {
         deny: newDeny,
       });
     }
-    await this._sendAllowDenyLogMessage({
+    void this._sendAllowDenyLogMessage({
       allowBefore: allow,
       allowAfter: newAllow,
       denyBefore: deny,
@@ -1142,7 +1142,7 @@ class PermissionManager {
       allow: newAllow,
       deny: newDeny,
     });
-    await this._sendAllowDenyLogMessage({
+    void this._sendAllowDenyLogMessage({
       allowBefore: allow,
       allowAfter: newAllow,
       denyBefore: deny,
