@@ -13,14 +13,13 @@ import { embedPink } from "../../constants";
 import { UsableInternalPermissions } from "../../lib/permissions/consts";
 import { PermissionAllowAndDenyData } from "../../lib/permissions/types";
 import { checkInternalPermissionValue } from "../../lib/permissions/utils";
-import { GuildSession } from "../../lib/session";
 import { addTipToEmbed } from "../../lib/tips";
 
 interface CreatePermissionsEmbedOptions {
   targetType: string;
   targetId: Snowflake;
   channelId: Snowflake | null;
-  session: GuildSession;
+  guildId: Snowflake;
   instance: FastifyInstance;
   first: boolean;
 }
@@ -34,7 +33,7 @@ const createPermissionsEmbed = async ({
   targetType,
   targetId,
   channelId,
-  session,
+  guildId,
   instance,
   first,
 }: CreatePermissionsEmbedOptions): Promise<CreatePermissionsEmbedResult> => {
@@ -48,7 +47,7 @@ const createPermissionsEmbed = async ({
     const currentPermissions =
       await instance.permissionManager.getRolePermissions({
         roleId: targetId,
-        guildId: session.guildId,
+        guildId: guildId,
       });
     for (const internalPermission of UsableInternalPermissions) {
       options.push({
@@ -120,7 +119,7 @@ const createPermissionsEmbed = async ({
       description = `Current permissions for user <@${targetId}>`;
       currentPermissions = await instance.permissionManager.getUserPermissions({
         userId: targetId,
-        guildId: session.guildId,
+        guildId: guildId,
       });
     }
     if (!first) {

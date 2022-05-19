@@ -1,3 +1,4 @@
+import axios from "axios";
 import { Snowflake } from "discord-api-types/globals";
 import {
   APIApplicationCommandInteractionDataBooleanOption,
@@ -12,10 +13,11 @@ import {
   ApplicationCommandOptionType,
   InteractionResponseType,
   MessageFlags,
+  RESTGetAPIInteractionOriginalResponseResult,
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 
-import { embedPink } from "../../../constants";
+import { discordAPIBaseURL, embedPink } from "../../../constants";
 import {
   ExpectedFailure,
   ExpectedPermissionFailure,
@@ -281,10 +283,33 @@ async function handlePermissionsManageSubcommand({
     targetType,
     targetId,
     channelId: channel?.id ?? null,
-    session,
+    guildId: session.guildId,
     instance,
     first: true,
   });
+
+  // Void function that waits a bit then fetches the original interaction message
+  // To get it's id
+  void (async () => {
+    // Ensure the interaction was responded to (it's a bit overkill but it doesn't really matter too much)
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    instance.permissionManager.interactionCacheManager.registerInteraction({
+      targetId: targetId,
+      targetType: targetType,
+      channelId: channel?.id ?? null,
+      guildId: session.guildId,
+      interactionId: interaction.id,
+      interactionToken: interaction.token,
+      messageId: (
+        (
+          await axios.request({
+            method: "GET",
+            url: `${discordAPIBaseURL}/webhooks/${instance.envVars.DISCORD_CLIENT_ID}/${internalInteraction.interaction.token}/messages/@original`,
+          })
+        ).data as RESTGetAPIInteractionOriginalResponseResult
+      ).id,
+    });
+  })();
   return {
     type: InteractionResponseType.ChannelMessageWithSource,
     data: {

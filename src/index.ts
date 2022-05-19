@@ -12,6 +12,7 @@ import discordRedisCachePlugin from "./plugins/discordRedis";
 import envPlugin from "./plugins/envCheck";
 import webhookAndLoggingPlugin from "./plugins/logging";
 import metricsPlugin from "./plugins/metrics";
+import permissionPlugin from "./plugins/permissions";
 import prismaPlugin from "./plugins/prisma";
 import redisRestPlugin from "./plugins/redis";
 import sessionPlugin from "./plugins/session";
@@ -84,6 +85,8 @@ await instance.register(metricsPlugin);
 await instance.register(webhookAndLoggingPlugin);
 
 await instance.register(sessionPlugin);
+
+await instance.register(permissionPlugin);
 
 await instance.register(interactionsPlugin);
 

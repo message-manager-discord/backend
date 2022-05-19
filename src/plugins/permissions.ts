@@ -1,24 +1,19 @@
 import { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
 
-import SessionManager from "../lib/session";
+import PermissionManager from "../lib/permissions/manager";
 
 declare module "fastify" {
   interface FastifyInstance {
-    sessionManager: SessionManager;
+    permissionManager: PermissionManager;
   }
 }
 
-const sessionPlugin = fp(
+const permissionPlugin = fp(
   // eslint-disable-next-line @typescript-eslint/require-await
   async (instance: FastifyInstance) => {
-    instance.decorate(
-      "sessionManager",
-      new SessionManager({
-        instance,
-      })
-    );
+    instance.decorate("permissionManager", new PermissionManager(instance));
   }
 );
 
-export default sessionPlugin;
+export default permissionPlugin;

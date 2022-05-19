@@ -60,11 +60,14 @@ export default async function handleManagePermissionsSelect(
       roleId: targetId,
       permissions: permissionsToAllow,
       session,
+      messageId: interaction.message.id,
     });
     await instance.permissionManager.denyRolePermissions({
       roleId: targetId,
       permissions: permissionsToDeny,
       session,
+
+      messageId: interaction.message.id,
     });
   }
 
@@ -100,6 +103,8 @@ export default async function handleManagePermissionsSelect(
         permissionsToDeny,
         permissionsToReset,
         session,
+
+        messageId: interaction.message.id,
       });
     } else if (targetType === "user") {
       await instance.permissionManager.setUserPermissions({
@@ -109,6 +114,8 @@ export default async function handleManagePermissionsSelect(
         permissionsToDeny,
         session,
         channelId: channelId !== null ? channelId : undefined,
+
+        messageId: interaction.message.id,
       });
     }
     // TODO Allow
@@ -142,6 +149,8 @@ export default async function handleManagePermissionsSelect(
         permissionsToReset,
         permissionsToAllow,
         session,
+
+        messageId: interaction.message.id,
       });
     } else if (targetType === "user") {
       await instance.permissionManager.setUserPermissions({
@@ -151,6 +160,8 @@ export default async function handleManagePermissionsSelect(
         permissionsToDeny: [],
         session,
         channelId: channelId !== null ? channelId : undefined,
+
+        messageId: interaction.message.id,
       });
     }
   }
@@ -159,9 +170,19 @@ export default async function handleManagePermissionsSelect(
     targetType,
     targetId,
     channelId,
-    session,
+    guildId: session.guildId,
     instance,
     first: false,
+  });
+  // register interaction with permission interaction cache
+  instance.permissionManager.interactionCacheManager.registerInteraction({
+    targetId,
+    targetType,
+    channelId,
+    guildId: session.guildId,
+    messageId: interaction.message.id,
+    interactionId: interaction.id,
+    interactionToken: interaction.token,
   });
 
   return {

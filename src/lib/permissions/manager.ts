@@ -21,6 +21,7 @@ import {
   parseInternalPermissionValuesToStringNames,
   UsableInternalPermissionValues,
 } from "./consts";
+import PermissionInteractionCache from "./interactionCache";
 import {
   BotPermissionResult,
   ChannelPermissionData,
@@ -33,8 +34,10 @@ import {
 } from "./utils";
 class PermissionManager {
   private _prisma: PrismaClient;
+  public interactionCacheManager: PermissionInteractionCache;
   constructor(instance: FastifyInstance) {
     this._prisma = instance.prisma;
+    this.interactionCacheManager = new PermissionInteractionCache(instance);
   }
 
   private _getPermissionsDifference(
@@ -841,10 +844,12 @@ class PermissionManager {
     roleId,
     permissions,
     session,
+    messageId,
   }: {
     session: GuildSession;
     roleId: Snowflake;
     permissions: number[];
+    messageId?: Snowflake; // Message id to ignore when triggering updates for other messages
   }): Promise<number> {
     await this.checkPermissions({
       roleId,
@@ -874,6 +879,12 @@ class PermissionManager {
       roleId,
       session,
     });
+    void this.interactionCacheManager.triggerUpdates({
+      targetId: roleId,
+      channelId: null,
+      guildId: session.guildId,
+      triggerMessageId: messageId ?? null,
+    });
     return newPermission;
   }
 
@@ -882,10 +893,12 @@ class PermissionManager {
     roleId,
     permissions,
     session,
+    messageId,
   }: {
     session: GuildSession;
     roleId: Snowflake;
     permissions: number[];
+    messageId?: Snowflake; // Message id to ignore when triggering updates for other messages
   }): Promise<number> {
     await this.checkPermissions({
       roleId,
@@ -914,6 +927,12 @@ class PermissionManager {
       oldPermissions: existingPermission,
       roleId,
       session,
+    });
+    void this.interactionCacheManager.triggerUpdates({
+      targetId: roleId,
+      channelId: null,
+      guildId: session.guildId,
+      triggerMessageId: messageId ?? null,
     });
     return newPermission;
   }
@@ -1004,6 +1023,7 @@ class PermissionManager {
     permissionsToDeny,
     session,
     channelId,
+    messageId,
   }: {
     userId: Snowflake;
     permissionsToAllow: number[];
@@ -1011,6 +1031,7 @@ class PermissionManager {
     permissionsToDeny: number[];
     session: GuildSession;
     channelId?: Snowflake;
+    messageId?: Snowflake; // Message id to ignore when triggering updates for other messages
   }): Promise<PermissionAllowAndDenyData> {
     await this.checkPermissions({
       session,
@@ -1058,6 +1079,12 @@ class PermissionManager {
       session,
       targetType: "user",
       channelId,
+    });
+    void this.interactionCacheManager.triggerUpdates({
+      targetId: userId,
+      channelId: channelId ?? null,
+      guildId: session.guildId,
+      triggerMessageId: messageId ?? null,
     });
     return {
       allow: newAllow,
@@ -1110,6 +1137,7 @@ class PermissionManager {
     permissionsToDeny,
     session,
     channelId,
+    messageId,
   }: {
     roleId: Snowflake;
     permissionsToAllow: number[];
@@ -1117,6 +1145,7 @@ class PermissionManager {
     permissionsToDeny: number[];
     session: GuildSession;
     channelId: Snowflake;
+    messageId?: Snowflake; // Message id to ignore when triggering updates for other messages
   }): Promise<PermissionAllowAndDenyData> {
     await this.checkPermissions({
       session,
@@ -1150,6 +1179,12 @@ class PermissionManager {
       targetId: roleId,
       session,
       targetType: "role",
+    });
+    void this.interactionCacheManager.triggerUpdates({
+      targetId: roleId,
+      channelId,
+      guildId: session.guildId,
+      triggerMessageId: messageId ?? null,
     });
     return {
       allow: newAllow,
