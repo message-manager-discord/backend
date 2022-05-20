@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { AxiosError, AxiosResponse } from "axios";
 import { Snowflake } from "discord-api-types/globals";
 import { APIEmbed } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
@@ -64,12 +64,28 @@ class PermissionInteractionCache {
         color: embedPink,
         timestamp: new Date().toISOString(),
       });
-      // TODO: What happens when the message is deleted?
-      await axios.request({
-        method: "PATCH",
-        url: `${discordAPIBaseURL}/webhooks/${this._instance.envVars.DISCORD_CLIENT_ID}/${interactionCache.interactionToken}/messages/@original`,
-        data: { embeds: [embed], components: [], content: "" },
-      });
+      await axios
+        .request({
+          method: "PATCH",
+          url: `${discordAPIBaseURL}/webhooks/${this._instance.envVars.DISCORD_CLIENT_ID}/${interactionCache.interactionToken}/messages/@original`,
+          data: { embeds: [embed], components: [], content: "" },
+        })
+        .catch((error) => {
+          if (
+            ((error as AxiosError).response as AxiosResponse).status === 404
+          ) {
+            // The interaction was deleted
+            // This can happen if the interaction was deleted by the user
+            // Remove from cache
+            delete this._interactionCache[messageCacheId];
+          } else if (
+            ((error as AxiosError).response as AxiosResponse).status === 429
+          ) {
+            // Ignore this
+          } else {
+            throw error;
+          }
+        });
     }
   }
 
@@ -129,9 +145,15 @@ class PermissionInteractionCache {
         messageIds: [messageCacheId],
       };
     } else {
-      this._permissionsToMessageIdMapping[permissionId].messageIds.push(
-        messageCacheId
-      );
+      if (
+        !this._permissionsToMessageIdMapping[permissionId].messageIds.includes(
+          messageCacheId
+        )
+      ) {
+        this._permissionsToMessageIdMapping[permissionId].messageIds.push(
+          messageCacheId
+        );
+      }
     }
   }
 
@@ -165,19 +187,38 @@ class PermissionInteractionCache {
       });
       for (const messageCacheId of messageCacheIds.messageIds) {
         const interactionCache = this._interactionCache[messageCacheId];
+
         if (
           triggerMessageId !== null &&
           messageCacheId !== this._makeMessageId(triggerMessageId, guildId) &&
           interactionCache !== undefined
         ) {
-          await axios.request({
-            method: "PATCH",
-            url: `${discordAPIBaseURL}/webhooks/${this._instance.envVars.DISCORD_CLIENT_ID}/${interactionCache.interactionToken}/messages/@original`,
-            data: {
-              embeds: [permissionEmbedData.embed],
-              components: permissionEmbedData.components,
-            },
-          });
+          await axios
+            .request({
+              method: "PATCH",
+              url: `${discordAPIBaseURL}/webhooks/${this._instance.envVars.DISCORD_CLIENT_ID}/${interactionCache.interactionToken}/messages/@original`,
+              data: {
+                embeds: [permissionEmbedData.embed],
+                components: permissionEmbedData.components,
+              },
+            })
+            .catch((error) => {
+              if (
+                ((error as AxiosError).response as AxiosResponse).status === 404
+              ) {
+                // The interaction was deleted
+                // This can happen if the interaction was deleted by the user
+                // Remove from cache
+                delete this._interactionCache[messageCacheId];
+                console.log("Was deleted");
+              } else if (
+                ((error as AxiosError).response as AxiosResponse).status === 429
+              ) {
+                // Ignore this
+              } else {
+                throw error;
+              }
+            });
         }
       }
     }
