@@ -56,17 +56,11 @@ export default async function handleManagePermissionsSelect(
         if (value !== undefined) permissionsToAllow.push(value);
       }
     }
-    await instance.permissionManager.allowRolePermissions({
+    await instance.permissionManager.setRolePermissions({
       roleId: targetId,
-      permissions: permissionsToAllow,
+      permissionsToAllow,
+      permissionsToDeny,
       session,
-      messageId: interaction.message.id,
-    });
-    await instance.permissionManager.denyRolePermissions({
-      roleId: targetId,
-      permissions: permissionsToDeny,
-      session,
-
       messageId: interaction.message.id,
     });
   }

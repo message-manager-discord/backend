@@ -413,9 +413,10 @@ async function handlePermissionsQuickstartSubcommand({
   }
 
   if (targetType === "role" && channel === undefined) {
-    await instance.permissionManager.allowRolePermissions({
+    await instance.permissionManager.setRolePermissions({
       roleId: targetId,
-      permissions,
+      permissionsToAllow: permissions,
+      permissionsToDeny: [],
       session,
     });
   } else if (targetType === "role" && channel !== undefined) {

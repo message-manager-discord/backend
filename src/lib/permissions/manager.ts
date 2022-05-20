@@ -66,8 +66,12 @@ class PermissionManager {
       oldPermissions,
       newPermissions
     );
-    const added = getAllPermissionsAsNameInValue(difference.added);
-    const removed = getAllPermissionsAsNameInValue(difference.removed);
+    const added = getAllPermissionsAsNameInValue(difference.added).filter(
+      (value) => value !== "NONE"
+    );
+    const removed = getAllPermissionsAsNameInValue(difference.removed).filter(
+      (value) => value !== "NONE"
+    );
 
     let description = `The permissions for role <@&${roleId}> have been updated`;
     if (added.length > 0) {
@@ -839,16 +843,17 @@ class PermissionManager {
     );
   }
 
-  // This function will allow a permission for a role. It returns the resulting permission
-  public async allowRolePermissions({
+  public async setRolePermissions({
     roleId,
-    permissions,
+    permissionsToAllow,
+    permissionsToDeny,
     session,
     messageId,
   }: {
-    session: GuildSession;
     roleId: Snowflake;
-    permissions: number[];
+    permissionsToAllow: number[];
+    permissionsToDeny: number[];
+    session: GuildSession;
     messageId?: Snowflake; // Message id to ignore when triggering updates for other messages
   }): Promise<number> {
     await this.checkPermissions({
@@ -861,67 +866,29 @@ class PermissionManager {
         guildPermissions,
         roleId
       );
-    let newPermission = existingPermission;
-    for (const perm of permissions) {
-      newPermission |= perm;
-    }
-    if (permissions.length > 0) {
-      // No point making a database call if nothing has changed
-      await this._setRolePermission({
-        roleId,
-        guildId: session.guildId,
-        permission: newPermission,
-      });
-    }
-    void this._sendRoleLogMessage({
-      newPermissions: newPermission,
-      oldPermissions: existingPermission,
-      roleId,
-      session,
-    });
-    void this.interactionCacheManager.triggerUpdates({
-      targetId: roleId,
-      channelId: null,
-      guildId: session.guildId,
-      triggerMessageId: messageId ?? null,
-    });
-    return newPermission;
-  }
+    const toAllow = permissionsToAllow.reduce((acc, curr) => {
+      return acc | curr;
+    }, InternalPermissions.NONE);
+    const toDeny = permissionsToDeny.reduce((acc, curr) => {
+      return acc | curr;
+    }, InternalPermissions.NONE);
 
-  // This function will remove a permission for a role. It returns the resulting permission
-  public async denyRolePermissions({
-    roleId,
-    permissions,
-    session,
-    messageId,
-  }: {
-    session: GuildSession;
-    roleId: Snowflake;
-    permissions: number[];
-    messageId?: Snowflake; // Message id to ignore when triggering updates for other messages
-  }): Promise<number> {
-    await this.checkPermissions({
-      roleId,
-      session,
-    });
-    const guildPermissions = await this.getAllGuildPermissions(session.guildId);
-    const existingPermission =
-      this._getRolePermissionFromPotentiallyUndefinedData(
-        guildPermissions,
-        roleId
+    // Check if there is any overlap
+    if ((toAllow & toDeny) !== InternalPermissions.NONE) {
+      throw new UnexpectedFailure(
+        InteractionOrRequestFinalStatus.PERMISSIONS_CANNOT_CROSSOVER_WHEN_UPDATING,
+        "Cannot have crossover permissions on allow or deny"
       );
+    }
     let newPermission = existingPermission;
-    for (const perm of permissions) {
-      newPermission &= ~perm;
-    }
-    if (permissions.length > 0) {
-      // No point making a database call if nothing has changed
-      await this._setRolePermission({
-        roleId,
-        guildId: session.guildId,
-        permission: newPermission,
-      });
-    }
+    newPermission |= toAllow;
+    newPermission &= ~toDeny;
+    await this._setRolePermission({
+      roleId,
+      guildId: session.guildId,
+      permission: newPermission,
+    });
+
     void this._sendRoleLogMessage({
       newPermissions: newPermission,
       oldPermissions: existingPermission,
