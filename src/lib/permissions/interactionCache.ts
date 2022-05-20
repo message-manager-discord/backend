@@ -189,8 +189,9 @@ class PermissionInteractionCache {
         const interactionCache = this._interactionCache[messageCacheId];
 
         if (
-          triggerMessageId !== null &&
-          messageCacheId !== this._makeMessageId(triggerMessageId, guildId) &&
+          (triggerMessageId === null ||
+            messageCacheId !==
+              this._makeMessageId(triggerMessageId, guildId)) &&
           interactionCache !== undefined
         ) {
           await axios
