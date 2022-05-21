@@ -395,6 +395,13 @@ async function handlePermissionsQuickstartSubcommand({
     );
   }
 
+  if (managementPreset && channel === undefined) {
+    throw new ExpectedFailure(
+      InteractionOrRequestFinalStatus.MANAGEMENT_PERMISSIONS_CANNOT_BE_SET_ON_CHANNEL_LEVEL,
+      "The management preset can only be set on guild level - leave as false to set message access"
+    );
+  }
+
   let permissions: number[] = [];
   if (messagePreset) {
     permissions = [
