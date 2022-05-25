@@ -61,25 +61,22 @@ const createPermissionsEmbed = async ({
       });
     }
     const title = "Managing permissions";
-    const allowedPermissions = options
-      .filter((option) => option.default)
-      .map((option) => option.label);
-    const deniedPermissions = options
-      .filter((option) => !(option.default ?? false))
-      .map((option) => option.label);
+    // Make a map of permission names to the state ("allow", "deny")
+    const permissionMap: { [key: string]: string } = {};
+    for (const option of options) {
+      permissionMap[option.label] = option.default ?? false ? "allow" : "deny";
+    }
+
     const description =
-      `
-        Current permissions for role <@&${targetId}>\n` +
+      `Current permissions for role <@&${targetId}>\n` +
       (first
         ? ""
         : "Permissions have been updated - but you can keep managing them\n\n") +
-      `**✅ Allowed:** ${
-        allowedPermissions.length > 0 ? allowedPermissions.join(", ") : "None"
-      }\n` +
-      `**❌ Denied:** ${
-        deniedPermissions.length > 0 ? deniedPermissions.join(", ") : "None"
-      }
-        `;
+      Object.entries(permissionMap)
+        .map(([permission, state]): string => {
+          return `${state === "allow" ? "✅" : "❌"} ${permission}`;
+        })
+        .join("\n");
     return {
       embed: addTipToEmbed({ title, description, color: embedPink }),
       components: [
@@ -126,11 +123,10 @@ const createPermissionsEmbed = async ({
       description +=
         "\nPermissions have been updated - but you can keep managing them";
     }
+    const permissionMap: { [key: string]: "allow" | "inherit" | "deny" } = {};
     const allowOptions: APISelectMenuOption[] = [];
     const denyOptions: APISelectMenuOption[] = [];
-    const inheritedPermissions: string[] = [];
-    const allowedPermissions: string[] = [];
-    const deniedPermissions: string[] = [];
+
     // If the permission is present in deny permissions it will be default in deny options
     // and vice versa
     // All permissions will be in both options
@@ -159,28 +155,19 @@ const createPermissionsEmbed = async ({
         description: internalPermission.description,
         default: denied,
       });
-      if (allowed) {
-        allowedPermissions.push(internalPermission.readableName);
-      } else if (denied) {
-        deniedPermissions.push(internalPermission.readableName);
-      } else {
-        // As it will be hard to filter out inherited permissions from options
-        inheritedPermissions.push(internalPermission.readableName);
-      }
+      permissionMap[internalPermission.readableName] =
+        allowed && !denied ? "allow" : denied && !allowed ? "deny" : "inherit";
     }
 
     description +=
-      `\n\n**✅ Allowed:** ${
-        allowedPermissions.length > 0 ? allowedPermissions.join(", ") : "None"
-      }\n` +
-      `**➡️ Inherited:** ${
-        inheritedPermissions.length > 0
-          ? inheritedPermissions.join(", ")
-          : "None"
-      }\n` +
-      `**❌ Denied:** ${
-        deniedPermissions.length > 0 ? deniedPermissions.join(", ") : "None"
-      }`;
+      "\n\n" +
+      Object.entries(permissionMap)
+        .map(([permission, state]): string => {
+          return `${
+            state === "allow" ? "✅" : state === "deny" ? "❌" : "➡️"
+          } ${permission}`;
+        })
+        .join("\n");
 
     return {
       embed: addTipToEmbed({
