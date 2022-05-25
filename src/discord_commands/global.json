@@ -72,18 +72,21 @@
                 "required": true,
                 "description": "The user or role to setup permissions for"
               },
-
               {
-                "type": 5,
-                "name": "message-access",
+                "type": 3,
+                "name": "preset",
                 "required": true,
-                "description": "Grants permissions required to manage messages. Note: setting this to false won't deny permissions"
-              },
-              {
-                "type": 5,
-                "name": "management-access",
-                "required": true,
-                "description": "Grants permissions required to manage bot setup. Note: setting this to false won't deny permissions"
+                "description": "The preset to grant to the target",
+                "choices": [
+                  {
+                    "name": "message-access",
+                    "value": "message-access"
+                  },
+                  {
+                    "name": "management-access",
+                    "value": "management-access"
+                  }
+                ]
               },
               {
                 "type": 7,

@@ -1,9 +1,9 @@
 import axios from "axios";
 import { Snowflake } from "discord-api-types/globals";
 import {
-  APIApplicationCommandInteractionDataBooleanOption,
   APIApplicationCommandInteractionDataChannelOption,
   APIApplicationCommandInteractionDataMentionableOption,
+  APIApplicationCommandInteractionDataStringOption,
   APIApplicationCommandInteractionDataSubcommandGroupOption,
   APIApplicationCommandInteractionDataSubcommandOption,
   APIChatInputApplicationCommandGuildInteraction,
@@ -372,30 +372,15 @@ async function handlePermissionsQuickstartSubcommand({
       "Target not found in resolved data"
     );
   }
-  const messagePreset =
-    (
-      subcommand.options?.find(
-        (option) =>
-          option.name === "message-access" &&
-          option.type === ApplicationCommandOptionType.Boolean
-      ) as APIApplicationCommandInteractionDataBooleanOption | undefined
-    )?.value ?? false;
-  const managementPreset =
-    (
-      subcommand.options?.find(
-        (option) =>
-          option.name === "management-access" &&
-          option.type === ApplicationCommandOptionType.Boolean
-      ) as APIApplicationCommandInteractionDataBooleanOption | undefined
-    )?.value ?? false;
-  if (!messagePreset && !managementPreset) {
-    throw new ExpectedFailure(
-      InteractionOrRequestFinalStatus.NO_PERMISSIONS_PRESET_SELECTED,
-      "You need to select at least one permission preset"
-    );
-  }
+  const preset: "message-access" | "management-access" | undefined = (
+    subcommand.options?.find(
+      (option) =>
+        option.name === "preset" &&
+        option.type === ApplicationCommandOptionType.String
+    ) as APIApplicationCommandInteractionDataStringOption | undefined
+  )?.value as "message-access" | "management-access" | undefined;
 
-  if (managementPreset && channel === undefined) {
+  if (preset === "management-access" && channel !== undefined) {
     throw new ExpectedFailure(
       InteractionOrRequestFinalStatus.MANAGEMENT_PERMISSIONS_CANNOT_BE_SET_ON_CHANNEL_LEVEL,
       "The management preset can only be set on guild level - leave as false to set message access"
@@ -403,7 +388,7 @@ async function handlePermissionsQuickstartSubcommand({
   }
 
   let permissions: number[] = [];
-  if (messagePreset) {
+  if (preset === "message-access") {
     permissions = [
       InternalPermissions.VIEW_MESSAGES,
       InternalPermissions.EDIT_MESSAGES,
@@ -411,7 +396,7 @@ async function handlePermissionsQuickstartSubcommand({
       InternalPermissions.DELETE_MESSAGES,
     ];
   }
-  if (managementPreset) {
+  if (preset === "management-access") {
     permissions = [
       ...permissions,
       InternalPermissions.MANAGE_PERMISSIONS,
@@ -453,13 +438,12 @@ async function handlePermissionsQuickstartSubcommand({
           title: "Permissions Quickstart",
           description:
             `The permissions preset ${
-              messagePreset
+              preset === "message-access"
                 ? "message access with the permissions `VIEW_MESSAGES`, `EDIT_MESSAGES`, `SEND_MESSAGES`, `DELETE_MESSAGES` "
                 : ""
             }` +
-            `${messagePreset && managementPreset ? "and " : ""}` +
             `${
-              managementPreset
+              preset === "management-access"
                 ? "the permissions preset management access with the permissions `MANAGE_PERMISSIONS`, `MANAGE_CONFIG` "
                 : ""
             }` +
