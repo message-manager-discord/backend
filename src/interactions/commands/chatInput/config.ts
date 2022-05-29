@@ -18,6 +18,7 @@ import {
 import { FastifyInstance } from "fastify";
 
 import { discordAPIBaseURL, embedPink } from "../../../constants";
+import { DiscordPermissions } from "../../../consts";
 import {
   ExpectedFailure,
   ExpectedPermissionFailure,
@@ -26,6 +27,7 @@ import {
 } from "../../../errors";
 import { checkIfRoleIsBelowUsersHighestRole } from "../../../lib/permissions/checks";
 import { InternalPermissions } from "../../../lib/permissions/consts";
+import { checkDiscordPermissionValue } from "../../../lib/permissions/utils";
 import { GuildSession } from "../../../lib/session";
 import { addTipToEmbed } from "../../../lib/tips";
 import { InternalInteractionType } from "../../interaction";
@@ -226,13 +228,13 @@ async function handlePermissionsManageSubcommand({
 
   const resolvedData = interaction.data.resolved;
   let targetType: "role" | "user";
+  let targetPermissions: Snowflake | undefined;
 
   if (resolvedData?.roles && resolvedData.roles[targetId] !== undefined) {
     targetType = "role";
+    targetPermissions = resolvedData.roles[targetId].permissions;
   } else if (
-    resolvedData?.members &&
-    resolvedData.members[targetId] !== undefined &&
-    resolvedData.users &&
+    resolvedData?.users &&
     resolvedData.users[targetId] !== undefined
   ) {
     targetType = "user";
@@ -242,6 +244,13 @@ async function handlePermissionsManageSubcommand({
         InteractionOrRequestFinalStatus.BOT_FOUND_WHEN_USER_EXPECTED,
         "The target cannot be a bot"
       );
+    }
+    // If the user is in the guild, then it will be in the members resolved data
+    // Otherwise not
+    // If the user is in the guild, set the permissions value to it's permissions
+    if (resolvedData?.members && resolvedData.members[targetId] !== undefined) {
+      targetPermissions =
+        resolvedData.members[targetId].permissions ?? undefined;
     }
   } else {
     throw new UnexpectedFailure(
@@ -279,6 +288,13 @@ async function handlePermissionsManageSubcommand({
 
   // Not deferred as no logic is 'heavy'
 
+  const hasAdminPermission =
+    targetPermissions !== undefined &&
+    checkDiscordPermissionValue(
+      BigInt(targetPermissions),
+      DiscordPermissions.ADMINISTRATOR
+    );
+
   const permissionReturnData = await createPermissionsEmbed({
     targetType,
     targetId,
@@ -286,6 +302,7 @@ async function handlePermissionsManageSubcommand({
     guildId: session.guildId,
     instance,
     first: true,
+    hasAdminPermission,
   });
 
   // Void function that waits a bit then fetches the original interaction message
@@ -348,14 +365,14 @@ async function handlePermissionsQuickstartSubcommand({
     );
   }
   let targetType: "role" | "user";
+  let targetPermissions: Snowflake | undefined;
   const resolvedData = interaction.data.resolved;
 
   if (resolvedData?.roles && resolvedData.roles[targetId] !== undefined) {
     targetType = "role";
+    targetPermissions = resolvedData.roles[targetId].permissions;
   } else if (
-    resolvedData?.members &&
-    resolvedData.members[targetId] !== undefined &&
-    resolvedData.users &&
+    resolvedData?.users &&
     resolvedData.users[targetId] !== undefined
   ) {
     targetType = "user";
@@ -365,6 +382,13 @@ async function handlePermissionsQuickstartSubcommand({
         InteractionOrRequestFinalStatus.BOT_FOUND_WHEN_USER_EXPECTED,
         "The target cannot be a bot"
       );
+    }
+    // If the user is in the guild, then it will be in the members resolved data
+    // Otherwise not
+    // If the user is in the guild, set the permissions value to it's permissions
+    if (resolvedData?.members && resolvedData.members[targetId] !== undefined) {
+      targetPermissions =
+        resolvedData.members[targetId].permissions ?? undefined;
     }
   } else {
     throw new UnexpectedFailure(
@@ -430,6 +454,7 @@ async function handlePermissionsQuickstartSubcommand({
       channelId: channel?.id,
     });
   }
+
   return {
     type: InteractionResponseType.ChannelMessageWithSource,
     data: {
@@ -451,7 +476,15 @@ async function handlePermissionsQuickstartSubcommand({
               targetType === "user" ? `<@${targetId}>` : `<@&${targetId}>`
             }${
               channel !== undefined ? ` on the channel <#${channel.id}>` : ""
-            }.`,
+            }.` + // Add note if the target has admin perms about how they bypass permissions
+            (targetPermissions !== undefined
+              ? checkDiscordPermissionValue(
+                  BigInt(targetPermissions),
+                  DiscordPermissions.ADMINISTRATOR
+                )
+                ? "\n\nNote: The target has the discord `ADMINISTRATOR` permission. Any user with this permission will bypass bot permission checks (all will be allowed)"
+                : ""
+              : ""),
           color: embedPink,
           timestamp: new Date().toISOString(),
         }),

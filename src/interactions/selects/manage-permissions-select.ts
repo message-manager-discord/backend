@@ -25,6 +25,7 @@ export default async function handleManagePermissionsSelect(
   const targetType = customIdData[2] as "role" | "user";
   const targetId = customIdData[3];
   const channelId = JSON.parse(customIdData[4]) as Snowflake | null;
+  const hasAdminPermission = JSON.parse(customIdData[5]) as boolean;
 
   // No permission checks are required here as they are either checked when the /config ... command is ran
   // or when the permissions are updated
@@ -167,6 +168,7 @@ export default async function handleManagePermissionsSelect(
     guildId: session.guildId,
     instance,
     first: false,
+    hasAdminPermission,
   });
   // register interaction with permission interaction cache
   instance.permissionManager.interactionCacheManager.registerInteraction({

@@ -22,12 +22,18 @@ interface CreatePermissionsEmbedOptions {
   guildId: Snowflake;
   instance: FastifyInstance;
   first: boolean;
+  hasAdminPermission: boolean;
 }
 
 interface CreatePermissionsEmbedResult {
   embed: APIEmbed;
   components: APIActionRowComponent<APIMessageActionRowComponent>[];
 }
+
+/*
+  Custom Id Format:
+  <name: manage-permissions-select>:<action: allow | deny>:<targetType: role | user>:<targetId: snowflake>:<channelId: snowflake | null>:<hasAdminPermissions: true | false>
+*/
 
 const createPermissionsEmbed = async ({
   targetType,
@@ -36,6 +42,7 @@ const createPermissionsEmbed = async ({
   guildId,
   instance,
   first,
+  hasAdminPermission,
 }: CreatePermissionsEmbedOptions): Promise<CreatePermissionsEmbedResult> => {
   // No permission checks are required here as they are either checked when the /config ... command is ran
   // or when the permissions are updated
@@ -85,7 +92,7 @@ const createPermissionsEmbed = async ({
           components: [
             {
               type: ComponentType.SelectMenu,
-              custom_id: `manage-permissions-select:null:${targetType}:${targetId}:null`,
+              custom_id: `manage-permissions-select:null:${targetType}:${targetId}:null:${hasAdminPermission.toString()}`,
               options,
               max_values: options.length,
               min_values: 0,
@@ -169,6 +176,11 @@ const createPermissionsEmbed = async ({
         })
         .join("\n");
 
+    // Add note about admin permissions
+    if (hasAdminPermission) {
+      description +=
+        "\n\nNote: The target has the discord `ADMINISTRATOR` permission. Any user with this permission will bypass bot permission checks (all will be allowed)";
+    }
     return {
       embed: addTipToEmbed({
         title: "Managing permissions",
@@ -199,7 +211,7 @@ const createPermissionsEmbed = async ({
               type: ComponentType.SelectMenu,
               custom_id: `manage-permissions-select:allow:${targetType}:${targetId}:${JSON.stringify(
                 channelId
-              )}`,
+              )}:${hasAdminPermission.toString()}`,
               options: allowOptions,
               placeholder: "Select permissions to allow",
               max_values: allowOptions.length,
@@ -229,7 +241,7 @@ const createPermissionsEmbed = async ({
               type: ComponentType.SelectMenu,
               custom_id: `manage-permissions-select:deny:${targetType}:${targetId}:${JSON.stringify(
                 channelId
-              )}`,
+              )}:${hasAdminPermission.toString()}`,
               options: denyOptions,
               placeholder: "Select permissions to deny",
               max_values: denyOptions.length,

@@ -184,6 +184,7 @@ class PermissionInteractionCache {
         guildId,
         instance: this._instance,
         first: false,
+        hasAdminPermission: false, // It's just a hint, doesn't matter if it goes away. Too hard / inaccurate to track this
       });
       for (const messageCacheId of messageCacheIds.messageIds) {
         const interactionCache = this._interactionCache[messageCacheId];
