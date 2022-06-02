@@ -1,51 +1,73 @@
 import { Message } from "@prisma/client";
 import { DiscordHTTPError } from "detritus-client-rest/lib/errors";
-import {
-  APIEmbed,
-  APIInteractionGuildMember,
-  Snowflake,
-} from "discord-api-types/v9";
+import { APIEmbed, Snowflake } from "discord-api-types/v9";
 import { RESTPatchAPIChannelMessageResult } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
+
+import { embedPink } from "../../constants";
+import { parseDiscordPermissionValuesToStringNames } from "../../consts";
 import {
-  InteractionOrRequestFinalStatus,
   ExpectedPermissionFailure,
+  InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../../errors";
-import { checkDefaultDiscordPermissionsPresent } from "../permissions/discordChecks";
-import {
-  checkAllPermissions,
-  Permission,
-  PermissionsData,
-} from "../permissions/checks";
-import { checkDatabaseMessage } from "./utils";
-import { embedPink } from "../../constants";
 import limits from "../../limits";
+import { InternalPermissions } from "../permissions/consts";
+import { GuildSession } from "../session";
+import { checkDatabaseMessage } from "./checks";
+import { requiredPermissionsEdit } from "./consts";
+import {
+  missingBotDiscordPermissionMessage,
+  missingUserDiscordPermissionMessage,
+} from "./utils";
 
 interface CheckEditPossibleOptions {
-  user: APIInteractionGuildMember;
-  guildId: Snowflake;
   channelId: Snowflake;
   messageId: Snowflake;
   instance: FastifyInstance;
+  session: GuildSession;
 }
 
 const missingAccessMessage =
   "You do not have access to the bot permission for editing messages via the bot on this guild. Please contact an administrator.";
 
 const checkEditPossible = async ({
-  user,
-  guildId,
   channelId,
   instance,
   messageId,
+  session,
 }: CheckEditPossibleOptions): Promise<Message> => {
-  const { idOrParentId } = await checkDefaultDiscordPermissionsPresent({
-    instance,
-    user,
-    guildId,
-    channelId,
-  });
+  const userHasRequiredDiscordPermissions = await session.hasDiscordPermissions(
+    requiredPermissionsEdit,
+    channelId
+  );
+  if (!userHasRequiredDiscordPermissions.allPresent) {
+    throw new ExpectedPermissionFailure(
+      InteractionOrRequestFinalStatus.USER_MISSING_DISCORD_PERMISSION,
+      missingUserDiscordPermissionMessage(
+        parseDiscordPermissionValuesToStringNames(
+          userHasRequiredDiscordPermissions.missing
+        ),
+        channelId
+      )
+    );
+  }
+
+  const botHasRequiredDiscordPermissions =
+    await session.botHasDiscordPermissions(requiredPermissionsEdit, channelId);
+
+  if (!botHasRequiredDiscordPermissions.allPresent) {
+    throw new ExpectedPermissionFailure(
+      InteractionOrRequestFinalStatus.BOT_MISSING_DISCORD_PERMISSION,
+      missingBotDiscordPermissionMessage(
+        parseDiscordPermissionValuesToStringNames(
+          botHasRequiredDiscordPermissions.missing
+        ),
+        channelId
+      )
+    );
+  }
+
   const databaseMessage = await instance.prisma.message.findFirst({
     where: { id: BigInt(messageId) },
     orderBy: { editedAt: "desc" },
@@ -53,34 +75,17 @@ const checkEditPossible = async ({
   if (!checkDatabaseMessage(databaseMessage)) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.GENERIC_UNEXPECTED_FAILURE,
-      "Message check returned falsy like value"
+      "Message check returned falsy like value when it should only return true"
     );
-    //
   }
 
-  const guild = await instance.prisma.guild.findUnique({
-    where: { id: BigInt(guildId) },
-    select: { permissions: true },
-  });
-  const databaseChannel = await instance.prisma.channel.findUnique({
-    where: { id: BigInt(idOrParentId) },
-    select: { permissions: true },
-  });
-
-  const cachedGuild = instance.redisGuildManager.getGuild(guildId);
   if (
-    !(await checkAllPermissions({
-      roles: user.roles,
-      userId: user.user.id,
-      guildPermissions: guild?.permissions as unknown as
-        | PermissionsData
-        | undefined,
-      channelPermissions: databaseChannel?.permissions as unknown as
-        | PermissionsData
-        | undefined,
-      permission: Permission.EDIT_MESSAGES,
-      guild: cachedGuild,
-    }))
+    !(
+      await session.hasBotPermissions(
+        InternalPermissions.EDIT_MESSAGES,
+        channelId
+      )
+    ).allPresent
   ) {
     throw new ExpectedPermissionFailure(
       InteractionOrRequestFinalStatus.USER_MISSING_INTERNAL_BOT_PERMISSION,
@@ -97,12 +102,11 @@ interface EditMessageOptions extends CheckEditPossibleOptions {
 async function editMessage({
   content,
   channelId,
-  guildId,
   instance,
-  user,
   messageId,
+  session,
 }: EditMessageOptions) {
-  await checkEditPossible({ user, guildId, channelId, instance, messageId });
+  await checkEditPossible({ channelId, instance, messageId, session });
   try {
     const response = (await instance.restClient.editMessage(
       channelId,
@@ -123,7 +127,7 @@ async function editMessage({
         content: response.content,
 
         editedAt: new Date(Date.now()),
-        editedBy: BigInt(user.user.id),
+        editedBy: BigInt(session.userId),
 
         channel: {
           connectOrCreate: {
@@ -133,18 +137,18 @@ async function editMessage({
 
             create: {
               id: BigInt(channelId),
-              guildId: BigInt(guildId),
+              guildId: BigInt(session.userId),
             },
           },
         },
         guild: {
           connectOrCreate: {
             where: {
-              id: BigInt(guildId),
+              id: BigInt(session.guildId),
             },
 
             create: {
-              id: BigInt(guildId),
+              id: BigInt(session.guildId),
             },
           },
         },
@@ -183,18 +187,18 @@ async function editMessage({
       description:
         `Message (${messageId}) edited` +
         `\n**Original Content:**\n${
-          messageBefore?.content || "" //This should never be null as the message is being edited
+          messageBefore?.content ?? "" //This should never be null as the message is being edited
         }` +
         `\n**New Content:**\n${response.content}`,
       fields: [
-        { name: "Action By:", value: `<@${user.user.id}>`, inline: true },
+        { name: "Action By:", value: `<@${session.userId}>`, inline: true },
         { name: "Channel:", value: `<#${channelId}>`, inline: true },
       ],
       timestamp: new Date().toISOString(),
     };
     // Send log message
     await instance.loggingManager.sendLogMessage({
-      guildId: guildId,
+      guildId: session.guildId,
       embeds: [embed],
     });
   } catch (error) {

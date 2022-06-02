@@ -6,15 +6,18 @@ import {
   MessageFlags,
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
+
 import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../../errors";
-import { InternalInteraction } from "../interaction";
+import { GuildSession } from "../../lib/session";
+import { InternalInteractionType } from "../interaction";
 import { InteractionReturnData } from "../types";
 
 export default async function handleModalReport(
-  internalInteraction: InternalInteraction<APIModalSubmitGuildInteraction>,
+  internalInteraction: InternalInteractionType<APIModalSubmitGuildInteraction>,
+  session: GuildSession,
   instance: FastifyInstance
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
@@ -44,7 +47,7 @@ export default async function handleModalReport(
     (component) => component.components[0].custom_id === "reason"
   )?.components[0].value;
 
-  if (!reason) {
+  if (reason === undefined) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.MODAL_SUBMIT_MISSING_REQUIRED_INPUT,
       "No reason on modal submit"

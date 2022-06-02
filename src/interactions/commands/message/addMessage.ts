@@ -1,23 +1,27 @@
 import {
+  APIMessage,
   APIMessageApplicationCommandGuildInteraction,
   InteractionResponseType,
   MessageFlags,
   MessageType,
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
+
 import { embedPink } from "../../../constants";
 import {
+  ExpectedFailure,
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
-  ExpectedFailure,
 } from "../../../errors";
 import { checkSendMessagePossible } from "../../../lib/messages/send";
+import { GuildSession } from "../../../lib/session";
 import { addTipToEmbed } from "../../../lib/tips";
-import { InternalInteraction } from "../../interaction";
+import { InternalInteractionType } from "../../interaction";
 import { InteractionReturnData } from "../../types";
 
 export default async function handleAddMessageCommand(
-  internalInteraction: InternalInteraction<APIMessageApplicationCommandGuildInteraction>,
+  internalInteraction: InternalInteractionType<APIMessageApplicationCommandGuildInteraction>,
+  session: GuildSession,
   instance: FastifyInstance
 ): Promise<InteractionReturnData> {
   // This command will generate a ephemeral message with the action buttons for editing, deleting, or reporting.
@@ -25,8 +29,10 @@ export default async function handleAddMessageCommand(
 
   const interaction = internalInteraction.interaction;
   const messageId = interaction.data.target_id;
-  const message = interaction.data.resolved.messages[messageId];
-  if (!message) {
+  const message = interaction.data.resolved.messages[messageId] as
+    | APIMessage
+    | undefined;
+  if (message === undefined) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.APPLICATION_COMMAND_RESOLVED_MISSING_EXPECTED_VALUE,
       "Message not found in resolved data"
@@ -66,9 +72,8 @@ export default async function handleAddMessageCommand(
 
   await checkSendMessagePossible({
     channelId: message.channel_id,
-    guildId: interaction.guild_id,
     instance,
-    user: interaction.member,
+    session,
   });
   // User should be able to send messages in the channel to add the message
   // Add the message to the database

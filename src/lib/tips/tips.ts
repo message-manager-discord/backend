@@ -11,6 +11,9 @@ const allTips: Tip[] = [
   {
     message: "Use /config permissions to manage your server's permissions!",
   },
+  {
+    message: "Discord administrators always have all bot permissions",
+  },
 ];
 
 export { allTips };

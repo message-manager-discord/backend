@@ -1,11 +1,11 @@
-import { Type, Static } from "@sinclair/typebox";
+import { Static, Type } from "@sinclair/typebox";
 import httpErrors from "http-errors";
 const { Forbidden, NotFound, BadRequest } = httpErrors;
-import { FastifyInstance } from "fastify";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
+import { FastifyInstance } from "fastify";
 
+import { DiscordPermissions } from "../../consts";
 import { UserRequestData } from "../../plugins/authentication";
-import { Permissions } from "../../consts";
 const rootPath = "/users";
 
 const UserParams = Type.Object({
@@ -80,7 +80,7 @@ const userPlugin = async (instance: FastifyInstance) => {
         const userStored = await instance.prisma.user.findUnique({
           where: { id: BigInt(userId) },
         });
-        if (!userStored || !userStored.oauthToken) {
+        if (!userStored || userStored.oauthToken === null) {
           throw new NotFound("User not found");
         }
         user = {
@@ -213,11 +213,11 @@ const userPlugin = async (instance: FastifyInstance) => {
           });
         } catch (e) {
           if (
-            request.query.include_disconnected &&
-            ((BigInt(guild.permissions) & Permissions.MANAGE_GUILD) ===
-              Permissions.MANAGE_GUILD ||
-              (BigInt(guild.permissions) & Permissions.ADMINISTRATOR) ===
-                Permissions.ADMINISTRATOR ||
+            (request.query.include_disconnected ?? false) &&
+            ((BigInt(guild.permissions) & DiscordPermissions.MANAGE_GUILD) ===
+              DiscordPermissions.MANAGE_GUILD ||
+              (BigInt(guild.permissions) & DiscordPermissions.ADMINISTRATOR) ===
+                DiscordPermissions.ADMINISTRATOR ||
               guild.owner)
           ) {
             filteredGuilds.push({

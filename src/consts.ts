@@ -1,5 +1,5 @@
 // https://github.com/detritusjs/client/blob/b27cbaa5bfb48506b059be178da0e871b83ba95e/src/constants.ts#L917
-export const Permissions = Object.freeze({
+const DiscordPermissions = Object.freeze({
   NONE: 0n,
   CREATE_INSTANT_INVITE: 1n << 0n,
   KICK_MEMBERS: 1n << 1n,
@@ -41,3 +41,35 @@ export const Permissions = Object.freeze({
   USE_EXTERNAL_STICKERS: 1n << 37n,
   SEND_MESSAGES_IN_THREADS: 1n << 38n,
 });
+
+const _permissionsByName: { [name: string]: bigint } = {};
+const _permissionsByValue: { [value: string]: string } = {};
+// Find the names and values of all the permissions from Permissions
+
+for (const [key, value] of Object.entries(DiscordPermissions)) {
+  _permissionsByName[key] = value;
+  _permissionsByValue[value.toString()] = key;
+}
+
+const getDiscordPermissionByName = (name: string): bigint | undefined => {
+  return _permissionsByName[name];
+};
+
+const getDiscordPermissionByValue = (value: bigint): string | undefined => {
+  return _permissionsByValue[value.toString()];
+};
+
+const parseDiscordPermissionValuesToStringNames = (
+  permissions: bigint[]
+): string[] => {
+  const parsed = permissions.map((permission) => {
+    return getDiscordPermissionByValue(permission);
+  });
+  return parsed.filter((permission) => permission !== undefined) as string[];
+};
+export {
+  DiscordPermissions,
+  getDiscordPermissionByName,
+  getDiscordPermissionByValue,
+  parseDiscordPermissionValuesToStringNames,
+};

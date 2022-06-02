@@ -1,21 +1,22 @@
-import fastify, { FastifyInstance } from "fastify";
-
-import envPlugin from "./plugins/envCheck";
-import versionOnePlugin from "./v1";
-import fastifyAuth from "fastify-auth";
-import authPlugin from "./plugins/authentication";
-import fastifyCors from "fastify-cors";
-import prismaPlugin from "./plugins/prisma";
-import discordRestPlugin from "./plugins/discord-rest";
-import redisRestPlugin from "./plugins/redis";
-import discordRedisCachePlugin from "./plugins/discordRedis";
-import metricsPlugin from "./plugins/metrics";
-import webhookAndLoggingPlugin from "./plugins/logging";
-import fastifyCookie, { FastifyCookieOptions } from "fastify-cookie";
-import interactionsPlugin from "./interactions/index";
 import Sentry from "@sentry/node";
+import fastify, { FastifyInstance } from "fastify";
+import fastifyAuth from "fastify-auth";
+import fastifyCookie, { FastifyCookieOptions } from "fastify-cookie";
+import fastifyCors from "fastify-cors";
 
 import authRoutePlugin from "./authRoutes";
+import interactionsPlugin from "./interactions/index";
+import authPlugin from "./plugins/authentication";
+import discordRestPlugin from "./plugins/discord-rest";
+import discordRedisCachePlugin from "./plugins/discordRedis";
+import envPlugin from "./plugins/envCheck";
+import webhookAndLoggingPlugin from "./plugins/logging";
+import metricsPlugin from "./plugins/metrics";
+import permissionPlugin from "./plugins/permissions";
+import prismaPlugin from "./plugins/prisma";
+import redisRestPlugin from "./plugins/redis";
+import sessionPlugin from "./plugins/session";
+import versionOnePlugin from "./v1";
 
 const instance: FastifyInstance = fastify({
   logger: {
@@ -33,12 +34,12 @@ Sentry.init({
 });
 
 instance.setErrorHandler(async (error, request, reply) => {
-  if (error.statusCode && error.statusCode < 500) {
+  if (error.statusCode !== undefined && error.statusCode < 500) {
     return reply.send(error);
   } // http-errors are thrown for 4xx errors, which should not be sent to sentry
   Sentry.captureException(error);
   instance.log.error(error);
-  if (error.statusCode) {
+  if (error.statusCode !== undefined) {
     return reply.send(error);
   } // If any errors were http-errors pretty much, they shouldn't be overwritten
 
@@ -83,6 +84,10 @@ await instance.register(metricsPlugin);
 
 await instance.register(webhookAndLoggingPlugin);
 
+await instance.register(sessionPlugin);
+
+await instance.register(permissionPlugin);
+
 await instance.register(interactionsPlugin);
 
 await instance.register(authRoutePlugin);
@@ -93,6 +98,8 @@ instance.listen(
   instance.envVars.PORT,
   instance.envVars.HOST,
   function (err, address) {
+    // Seems to by typed incorrectly
+    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
     if (err) {
       console.error(err);
       process.exit(1);

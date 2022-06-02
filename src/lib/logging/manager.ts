@@ -1,6 +1,15 @@
 import { Snowflake } from "discord-api-types/globals";
 import { APIEmbed, APIMessage } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
+
+import { DiscordPermissions } from "../../consts";
+import {
+  ExpectedPermissionFailure,
+  InteractionOrRequestFinalStatus,
+} from "../../errors";
+import { InternalPermissions } from "../permissions/consts";
+import { checkDiscordPermissionValue } from "../permissions/utils";
+import { GuildSession } from "../session";
 import WebhookManager from "../webhook/manager";
 
 export default class LoggingManager {
@@ -14,32 +23,55 @@ export default class LoggingManager {
     const guild = await this._instance.prisma.guild.findUnique({
       where: { id: BigInt(guildId) },
     });
-    if (!guild || !guild.logChannelId) {
+    if (!guild || guild.logChannelId === null) {
       return null;
     }
     return guild.logChannelId.toString();
   }
+  private async _loggingPermissionChecks(session: GuildSession): Promise<true> {
+    if (
+      !checkDiscordPermissionValue(
+        BigInt(session.userInteractionCalculatedChannelPermissions),
+        DiscordPermissions.ADMINISTRATOR
+      ) &&
+      !(
+        await session.hasBotPermissions(
+          InternalPermissions.MANAGE_CONFIG,
+          undefined
+        )
+      ).allPresent
+    ) {
+      throw new ExpectedPermissionFailure(
+        InteractionOrRequestFinalStatus.USER_MISSING_INTERNAL_BOT_PERMISSION,
+        "You are missing the `MANAGE_CONFIG` permission"
+      );
+    }
+    return true;
+  }
+
   public async setGuildLoggingChannel(
-    guildId: Snowflake,
-    channelId: Snowflake
+    channelId: Snowflake,
+    session: GuildSession
   ): Promise<Snowflake | null> {
-    await this._webhookManager.getWebhook(channelId, guildId);
+    await this._loggingPermissionChecks(session);
+    await this._webhookManager.getWebhook(channelId, session.guildId);
     // This will either change nothing (if a webhook is already set) or create a new webhook and store it
     // It is before the guild config is updated, incase the bot is missing the required permissions
-    const beforeChannelId = await this.getGuildLoggingChannel(guildId);
+    const beforeChannelId = await this.getGuildLoggingChannel(session.guildId);
     await this._instance.prisma.guild.upsert({
-      where: { id: BigInt(guildId) },
+      where: { id: BigInt(session.guildId) },
       update: { logChannelId: BigInt(channelId) },
-      create: { id: BigInt(guildId), logChannelId: BigInt(channelId) },
+      create: { id: BigInt(session.guildId), logChannelId: BigInt(channelId) },
     });
     return beforeChannelId;
   }
   public async removeGuildLoggingChannel(
-    guildId: Snowflake
+    session: GuildSession
   ): Promise<Snowflake | null> {
-    const beforeChannelId = this.getGuildLoggingChannel(guildId);
+    await this._loggingPermissionChecks(session);
+    const beforeChannelId = this.getGuildLoggingChannel(session.guildId);
     await this._instance.prisma.guild.update({
-      where: { id: BigInt(guildId) },
+      where: { id: BigInt(session.guildId) },
       data: { logChannelId: null },
     });
     return beforeChannelId;
@@ -61,7 +93,7 @@ export default class LoggingManager {
     // This means that this function can be called without checking if the log channel is set
     // It's because the logging function is an extra
     const channelId = await this.getGuildLoggingChannel(guildId);
-    if (!channelId) {
+    if (channelId === null) {
       return;
     }
     const data = {
@@ -75,7 +107,7 @@ export default class LoggingManager {
       return this._webhookManager.sendWebhookMessage(channelId, guildId, data);
       // eslint-disable-next-line no-empty
     } catch (error) {
-      if (!ignoreErrors) {
+      if (!(ignoreErrors ?? false)) {
         throw error;
       }
       // Log messages should be sent, but if they fail, it's not a big deal and shouldn't then affect normal running of the bot

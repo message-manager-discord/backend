@@ -42,71 +42,57 @@
         "description": "Manage bot level permissions. Requires being a manager on the bot.",
         "options": [
           {
-            "name": "set",
+            "name": "manage",
             "type": 1,
-            "description": "Set a user's or a role's bot permission",
+            "description": "Manage and view the target's permissions",
             "options": [
               {
                 "type": 9,
                 "name": "target",
                 "required": true,
-                "description": "The user or role to set the permission for"
+                "description": "The user or role to manage / view permissions for"
               },
               {
-                "type": 4,
-                "name": "permission",
+                "type": 7,
+                "name": "channel",
+                "required": false,
+                "description": "The channel to manage / view permissions of the target on. Leave this blank to manage permissions on the entire server",
+                "channel_types": [0, 5]
+              }
+            ]
+          },
+          {
+            "name": "quickstart",
+            "type": 1,
+            "description": "Get permissions setup with presets. Use the manage command to have finer control over permissions",
+            "options": [
+              {
+                "type": 9,
+                "name": "target",
                 "required": true,
-                "description": "The permission to set",
+                "description": "The user or role to setup permissions for"
+              },
+              {
+                "type": 3,
+                "name": "preset",
+                "required": true,
+                "description": "The preset to grant to the target",
                 "choices": [
                   {
-                    "name": "View Messages",
-                    "value": 1
+                    "name": "message-access",
+                    "value": "message-access"
                   },
                   {
-                    "name": "Edit Messages",
-                    "value": 2
-                  },
-                  {
-                    "name": "Send Messages",
-                    "value": 3
-                  },
-                  {
-                    "name": "Delete Messages",
-                    "value": 4
-                  },
-                  {
-                    "name": "Manage Permissions",
-                    "value": 5
-                  },
-                  {
-                    "name": "Manage Config",
-                    "value": 6
+                    "name": "management-access",
+                    "value": "management-access"
                   }
                 ]
               },
               {
                 "type": 7,
                 "name": "channel",
-                "description": "The channel to set the permission on. Leave empty to set the permission on the guild level.",
-                "channel_types": [0, 5]
-              }
-            ]
-          },
-          {
-            "name": "remove",
-            "type": 1,
-            "description": "Remove a user's or a role's bot permission",
-            "options": [
-              {
-                "type": 9,
-                "name": "target",
-                "required": true,
-                "description": "The user or role to remove permissions for"
-              },
-              {
-                "type": 7,
-                "name": "channel",
-                "description": "The channel to remove the permissions on. Leave empty to remove the permissions on the guild level.",
+                "required": false,
+                "description": "The channel to setup permissions of the target on. Leave this blank to setup permissions on the entire server",
                 "channel_types": [0, 5]
               }
             ]
@@ -121,21 +107,6 @@
                 "name": "channel",
                 "description": "The channel to list the permissions on. Leave empty to list the permissions on the guild level.",
                 "channel_types": [0, 5]
-              },
-              {
-                "type": 3,
-                "name": "type-filter",
-                "description": "Filter the set permissions by a specific type (user or role)",
-                "choices": [
-                  {
-                    "name": "Users",
-                    "value": "users"
-                  },
-                  {
-                    "name": "Roles",
-                    "value": "roles"
-                  }
-                ]
               }
             ]
           }

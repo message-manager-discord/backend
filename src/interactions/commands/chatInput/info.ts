@@ -10,15 +10,17 @@ import {
   MessageFlags,
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
+import Fuse from "fuse.js";
+
 import { embedPink, inviteUrl } from "../../../constants";
 import {
   ExpectedFailure,
   InteractionOrRequestFinalStatus,
 } from "../../../errors";
-import { InternalInteraction } from "../../interaction";
-import Fuse from "fuse.js";
-import { InteractionReturnData } from "../../types";
+import { GuildSession, NonGuildSession } from "../../../lib/session";
 import { addTipToEmbed } from "../../../lib/tips";
+import { InternalInteractionType } from "../../interaction";
+import { InteractionReturnData } from "../../types";
 
 const createInfoEmbed = async (
   instance: FastifyInstance
@@ -142,6 +144,16 @@ const infoTags: Record<string, Tag> = {
 
     extraTags: ["new", "missing"],
   },
+  permissions: {
+    title: "The permissions system",
+    description:
+      "Permissions allow server managers to have fine tuned control over what actions user's can take via the bot on that server." +
+      "\nThey work on an override basis, with base guild role permissions and then user, channel role, and channel user overrides." +
+      "\nFor simple use-cases there are useful defaults, use `/config permissions quickstart` to assign these defaults." +
+      "\nFor more information, see the [permissions docs page](https://message.anothercat.me/docs/permissions).",
+    extraTags: ["access", "restrict", "management", "role"],
+    url: "https://message.anothercat.me/docs/permissions",
+  },
 };
 
 interface NonTextTag {
@@ -203,7 +215,8 @@ const channelMessageResponseWithEmbed = (
 });
 
 export default async function handleInfoCommand(
-  internalInteraction: InternalInteraction<APIChatInputApplicationCommandInteraction>,
+  internalInteraction: InternalInteractionType<APIChatInputApplicationCommandInteraction>,
+  session: GuildSession | NonGuildSession,
   instance: FastifyInstance
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
@@ -232,7 +245,7 @@ export default async function handleInfoCommand(
 
 // eslint-disable-next-line @typescript-eslint/require-await
 async function handleInfoAutocomplete(
-  internalInteraction: InternalInteraction<APIApplicationCommandAutocompleteInteraction>,
+  internalInteraction: InternalInteractionType<APIApplicationCommandAutocompleteInteraction>,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   instance: FastifyInstance
 ): Promise<APIApplicationCommandAutocompleteResponse> {

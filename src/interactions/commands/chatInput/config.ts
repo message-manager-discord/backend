@@ -1,57 +1,42 @@
+import axios from "axios";
+import { Snowflake } from "discord-api-types/globals";
 import {
   APIApplicationCommandInteractionDataChannelOption,
-  APIApplicationCommandInteractionDataIntegerOption,
   APIApplicationCommandInteractionDataMentionableOption,
+  APIApplicationCommandInteractionDataStringOption,
   APIApplicationCommandInteractionDataSubcommandGroupOption,
   APIApplicationCommandInteractionDataSubcommandOption,
   APIChatInputApplicationCommandGuildInteraction,
   APIEmbed,
   APIInteractionDataResolvedChannel,
+  APIInteractionResponseChannelMessageWithSource,
   ApplicationCommandOptionType,
   InteractionResponseType,
   MessageFlags,
+  RESTGetAPIInteractionOriginalResponseResult,
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
+
+import { discordAPIBaseURL, embedPink } from "../../../constants";
+import { DiscordPermissions } from "../../../consts";
 import {
   ExpectedFailure,
   ExpectedPermissionFailure,
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../../../errors";
-
-import { InternalInteraction } from "../../interaction";
-import { Permission, PermissionsData } from "../../../lib/permissions/types";
-import { embedPink } from "../../../constants";
-import { checkDiscordPermissionValue } from "../../../lib/permissions/discordChecks";
-import { Permissions } from "../../../consts";
-import { Channel, Guild } from "@prisma/client";
-import {
-  setChannelRolePermissions,
-  setChannelUserPermissions,
-  setGuildRolePermissions,
-  setGuildUserPermissions,
-} from "../../../lib/permissions/set";
-import {
-  getChannelPermissions,
-  getGuildPermissionsWithChannels,
-  GetGuildPermissionsWithChannelsReturnChannel,
-} from "../../../lib/permissions/get";
-import {
-  removeChannelRolePermissions,
-  removeChannelUserPermissions,
-  removeGuildRolePermissions,
-  removeGuildUserPermissions,
-} from "../../../lib/permissions/remove";
+import { checkIfRoleIsBelowUsersHighestRole } from "../../../lib/permissions/checks";
+import { InternalPermissions } from "../../../lib/permissions/consts";
+import { checkDiscordPermissionValue } from "../../../lib/permissions/utils";
+import { GuildSession } from "../../../lib/session";
+import { addTipToEmbed } from "../../../lib/tips";
+import { InternalInteractionType } from "../../interaction";
+import createPermissionsEmbed from "../../shared/permissions-config";
 import { InteractionReturnData } from "../../types";
 
-import { addTipToEmbed } from "../../../lib/tips";
-import {
-  checkAllPermissions,
-  checkIfUserCanManageRolePermissions,
-} from "../../../lib/permissions/checks";
-
 export default async function handleConfigCommand(
-  internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>,
+  internalInteraction: InternalInteractionType<APIChatInputApplicationCommandGuildInteraction>,
+  session: GuildSession,
   instance: FastifyInstance
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
@@ -70,14 +55,16 @@ export default async function handleConfigCommand(
       return await handlePermissionsSubcommand(
         internalInteraction,
         subcommand,
-        instance
+        instance,
+        session
       );
 
     case "logging-channel":
       return await handleLoggingChannelSubcommandGroup(
         internalInteraction,
         subcommand,
-        instance
+        instance,
+        session
       );
 
     default:
@@ -89,14 +76,12 @@ export default async function handleConfigCommand(
 }
 
 async function handlePermissionsSubcommand(
-  internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>,
+  internalInteraction: InternalInteractionType<APIChatInputApplicationCommandGuildInteraction>,
   subcommandGroup: APIApplicationCommandInteractionDataSubcommandGroupOption,
-  instance: FastifyInstance
+  instance: FastifyInstance,
+  session: GuildSession
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
-  const guild = await instance.prisma.guild.findUnique({
-    where: { id: BigInt(interaction.guild_id) },
-  });
   const subcommand = subcommandGroup.options[0];
   const channelId: string | undefined = (
     subcommand.options?.find(
@@ -110,29 +95,28 @@ async function handlePermissionsSubcommand(
   switch (subcommand.name) {
     case "list":
       return await handlePermissionsListSubcommand({
-        internalInteraction,
         instance,
         channel,
         subcommand,
-        guildStored: guild,
+        session,
       });
 
-    case "set":
-      return await handlePermissionsSetSubcommand({
+    case "manage":
+      return await handlePermissionsManageSubcommand({
         internalInteraction,
         instance,
         channel,
         subcommand,
-        guildStored: guild,
+        session,
       });
 
-    case "remove":
-      return await handlePermissionsRemoveSubcommand({
+    case "quickstart":
+      return await handlePermissionsQuickstartSubcommand({
         internalInteraction,
         instance,
         channel,
         subcommand,
-        guildStored: guild,
+        session,
       });
 
     default:
@@ -143,710 +127,332 @@ async function handlePermissionsSubcommand(
   }
 }
 
-async function handlePermissionsSetSubcommand({
-  internalInteraction,
-  instance,
-  channel,
-  guildStored,
-  subcommand,
-}: {
-  internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>;
-  instance: FastifyInstance;
-  channel?: APIInteractionDataResolvedChannel;
-  guildStored: Guild | null;
-  subcommand: APIApplicationCommandInteractionDataSubcommandOption;
-}): Promise<InteractionReturnData> {
-  const interaction = internalInteraction.interaction;
-  const targetId: string | undefined = (
-    subcommand.options?.find(
-      (option) =>
-        option.name === "target" &&
-        option.type === ApplicationCommandOptionType.Mentionable
-    ) as APIApplicationCommandInteractionDataMentionableOption | undefined
-  )?.value;
-  if (!targetId) {
-    throw new UnexpectedFailure(
-      InteractionOrRequestFinalStatus.APPLICATION_COMMAND_MISSING_EXPECTED_OPTION,
-      "Missing target option"
-    );
-  }
-
-  const cachedGuild = instance.redisGuildManager.getGuild(interaction.guild_id);
-  const resolvedData = interaction.data.resolved;
-  let targetType: "role" | "user";
-  if (resolvedData?.roles && resolvedData.roles[targetId]) {
-    targetType = "role";
-  } else if (
-    resolvedData?.members &&
-    resolvedData.members[targetId] &&
-    resolvedData.users &&
-    resolvedData.users[targetId]
-  ) {
-    targetType = "user";
-    const targetUser = resolvedData.users[targetId];
-    if (targetUser.bot) {
-      throw new ExpectedFailure(
-        InteractionOrRequestFinalStatus.BOT_FOUND_WHEN_USER_EXPECTED,
-        "The target cannot be a bot"
-      );
-    }
-  } else {
-    throw new UnexpectedFailure(
-      InteractionOrRequestFinalStatus.APPLICATION_COMMAND_RESOLVED_MISSING_EXPECTED_VALUE,
-      "Target not found in resolved data"
-    );
-  }
-  let channelStored: Channel | undefined | null;
-  if (channel) {
-    channelStored = await instance.prisma.channel.findUnique({
-      where: { id: BigInt(channel.id) },
-    });
-  }
-  if (
-    !checkDiscordPermissionValue(
-      BigInt(interaction.member.permissions),
-      Permissions.ADMINISTRATOR
-    ) &&
-    ((targetType === "role" &&
-      !(await checkIfUserCanManageRolePermissions({
-        guild: cachedGuild,
-        roleId: targetId,
-        userRoles: interaction.member.roles,
-        userId: interaction.member.user.id,
-        channelId: channel ? channel.id : null,
-        guildPermissions: guildStored?.permissions as PermissionsData,
-        channelPermissions: channelStored?.permissions as PermissionsData,
-      }))) || // If the target is a role, the position of the role must not be higher than the user's highest role
-      (targetType === "user" &&
-        !(await checkAllPermissions({
-          roles: interaction.member.roles,
-          guild: cachedGuild,
-          userId: interaction.member.user.id,
-          guildPermissions: guildStored?.permissions as PermissionsData,
-          channelPermissions: channelStored?.permissions as PermissionsData,
-          permission: Permission.MANAGE_PERMISSIONS,
-        }))))
-  ) {
-    throw new ExpectedPermissionFailure(
-      InteractionOrRequestFinalStatus.USER_MISSING_INTERNAL_BOT_PERMISSION,
-      "You must have the `MANAGE_PERMISSIONS` permission, or be an administrator to use this command. You also must have a role above the target role (if the target is a role)."
-    );
-  }
-
-  const permission: number | undefined = (
-    subcommand.options?.find(
-      (option) =>
-        option.name === "permission" &&
-        option.type === ApplicationCommandOptionType.Integer
-    ) as APIApplicationCommandInteractionDataIntegerOption | undefined
-  )?.value;
-  if (!permission) {
-    throw new UnexpectedFailure(
-      InteractionOrRequestFinalStatus.APPLICATION_COMMAND_MISSING_EXPECTED_OPTION,
-      "Missing permission option"
-    );
-  }
-  if (
-    !(await checkAllPermissions({
-      roles: interaction.member.roles,
-      guild: cachedGuild,
-      userId: interaction.member.user.id,
-      guildPermissions: guildStored?.permissions as PermissionsData,
-      channelPermissions: channelStored?.permissions as PermissionsData,
-      permission: permission,
-    }))
-  ) {
-    throw new ExpectedPermissionFailure(
-      InteractionOrRequestFinalStatus.USER_ATTEMPTED_TO_EDIT_PERMISSION_ABOVE_THEIR_PERMISSION,
-      "The target's permission cannot be higher than your own. Note: This applies to both channel level and guild level"
-    );
-  }
-
-  let previousPermission: Permission | undefined;
-  if (targetType === "role") {
-    previousPermission = (guildStored?.permissions as PermissionsData).roles?.[
-      targetId
-    ];
-    // We also have to check if the past permission was higher, to prevent users from "downgrading" people / roles they shouldn't
-    if (!permission) {
-      throw new UnexpectedFailure(
-        InteractionOrRequestFinalStatus.APPLICATION_COMMAND_MISSING_EXPECTED_OPTION,
-        "Missing permission option"
-      );
-    }
-    if (
-      previousPermission &&
-      !(await checkAllPermissions({
-        roles: interaction.member.roles,
-        guild: cachedGuild,
-        userId: interaction.member.user.id,
-        guildPermissions: guildStored?.permissions as PermissionsData,
-        channelPermissions: channelStored?.permissions as PermissionsData,
-        permission: previousPermission,
-      }))
-    ) {
-      throw new ExpectedPermissionFailure(
-        InteractionOrRequestFinalStatus.USER_ATTEMPTED_TO_EDIT_PERMISSION_ABOVE_THEIR_PERMISSION,
-        "The role's previous permission cannot be higher than your own. Note: This applies to both channel level and guild level"
-      );
-    }
-    if (channel) {
-      await setChannelRolePermissions({
-        roleId: targetId,
-
-        permission: permission,
-        channelId: channel.id,
-        instance,
-        guildId: interaction.guild_id,
-      });
-    } else {
-      await setGuildRolePermissions({
-        roleId: targetId,
-
-        permission: permission,
-        guildId: interaction.guild_id,
-        instance,
-      });
-    }
-  } else if (targetType === "user") {
-    previousPermission = (guildStored?.permissions as PermissionsData).users?.[
-      targetId
-    ];
-    if (
-      previousPermission &&
-      !(await checkAllPermissions({
-        roles: interaction.member.roles,
-        guild: cachedGuild,
-        userId: interaction.member.user.id,
-        guildPermissions: guildStored?.permissions as PermissionsData,
-        channelPermissions: channelStored?.permissions as PermissionsData,
-        permission: previousPermission,
-      }))
-    ) {
-      throw new ExpectedPermissionFailure(
-        InteractionOrRequestFinalStatus.USER_ATTEMPTED_TO_EDIT_PERMISSION_ABOVE_THEIR_PERMISSION,
-        "The user's previous permission cannot be higher than your own. Note: This applies to both channel level and guild level"
-      );
-    }
-    if (channel) {
-      await setChannelUserPermissions({
-        userId: targetId,
-
-        permission: permission,
-        channelId: channel.id,
-        instance,
-        guildId: interaction.guild_id,
-      });
-    } else {
-      await setGuildUserPermissions({
-        userId: targetId,
-
-        permission: permission,
-        guildId: interaction.guild_id,
-        instance,
-      });
-    }
-  }
-  const embed: APIEmbed = {
-    color: embedPink,
-    title: "Permission set",
-    description:
-      `Set permission \`${Permission[permission]}\` for ${
-        targetType == "role" ? `role <@&${targetId}>` : `user <@${targetId}>`
-      } ` +
-      (channel ? `on channel <#${channel.id}>` : "") +
-      (previousPermission
-        ? `\n\nPrevious permission: \`${Permission[previousPermission]}\``
-        : ""),
-  };
-
-  const logEmbed = { ...embed };
-  logEmbed.fields = [
-    {
-      name: "Action By:",
-      value: `<@${interaction.member.user.id}>`,
-    },
-  ];
-  // Send log message
-  await instance.loggingManager.sendLogMessage({
-    guildId: interaction.guild_id,
-    embeds: [logEmbed],
-  });
-
-  return {
-    type: InteractionResponseType.ChannelMessageWithSource,
-    data: {
-      flags: MessageFlags.Ephemeral,
-      embeds: [addTipToEmbed(embed)],
-    },
-  };
-}
-
-async function handlePermissionsRemoveSubcommand({
-  internalInteraction,
-  instance,
-  channel,
-  guildStored,
-  subcommand,
-}: {
-  internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>;
-  instance: FastifyInstance;
-  channel?: APIInteractionDataResolvedChannel;
-  guildStored: Guild | null;
-
-  subcommand: APIApplicationCommandInteractionDataSubcommandOption;
-}): Promise<InteractionReturnData> {
-  const interaction = internalInteraction.interaction;
-
-  const targetId: string | undefined = (
-    subcommand.options?.find(
-      (option) =>
-        option.name === "target" &&
-        option.type === ApplicationCommandOptionType.Mentionable
-    ) as APIApplicationCommandInteractionDataMentionableOption | undefined
-  )?.value;
-  if (!targetId) {
-    throw new UnexpectedFailure(
-      InteractionOrRequestFinalStatus.APPLICATION_COMMAND_MISSING_EXPECTED_OPTION,
-      "Missing target option"
-    );
-  }
-  let targetType: "role" | "user";
-  const resolvedData = interaction.data.resolved;
-  if (resolvedData?.roles && resolvedData.roles[targetId]) {
-    targetType = "role";
-  } else if (
-    resolvedData?.members &&
-    resolvedData.members[targetId] &&
-    resolvedData.users &&
-    resolvedData.users[targetId]
-  ) {
-    targetType = "user";
-    const targetUser = resolvedData.users[targetId];
-    if (targetUser.bot) {
-      throw new ExpectedFailure(
-        InteractionOrRequestFinalStatus.BOT_FOUND_WHEN_USER_EXPECTED,
-        "The target cannot be a bot"
-      );
-    }
-  } else {
-    throw new UnexpectedFailure(
-      InteractionOrRequestFinalStatus.APPLICATION_COMMAND_RESOLVED_MISSING_EXPECTED_VALUE,
-      "Target not found in resolved data"
-    );
-  }
-  const cachedGuild = instance.redisGuildManager.getGuild(interaction.guild_id);
-  let channelStored: Channel | undefined | null;
-  if (channel) {
-    channelStored = await instance.prisma.channel.findUnique({
-      where: { id: BigInt(channel.id) },
-    });
-  }
-  if (
-    !checkDiscordPermissionValue(
-      BigInt(interaction.member.permissions),
-      Permissions.ADMINISTRATOR
-    ) &&
-    ((targetType === "role" &&
-      !(await checkIfUserCanManageRolePermissions({
-        guild: cachedGuild,
-        roleId: targetId,
-        userRoles: interaction.member.roles,
-        userId: interaction.member.user.id,
-        channelId: channel ? channel.id : null,
-        guildPermissions: guildStored?.permissions as PermissionsData,
-        channelPermissions: channelStored?.permissions as PermissionsData,
-      }))) || // If the target is a role, the position of the role must not be higher than the user's highest role
-      (targetType === "user" &&
-        !(await checkAllPermissions({
-          roles: interaction.member.roles,
-          guild: cachedGuild,
-          userId: interaction.member.user.id,
-          guildPermissions: guildStored?.permissions as PermissionsData,
-          channelPermissions: channelStored?.permissions as PermissionsData,
-          permission: Permission.MANAGE_PERMISSIONS,
-        }))))
-  ) {
-    throw new ExpectedPermissionFailure(
-      InteractionOrRequestFinalStatus.USER_MISSING_INTERNAL_BOT_PERMISSION,
-      "You must have the `MANAGE_PERMISSIONS` permission, or be an administrator to use this command. You also must have a role above the target role (if the target is a role)."
-    );
-  }
-
-  let previousPermission: Permission | undefined;
-
-  if (targetType === "role") {
-    previousPermission = (guildStored?.permissions as PermissionsData).roles?.[
-      targetId
-    ];
-    if (!previousPermission) {
-      // Checks for Permission.NONE too as that's falsy
-      throw new ExpectedFailure(
-        InteractionOrRequestFinalStatus.NO_PERMISSION_TO_REMOVE,
-        "No permission to remove for that role"
-      );
-    }
-    // Check if the past permission was higher, to prevent users from "downgrading" people / roles they shouldn't
-    if (
-      !(await checkAllPermissions({
-        roles: interaction.member.roles,
-        guild: cachedGuild,
-        userId: interaction.member.user.id,
-        guildPermissions: guildStored?.permissions as PermissionsData,
-        channelPermissions: channelStored?.permissions as PermissionsData,
-        permission: previousPermission,
-      }))
-    ) {
-      throw new ExpectedPermissionFailure(
-        InteractionOrRequestFinalStatus.USER_ATTEMPTED_TO_EDIT_PERMISSION_ABOVE_THEIR_PERMISSION,
-        "The role's previous permission cannot be higher than your own. Note: This applies to both channel level and guild level"
-      );
-    }
-
-    if (channel) {
-      await removeChannelRolePermissions({
-        roleId: targetId,
-        channelId: channel.id,
-        instance,
-        guildId: interaction.guild_id,
-      });
-    } else {
-      await removeGuildRolePermissions({
-        roleId: targetId,
-        guildId: interaction.guild_id,
-        instance,
-      });
-    }
-  } else if (targetType === "user") {
-    previousPermission = (guildStored?.permissions as PermissionsData).users?.[
-      targetId
-    ];
-    if (!previousPermission) {
-      // Checks for Permission.NONE too as that's falsy
-      throw new ExpectedFailure(
-        InteractionOrRequestFinalStatus.NO_PERMISSION_TO_REMOVE,
-        "No permission to remove for that role"
-      );
-    }
-    // Check if the past permission was higher, to prevent users from "downgrading" people / roles they shouldn't
-    if (
-      !(await checkAllPermissions({
-        roles: interaction.member.roles,
-        guild: cachedGuild,
-        userId: interaction.member.user.id,
-        guildPermissions: guildStored?.permissions as PermissionsData,
-        channelPermissions: channelStored?.permissions as PermissionsData,
-        permission: previousPermission,
-      }))
-    ) {
-      throw new ExpectedPermissionFailure(
-        InteractionOrRequestFinalStatus.USER_ATTEMPTED_TO_EDIT_PERMISSION_ABOVE_THEIR_PERMISSION,
-        "The target's previous permission cannot be higher than your own. Note: This applies to both channel level and guild level"
-      );
-    }
-    if (channel) {
-      await removeChannelUserPermissions({
-        userId: targetId,
-        channelId: channel.id,
-        instance,
-        guildId: interaction.guild_id,
-      });
-    } else {
-      await removeGuildUserPermissions({
-        userId: targetId,
-
-        guildId: interaction.guild_id,
-        instance,
-      });
-    }
-  }
-  const embed: APIEmbed = {
-    color: embedPink,
-    title: "Permission removed",
-    description:
-      `Removed permission \`${
-        previousPermission ? Permission[previousPermission] : "None"
-      }\` for ${
-        targetType == "role" ? `role <@&${targetId}>` : `user <@${targetId}>`
-      } ` + (channel ? `on channel <#${channel.id}>` : ""),
-  };
-  const logEmbed = { ...embed };
-  logEmbed.fields = [
-    {
-      name: "Action By:",
-      value: `<@${interaction.member.user.id}>`,
-    },
-  ];
-  // Send log message
-  await instance.loggingManager.sendLogMessage({
-    guildId: interaction.guild_id,
-    embeds: [logEmbed],
-  });
-  return {
-    type: InteractionResponseType.ChannelMessageWithSource,
-    data: {
-      flags: MessageFlags.Ephemeral,
-      embeds: [addTipToEmbed(embed)],
-    },
-  };
-}
-interface SortPermissionsReturn {
-  config: string[];
-  permissions: string[];
-  delete: string[];
-  edit: string[];
-  send: string[];
-  view: string[];
-}
-
-function sortPermissions(
-  permissions: Record<string, number> | undefined
-): SortPermissionsReturn {
-  const sorted: SortPermissionsReturn = {
-    config: [],
-    permissions: [],
-    delete: [],
-    send: [],
-    edit: [],
-    view: [],
-  };
-  if (!permissions) {
-    return sorted;
-  }
-
-  for (const objectId in permissions) {
-    if (Object.prototype.hasOwnProperty.call(permissions, objectId)) {
-      const permission = permissions[objectId];
-      switch (permission) {
-        case Permission.MANAGE_CONFIG:
-          sorted.config.push(objectId);
-          break;
-        case Permission.MANAGE_PERMISSIONS:
-          sorted.permissions.push(objectId);
-          break;
-        case Permission.DELETE_MESSAGES:
-          sorted.delete.push(objectId);
-          break;
-        case Permission.SEND_MESSAGES:
-          sorted.send.push(objectId);
-          break;
-        case Permission.EDIT_MESSAGES:
-          sorted.edit.push(objectId);
-          break;
-        case Permission.VIEW_MESSAGES:
-          sorted.view.push(objectId);
-          break;
-
-        default:
-          break;
-      }
-    }
-  }
-  return sorted;
-}
-
-function hasLevelPermissionsSet(permissionsLevel: Record<string, number>) {
-  return Object.keys(permissionsLevel).length > 0;
-}
-
-function hasPermissionsSet(permissions: PermissionsData) {
-  return (
-    (permissions.users && hasLevelPermissionsSet(permissions.users)) ||
-    (permissions.roles && hasLevelPermissionsSet(permissions.roles))
-  );
-}
 async function handlePermissionsListSubcommand({
+  instance,
+  channel,
+  session,
+}: {
+  instance: FastifyInstance;
+  channel?: APIInteractionDataResolvedChannel;
+
+  subcommand: APIApplicationCommandInteractionDataSubcommandOption;
+  session: GuildSession;
+}): Promise<APIInteractionResponseChannelMessageWithSource> {
+  // The presence of `channel` indicates if the subcommand is for the guild level (absence) or channel level
+  // Guild: Lists all users and role with permissions set on the guild, and all channels with permissions set
+  // Channel: Lists all users and role with permissions set on the channel
+  let description: string;
+  let entitiesWithPermissions: { users: Snowflake[]; roles: Snowflake[] };
+  if (channel) {
+    description = `Users and roles with permissions on ${channel.name}`;
+    entitiesWithPermissions =
+      await instance.permissionManager.getChannelEntitiesWithPermissions(
+        channel.id
+      );
+  } else {
+    description = `Users and roles with permissions`;
+    entitiesWithPermissions =
+      await instance.permissionManager.getEntitiesWithPermissions(
+        session.guildId
+      );
+  }
+  description +=
+    `\n**Roles**: ${
+      entitiesWithPermissions.roles.length > 0
+        ? "<@&" + entitiesWithPermissions.roles.join(">, <@&") + ">"
+        : "None"
+    }` +
+    `\n**Users**: ${
+      entitiesWithPermissions.users.length > 0
+        ? "<@" + entitiesWithPermissions.users.join(">, <@") + ">"
+        : "None"
+    }`;
+  let extraDescription = "";
+  if (!channel) {
+    // Guild level so show some extra tips
+    const channelsWithPermissions =
+      await instance.permissionManager.getChannelsWithPermissions(
+        session.guildId
+      );
+    if (channelsWithPermissions.length > 0) {
+      extraDescription += `\n\n**Channels with permissions:** <#${channelsWithPermissions.join(
+        ">, <#"
+      )}>`;
+    }
+    extraDescription +=
+      "\n*To view permissions on a channel level pass the channel option on this command*";
+  }
+  return {
+    type: InteractionResponseType.ChannelMessageWithSource,
+    data: {
+      embeds: [
+        addTipToEmbed({
+          title: `Permissions for ${channel ? "#" + channel.name : "guild"}`,
+          description: description + extraDescription,
+          color: embedPink,
+        }),
+      ],
+      flags: MessageFlags.Ephemeral,
+    },
+  };
+}
+
+async function handlePermissionsManageSubcommand({
   internalInteraction,
   instance,
   channel,
-  guildStored,
   subcommand,
+  session,
 }: {
-  internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>;
+  internalInteraction: InternalInteractionType<APIChatInputApplicationCommandGuildInteraction>;
   instance: FastifyInstance;
   channel?: APIInteractionDataResolvedChannel;
-  guildStored: Guild | null;
 
   subcommand: APIApplicationCommandInteractionDataSubcommandOption;
-}): Promise<InteractionReturnData> {
+  session: GuildSession;
+}): Promise<APIInteractionResponseChannelMessageWithSource> {
   const interaction = internalInteraction.interaction;
-  const cachedGuild = instance.redisGuildManager.getGuild(interaction.guild_id);
-  let channelStored: Channel | undefined | null;
-  if (channel) {
-    channelStored = await instance.prisma.channel.findUnique({
-      where: { id: BigInt(channel.id) },
-    });
+  const targetId: string | undefined = (
+    subcommand.options?.find(
+      (option) =>
+        option.name === "target" &&
+        option.type === ApplicationCommandOptionType.Mentionable
+    ) as APIApplicationCommandInteractionDataMentionableOption | undefined
+  )?.value;
+  if (targetId === undefined) {
+    throw new UnexpectedFailure(
+      InteractionOrRequestFinalStatus.APPLICATION_COMMAND_MISSING_EXPECTED_OPTION,
+      "Missing target option"
+    );
   }
 
+  const resolvedData = interaction.data.resolved;
+  let targetType: "role" | "user";
+  let targetPermissions: Snowflake | undefined;
+
+  if (resolvedData?.roles && resolvedData.roles[targetId] !== undefined) {
+    targetType = "role";
+    targetPermissions = resolvedData.roles[targetId].permissions;
+  } else if (
+    resolvedData?.users &&
+    resolvedData.users[targetId] !== undefined
+  ) {
+    targetType = "user";
+    const targetUser = resolvedData.users[targetId];
+    if (targetUser.bot ?? false) {
+      throw new ExpectedFailure(
+        InteractionOrRequestFinalStatus.BOT_FOUND_WHEN_USER_EXPECTED,
+        "The target cannot be a bot"
+      );
+    }
+    // If the user is in the guild, then it will be in the members resolved data
+    // Otherwise not
+    // If the user is in the guild, set the permissions value to it's permissions
+    if (resolvedData?.members && resolvedData.members[targetId] !== undefined) {
+      targetPermissions =
+        resolvedData.members[targetId].permissions ?? undefined;
+    }
+  } else {
+    throw new UnexpectedFailure(
+      InteractionOrRequestFinalStatus.APPLICATION_COMMAND_RESOLVED_MISSING_EXPECTED_VALUE,
+      "Target not found in resolved data"
+    );
+  }
+  // Permissions are checked here, just so that users cannot view a settings config that they cannot then change
   if (
-    !checkDiscordPermissionValue(
-      BigInt(interaction.member.permissions),
-      Permissions.ADMINISTRATOR
-    ) &&
-    !(await checkAllPermissions({
-      roles: interaction.member.roles,
-      guild: cachedGuild,
-      userId: interaction.member.user.id,
-      guildPermissions: guildStored?.permissions as PermissionsData,
-      channelPermissions: channelStored?.permissions as PermissionsData,
-      permission: Permission.MANAGE_PERMISSIONS,
-    }))
+    !(
+      await session.hasBotPermissions(
+        InternalPermissions.MANAGE_PERMISSIONS,
+        undefined
+      )
+    ).allPresent
   ) {
     throw new ExpectedPermissionFailure(
       InteractionOrRequestFinalStatus.USER_MISSING_INTERNAL_BOT_PERMISSION,
-      "You must have the `MANAGE_PERMISSIONS` permission, or be an administrator to use this command. You also must have a role above the target role (if the target is a role)."
+      "You need the MANAGE_PERMISSIONS permission to manage permissions"
     );
   }
-  const filterBy: string | undefined = (
+  if (targetType === "role") {
+    if (
+      !(await checkIfRoleIsBelowUsersHighestRole({
+        session,
+        roleId: targetId,
+      }))
+    ) {
+      throw new ExpectedPermissionFailure(
+        InteractionOrRequestFinalStatus.USER_ROLES_NOT_HIGH_ENOUGH,
+        "The role you are trying to manage permissions for is not below your highest role"
+      );
+    }
+  }
+
+  // Not deferred as no logic is 'heavy'
+
+  const hasAdminPermission =
+    targetPermissions !== undefined &&
+    checkDiscordPermissionValue(
+      BigInt(targetPermissions),
+      DiscordPermissions.ADMINISTRATOR
+    );
+
+  const permissionReturnData = await createPermissionsEmbed({
+    targetType,
+    targetId,
+    channelId: channel?.id ?? null,
+    guildId: session.guildId,
+    instance,
+    first: true,
+    hasAdminPermission,
+  });
+
+  // Void function that waits a bit then fetches the original interaction message
+  // To get it's id
+  void (async () => {
+    // Ensure the interaction was responded to (it's a bit overkill but it doesn't really matter too much)
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    instance.permissionManager.interactionCacheManager.registerInteraction({
+      targetId: targetId,
+      targetType: targetType,
+      channelId: channel?.id ?? null,
+      guildId: session.guildId,
+      interactionId: interaction.id,
+      interactionToken: interaction.token,
+      messageId: (
+        (
+          await axios.request({
+            method: "GET",
+            url: `${discordAPIBaseURL}/webhooks/${instance.envVars.DISCORD_CLIENT_ID}/${internalInteraction.interaction.token}/messages/@original`,
+          })
+        ).data as RESTGetAPIInteractionOriginalResponseResult
+      ).id,
+    });
+  })();
+  return {
+    type: InteractionResponseType.ChannelMessageWithSource,
+    data: {
+      embeds: [permissionReturnData.embed],
+      components: permissionReturnData.components,
+      flags: MessageFlags.Ephemeral,
+    },
+  };
+}
+
+async function handlePermissionsQuickstartSubcommand({
+  internalInteraction,
+  instance,
+  channel,
+  subcommand,
+  session,
+}: {
+  internalInteraction: InternalInteractionType<APIChatInputApplicationCommandGuildInteraction>;
+  instance: FastifyInstance;
+  channel?: APIInteractionDataResolvedChannel;
+  subcommand: APIApplicationCommandInteractionDataSubcommandOption;
+  session: GuildSession;
+}): Promise<APIInteractionResponseChannelMessageWithSource> {
+  const interaction = internalInteraction.interaction;
+  const targetId: string | undefined = (
     subcommand.options?.find(
       (option) =>
-        option.name === "type-filter" &&
-        option.type === ApplicationCommandOptionType.String
-    ) as APIApplicationCommandInteractionDataChannelOption
+        option.name === "target" &&
+        option.type === ApplicationCommandOptionType.Mentionable
+    ) as APIApplicationCommandInteractionDataMentionableOption | undefined
   )?.value;
-
-  let permissions: PermissionsData;
-  let channels: GetGuildPermissionsWithChannelsReturnChannel[] | null = null;
-  let embedTitle = "";
-  let levelMessage = "";
-  if (channel) {
-    embedTitle = `Bot permissions for users and roles on #${channel.name}`;
-    levelMessage = `on <#${channel.id}>`;
-    const data = await getChannelPermissions(channel.id, instance);
-    permissions = data ? data : {};
-  } else {
-    // Guild level
-    embedTitle = `Bot permissions for users and roles on the guild`;
-    levelMessage = `on the guild`;
-    if (!guildStored) {
-      permissions = {};
-    } else {
-      const data = await getGuildPermissionsWithChannels(
-        guildStored.id.toString(),
-        instance
-      );
-      permissions = data && data.permissions ? data.permissions : {};
-      channels = data ? data.channels : null;
-    }
-  }
-
-  let description = "";
-
-  if (filterBy !== "users") {
-    if (permissions.roles) {
-      const rolesSorted = sortPermissions(permissions.roles);
-      if (hasLevelPermissionsSet(permissions.roles)) {
-        description =
-          `**Roles:**\n` +
-          `${
-            rolesSorted.config.length
-              ? `__Manage Config: <@&${rolesSorted.config.join(">, <@&")}>\n`
-              : ""
-          }` +
-          `${
-            rolesSorted.permissions.length
-              ? `__Manage Permissions__: <@&${rolesSorted.permissions.join(
-                  ">, <@&"
-                )}>\n`
-              : ""
-          }` +
-          `${
-            rolesSorted.delete.length
-              ? `__Delete Messages__: <@&${rolesSorted.delete.join(
-                  ">, <@&"
-                )}>\n`
-              : ""
-          }` +
-          `${
-            rolesSorted.send.length
-              ? `__Send Messages__: <@&${rolesSorted.send.join(">, <@&")}>\n`
-              : ""
-          }` +
-          `${
-            rolesSorted.edit.length
-              ? `__Edit Messages__: <@&${rolesSorted.edit.join(">, <@&")}>\n`
-              : ""
-          }` +
-          `${
-            rolesSorted.view.length
-              ? `__View Messages__: <@&${rolesSorted.view.join(">, <@&")}>\n`
-              : ""
-          }`;
-      } else {
-        description = `**No roles with bot permissions ${levelMessage}**\n`;
-      }
-    } else {
-      description = `**No roles with bot permissions ${levelMessage}**\n`;
-    }
-  }
-  if (filterBy !== "roles") {
-    if (permissions.users) {
-      const usersSorted = sortPermissions(permissions.users);
-      if (hasLevelPermissionsSet(permissions.users)) {
-        description =
-          description +
-          `\n**Users:**\n` +
-          `${
-            usersSorted.config.length
-              ? `__Manage Config: <@&${usersSorted.config.join(">, <@&")}>\n`
-              : ""
-          }` +
-          `${
-            usersSorted.permissions.length
-              ? `__Manage Permissions__: <@&${usersSorted.permissions.join(
-                  ">, <@&"
-                )}>\n`
-              : ""
-          }` +
-          `${
-            usersSorted.delete.length
-              ? `__Delete Messages__: <@${usersSorted.delete.join(">, <@")}>\n`
-              : ""
-          }` +
-          `${
-            usersSorted.send.length
-              ? `__Send Messages__: <@${usersSorted.send.join(">, <@")}>\n`
-              : ""
-          }` +
-          `${
-            usersSorted.edit.length
-              ? `__Edit Messages__: <@${usersSorted.edit.join(">, <@")}>\n`
-              : ""
-          }` +
-          `${
-            usersSorted.view.length
-              ? `__View Messages__: <@${usersSorted.view.join(">, <@")}>\n`
-              : ""
-          }`;
-      } else {
-        description =
-          description + `\n**No users with bot permissions ${levelMessage}**\n`;
-      }
-    } else {
-      description =
-        description + `\n**No users with bot permissions ${levelMessage}**\n`;
-    }
-  }
-  // Display channels with permissions on them
-  if (channels) {
-    const channelsWithPermissions = channels.filter(
-      (channel) => channel.permissions && hasPermissionsSet(channel.permissions)
+  if (targetId === undefined) {
+    throw new UnexpectedFailure(
+      InteractionOrRequestFinalStatus.APPLICATION_COMMAND_MISSING_EXPECTED_OPTION,
+      "Missing target option"
     );
-    if (channelsWithPermissions.length > 0) {
-      description =
-        description +
-        `\n**Other channels with bot permissions:** ${channelsWithPermissions
-          .map((channel) => `<#${channel.id}>`)
-          .join(", ")}\n`;
+  }
+  let targetType: "role" | "user";
+  let targetPermissions: Snowflake | undefined;
+  const resolvedData = interaction.data.resolved;
+
+  if (resolvedData?.roles && resolvedData.roles[targetId] !== undefined) {
+    targetType = "role";
+    targetPermissions = resolvedData.roles[targetId].permissions;
+  } else if (
+    resolvedData?.users &&
+    resolvedData.users[targetId] !== undefined
+  ) {
+    targetType = "user";
+    const targetUser = resolvedData.users[targetId];
+    if (targetUser.bot ?? false) {
+      throw new ExpectedFailure(
+        InteractionOrRequestFinalStatus.BOT_FOUND_WHEN_USER_EXPECTED,
+        "The target cannot be a bot"
+      );
     }
+    // If the user is in the guild, then it will be in the members resolved data
+    // Otherwise not
+    // If the user is in the guild, set the permissions value to it's permissions
+    if (resolvedData?.members && resolvedData.members[targetId] !== undefined) {
+      targetPermissions =
+        resolvedData.members[targetId].permissions ?? undefined;
+    }
+  } else {
+    throw new UnexpectedFailure(
+      InteractionOrRequestFinalStatus.APPLICATION_COMMAND_RESOLVED_MISSING_EXPECTED_VALUE,
+      "Target not found in resolved data"
+    );
+  }
+  const preset: "message-access" | "management-access" | undefined = (
+    subcommand.options?.find(
+      (option) =>
+        option.name === "preset" &&
+        option.type === ApplicationCommandOptionType.String
+    ) as APIApplicationCommandInteractionDataStringOption | undefined
+  )?.value as "message-access" | "management-access" | undefined;
+
+  if (preset === "management-access" && channel !== undefined) {
+    throw new ExpectedFailure(
+      InteractionOrRequestFinalStatus.MANAGEMENT_PERMISSIONS_CANNOT_BE_SET_ON_CHANNEL_LEVEL,
+      "The management preset can only be set on guild level"
+    );
   }
 
-  // new line at start of user section to get more separation
-  // Only display tip for the guild level command
-  if (!channel) {
-    description =
-      description +
-      "\n*To view permissions on a channel level pass the channel option on this command*";
+  let permissions: number[] = [];
+  if (preset === "message-access") {
+    permissions = [
+      InternalPermissions.VIEW_MESSAGES,
+      InternalPermissions.EDIT_MESSAGES,
+      InternalPermissions.SEND_MESSAGES,
+      InternalPermissions.DELETE_MESSAGES,
+    ];
+  }
+  if (preset === "management-access") {
+    permissions = [
+      ...permissions,
+      InternalPermissions.MANAGE_PERMISSIONS,
+      InternalPermissions.MANAGE_CONFIG,
+    ];
+  }
+
+  if (targetType === "role" && channel === undefined) {
+    await instance.permissionManager.setRolePermissions({
+      roleId: targetId,
+      permissionsToAllow: permissions,
+      permissionsToDeny: [],
+      session,
+    });
+  } else if (targetType === "role" && channel !== undefined) {
+    await instance.permissionManager.setChannelRolePermissions({
+      channelId: channel.id,
+      roleId: targetId,
+      permissionsToAllow: permissions,
+      permissionsToDeny: [],
+      permissionsToReset: [],
+      session,
+    });
+  } else {
+    await instance.permissionManager.setUserPermissions({
+      userId: targetId,
+      permissionsToAllow: permissions,
+      permissionsToDeny: [],
+      permissionsToReset: [],
+      session,
+      channelId: channel?.id,
+    });
   }
 
   return {
@@ -854,10 +460,33 @@ async function handlePermissionsListSubcommand({
     data: {
       embeds: [
         addTipToEmbed({
-          title: `${embedTitle}${filterBy ? `, filtered by ${filterBy}` : ""}`,
+          title: "Permissions Quickstart",
+          description:
+            `The permissions preset ${
+              preset === "message-access"
+                ? "message access with the permissions `VIEW_MESSAGES`, `EDIT_MESSAGES`, `SEND_MESSAGES`, `DELETE_MESSAGES` "
+                : ""
+            }` +
+            `${
+              preset === "management-access"
+                ? "the permissions preset management access with the permissions `MANAGE_PERMISSIONS`, `MANAGE_CONFIG` "
+                : ""
+            }` +
+            `have been allowed for ${
+              targetType === "user" ? `<@${targetId}>` : `<@&${targetId}>`
+            }${
+              channel !== undefined ? ` on the channel <#${channel.id}>` : ""
+            }.` + // Add note if the target has admin perms about how they bypass permissions
+            (targetPermissions !== undefined
+              ? checkDiscordPermissionValue(
+                  BigInt(targetPermissions),
+                  DiscordPermissions.ADMINISTRATOR
+                )
+                ? "\n\nNote: The target has the discord `ADMINISTRATOR` permission. Any user with this permission will bypass bot permission checks (all will be allowed)"
+                : ""
+              : ""),
           color: embedPink,
           timestamp: new Date().toISOString(),
-          description,
         }),
       ],
       flags: MessageFlags.Ephemeral,
@@ -866,36 +495,12 @@ async function handlePermissionsListSubcommand({
 }
 
 async function handleLoggingChannelSubcommandGroup(
-  internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>,
+  internalInteraction: InternalInteractionType<APIChatInputApplicationCommandGuildInteraction>,
   subcommandGroup: APIApplicationCommandInteractionDataSubcommandGroupOption,
-  instance: FastifyInstance
+  instance: FastifyInstance,
+  session: GuildSession
 ): Promise<InteractionReturnData> {
-  const interaction = internalInteraction.interaction;
-  const guild = await instance.prisma.guild.findUnique({
-    where: { id: BigInt(interaction.guild_id) },
-  });
-  const cachedGuild = instance.redisGuildManager.getGuild(interaction.guild_id);
   const subcommand = subcommandGroup.options[0];
-
-  if (
-    !checkDiscordPermissionValue(
-      BigInt(interaction.member.permissions),
-      Permissions.ADMINISTRATOR
-    ) &&
-    !(await checkAllPermissions({
-      roles: interaction.member.roles,
-      guild: cachedGuild,
-      userId: interaction.member.user.id,
-      guildPermissions: (guild?.permissions as PermissionsData).users,
-      channelPermissions: undefined, // Channel permissions do not effect config
-      permission: Permission.MANAGE_CONFIG,
-    }))
-  ) {
-    throw new ExpectedPermissionFailure(
-      InteractionOrRequestFinalStatus.USER_MISSING_INTERNAL_BOT_PERMISSION,
-      "You are missing the `MANAGE_CONFIG` permission"
-    );
-  }
 
   switch (subcommand.name) {
     case "set":
@@ -903,12 +508,14 @@ async function handleLoggingChannelSubcommandGroup(
         internalInteraction,
         subcommand,
         instance,
+        session,
       });
 
     case "remove":
       return await handleLoggingChannelRemoveSubcommand({
         internalInteraction,
         instance,
+        session,
       });
 
     case "get":
@@ -929,23 +536,14 @@ async function handleLoggingChannelSetSubcommand({
   internalInteraction,
   subcommand,
   instance,
+  session,
 }: {
-  internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>;
+  internalInteraction: InternalInteractionType<APIChatInputApplicationCommandGuildInteraction>;
   subcommand: APIApplicationCommandInteractionDataSubcommandOption;
   instance: FastifyInstance;
+  session: GuildSession;
 }): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
-  if (
-    !checkDiscordPermissionValue(
-      BigInt(interaction.member.permissions),
-      Permissions.ADMINISTRATOR
-    )
-  ) {
-    throw new ExpectedPermissionFailure(
-      InteractionOrRequestFinalStatus.USER_MISSING_DISCORD_PERMISSION,
-      "You must be an administrator to use this command"
-    );
-  }
 
   const channelId = (
     subcommand.options?.find(
@@ -954,7 +552,7 @@ async function handleLoggingChannelSetSubcommand({
         option.name === "channel"
     ) as APIApplicationCommandInteractionDataChannelOption | undefined
   )?.value;
-  if (!channelId) {
+  if (channelId === undefined) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.APPLICATION_COMMAND_MISSING_EXPECTED_OPTION,
       "Missing channel option"
@@ -964,17 +562,14 @@ async function handleLoggingChannelSetSubcommand({
   // This allows the logging channel to be set to a channel the bot has already created a webhook in, even if it does not currently have
   // the required permissions to create a webhook
   const previousChannelId =
-    await instance.loggingManager.setGuildLoggingChannel(
-      interaction.guild_id,
-      channelId
-    );
+    await instance.loggingManager.setGuildLoggingChannel(channelId, session);
 
   let description: string;
   let title: string;
   if (previousChannelId === channelId) {
     description = `Logging channel not changed`;
     title = "Logging channel not changed";
-  } else if (previousChannelId) {
+  } else if (previousChannelId !== null) {
     description = `Logging channel set to <#${channelId}> from <#${previousChannelId}>`;
     title = "Logging channel updated";
   } else if (channelId) {
@@ -994,7 +589,7 @@ async function handleLoggingChannelSetSubcommand({
   logEmbed.fields = [
     {
       name: "Action By:",
-      value: `<@${interaction.member.user.id}>`,
+      value: `<@${session.userId}>`,
     },
   ];
   if (previousChannelId !== channelId) {
@@ -1018,34 +613,23 @@ async function handleLoggingChannelSetSubcommand({
 async function handleLoggingChannelRemoveSubcommand({
   internalInteraction,
   instance,
+  session,
 }: {
-  internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>;
+  internalInteraction: InternalInteractionType<APIChatInputApplicationCommandGuildInteraction>;
   instance: FastifyInstance;
+  session: GuildSession;
 }): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
-  if (
-    !checkDiscordPermissionValue(
-      BigInt(interaction.member.permissions),
-      Permissions.ADMINISTRATOR
-    )
-  ) {
-    throw new ExpectedPermissionFailure(
-      InteractionOrRequestFinalStatus.USER_MISSING_DISCORD_PERMISSION,
-      "You must be an administrator to use this command"
-    );
-  }
 
   // Webhook permissions are not checked here for the bot, since they are checked before setting the logging channel
   // This allows the logging channel to be set to a channel the bot has already created a webhook in, even if it does not currently have
   // the required permissions to create a webhook
   const previousChannelId =
-    await instance.loggingManager.removeGuildLoggingChannel(
-      interaction.guild_id
-    );
+    await instance.loggingManager.removeGuildLoggingChannel(session);
 
   let description: string;
   let title: string;
-  if (!previousChannelId) {
+  if (previousChannelId === null) {
     description = `Logging channel not changed`;
     title = "Logging channel not changed";
   } else {
@@ -1062,10 +646,10 @@ async function handleLoggingChannelRemoveSubcommand({
   logEmbed.fields = [
     {
       name: "Action By:",
-      value: `<@${interaction.member.user.id}>`,
+      value: `<@${session.userId}>`,
     },
   ];
-  if (previousChannelId) {
+  if (previousChannelId !== null) {
     // Should not send a log if not changed
 
     // Sending log to previous channel
@@ -1092,21 +676,10 @@ async function handleLoggingChannelGetSubcommand({
   internalInteraction,
   instance,
 }: {
-  internalInteraction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>;
+  internalInteraction: InternalInteractionType<APIChatInputApplicationCommandGuildInteraction>;
   instance: FastifyInstance;
 }): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
-  if (
-    !checkDiscordPermissionValue(
-      BigInt(interaction.member.permissions),
-      Permissions.ADMINISTRATOR
-    )
-  ) {
-    throw new ExpectedPermissionFailure(
-      InteractionOrRequestFinalStatus.USER_MISSING_DISCORD_PERMISSION,
-      "You must be an administrator to use this command"
-    );
-  }
 
   const logChannelId = await instance.loggingManager.getGuildLoggingChannel(
     interaction.guild_id
@@ -1115,9 +688,10 @@ async function handleLoggingChannelGetSubcommand({
     title: "Current logging channel",
     color: embedPink,
     timestamp: new Date().toISOString(),
-    description: logChannelId
-      ? `The current logging channel is <#${logChannelId}>`
-      : "No logging channel set",
+    description:
+      logChannelId !== null
+        ? `The current logging channel is <#${logChannelId}>`
+        : "No logging channel set",
   };
 
   return {

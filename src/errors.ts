@@ -26,7 +26,8 @@ enum InteractionOrRequestFinalStatus {
   BOT_FOUND_WHEN_USER_EXPECTED,
   NO_PERMISSION_TO_REMOVE,
   TAG_NOT_FOUND,
-  MANAGE_CONFIG_PERMISSION_CANNOT_BE_SET_ON_CHANNEL_LEVEL,
+  NO_PERMISSIONS_PRESET_SELECTED,
+  MANAGEMENT_PERMISSIONS_CANNOT_BE_SET_ON_CHANNEL_LEVEL,
   GENERIC_EXPECTED_PERMISSIONS_FAILURE = 3000,
   USER_MISSING_DISCORD_PERMISSION,
   BOT_MISSING_DISCORD_PERMISSION,
@@ -60,6 +61,7 @@ enum InteractionOrRequestFinalStatus {
   OAUTH_REQUEST_FAILED,
   CREATE_WEBHOOK_RESULT_MISSING_TOKEN,
   ROLE_NOT_IN_CACHE,
+  PERMISSIONS_CANNOT_CROSSOVER_WHEN_UPDATING,
 }
 
 class CustomError extends Error {
@@ -97,11 +99,11 @@ class UnexpectedFailure extends CustomError {
 }
 
 export {
-  InteractionOrRequestFinalStatus,
+  CustomError,
   ExpectedFailure,
-  ExpectedPermissionFailure,
   ExpectedOauth2Failure,
+  ExpectedPermissionFailure,
+  InteractionOrRequestFinalStatus,
   LimitHit,
   UnexpectedFailure,
-  CustomError,
 };

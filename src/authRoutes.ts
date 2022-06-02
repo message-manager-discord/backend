@@ -3,8 +3,9 @@ import { FastifyInstance } from "fastify";
 import httpErrors from "http-errors";
 const { Forbidden } = httpErrors;
 import { Static, Type } from "@sinclair/typebox";
-import { v5 as uuidv5 } from "uuid";
 import crypto from "crypto";
+import { v5 as uuidv5 } from "uuid";
+
 import DiscordOauthRequests from "./discordOauth";
 
 const CallbackQuerystring = Type.Object({
@@ -43,10 +44,7 @@ const addPlugin = async (instance: FastifyInstance) => {
       const { redirect_to } = request.query;
 
       const state = crypto.randomBytes(16).toString("hex");
-      await instance.redisCache.setState(
-        state,
-        redirect_to ? redirect_to : null
-      );
+      await instance.redisCache.setState(state, redirect_to ?? null);
 
       return reply.redirect(
         307,
@@ -66,7 +64,7 @@ const addPlugin = async (instance: FastifyInstance) => {
     },
     async (request, reply) => {
       const { code, state } = request.query;
-      if (!state) {
+      if (state === undefined) {
         return new Forbidden("Missing state");
       }
       const cachedState = await instance.redisCache.getState(state);
@@ -103,7 +101,7 @@ const addPlugin = async (instance: FastifyInstance) => {
       const date = new Date();
       date.setDate(date.getDate() + 7);
 
-      const redirectPath = cachedState.redirectPath || "/";
+      const redirectPath = cachedState.redirectPath ?? "/";
       return reply
         .setCookie("_HOST-session", session, {
           secure: true,

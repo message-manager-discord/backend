@@ -2,6 +2,7 @@
 // There can be more than one, and it will be random
 
 import { APIEmbed } from "discord-api-types/v9";
+
 import { allTips } from "./tips";
 
 // Chance of any tip happening
@@ -31,4 +32,4 @@ function addTipToEmbed(embed: APIEmbed): APIEmbed {
   }
   return embed;
 }
-export { selectTip, addTipToEmbed, Tip };
+export { addTipToEmbed, selectTip, Tip };

@@ -1,45 +1,62 @@
 import {
   APIEmbed,
   APIInteractionResponseChannelMessageWithSource,
+  APIMessage,
   APIMessageApplicationCommandGuildInteraction,
   APIMessageComponent,
   InteractionResponseType,
   MessageFlags,
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
+import { FormDataEncoder } from "form-data-encoder";
+import { Blob, FormData } from "formdata-node";
+import { Readable } from "stream";
+
 import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../../../errors";
-import { InternalInteraction } from "../../interaction";
-
-import { Blob, FormData } from "formdata-node";
-import { Readable } from "stream";
-
-import { FormDataEncoder } from "form-data-encoder";
-
+import { GuildSession } from "../../../lib/session";
+import { InternalInteractionType } from "../../interaction";
 import { InteractionReturnData } from "../../types";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function handleFetchMessageCommand(
-  internalInteraction: InternalInteraction<APIMessageApplicationCommandGuildInteraction>,
+  internalInteraction: InternalInteractionType<APIMessageApplicationCommandGuildInteraction>,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  session: GuildSession,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   instance: FastifyInstance
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   // Returns the content of the message in a txt file format
   const messageId = interaction.data.target_id;
-  const message = interaction.data.resolved.messages[messageId];
-  if (!message) {
+  const message = interaction.data.resolved.messages[messageId] as
+    | APIMessage
+    | undefined;
+  if (message === undefined) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.APPLICATION_COMMAND_RESOLVED_MISSING_EXPECTED_VALUE,
       "Message not found in resolved data"
     );
   }
+  console.log(JSON.stringify(message));
+  console.log(
+    message.content.length < 1 &&
+      message.embeds.length < 1 &&
+      !message.components
+  );
+  console.log(message.content.length < 1);
+  console.log(message.embeds.length < 1);
+  console.log((message.components?.length ?? 0) < 1);
 
   const form = new FormData();
   let isJson = false;
-  if (!message.content && !message.embeds && !message.components) {
+  if (
+    message.content.length < 1 &&
+    message.embeds.length < 1 &&
+    (message.components?.length ?? 0) < 1
+  ) {
     return {
       type: InteractionResponseType.ChannelMessageWithSource,
       data: {
@@ -48,8 +65,8 @@ export default async function handleFetchMessageCommand(
       },
     };
   } else if (
-    (message.embeds && message.embeds.length > 0) ||
-    (message.components && message.components.length > 0)
+    message.embeds.length > 0 ||
+    (message.components?.length ?? 0) < 1
   ) {
     interface FileData {
       content?: string;
@@ -57,13 +74,13 @@ export default async function handleFetchMessageCommand(
       components?: APIMessageComponent[];
     }
     const fileData: FileData = {};
-    if (message.content) {
+    if (message.content.length > 0) {
       fileData.content = message.content;
     }
-    if (message.components && message.components.length > 0) {
+    if ((message.components?.length ?? 0) < 1) {
       fileData.components = message.components;
     }
-    if (message.embeds && message.embeds.length > 0) {
+    if (message.embeds.length > 0) {
       fileData.embeds = message.embeds;
     }
     form.set(

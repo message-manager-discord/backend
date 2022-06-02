@@ -1,4 +1,3 @@
-import { Message } from "@prisma/client";
 import { Guild } from "redis-discord-cache";
 import {
   ChannelNotFound,
@@ -6,8 +5,8 @@ import {
   GuildUnavailable,
 } from "redis-discord-cache/dist/errors";
 import { MinimalChannel } from "redis-discord-cache/dist/structures/types";
+
 import {
-  ExpectedFailure,
   ExpectedPermissionFailure,
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
@@ -54,19 +53,30 @@ const getGuildChannelHandleErrors = async ({
   return channel;
 };
 
-const checkDatabaseMessage = (message: Message | null): message is Message => {
-  if (!message) {
-    throw new ExpectedFailure(
-      InteractionOrRequestFinalStatus.MESSAGE_NOT_FOUND_IN_DATABASE,
-      "That message was not sent via the bot!"
-    );
-  }
-  if (message.deleted) {
-    throw new ExpectedFailure(
-      InteractionOrRequestFinalStatus.MESSAGE_DELETED_DURING_ACTION,
-      "That message was deleted during this action. Please dismiss all related messages."
-    );
-  }
-  return true;
+const missingDiscordPermissionMessage = (
+  entity: string,
+  permission: string | string[],
+  channelId: string | null
+) =>
+  `${entity} missing the required permission${
+    typeof permission === "string"
+      ? `\`${permission}\``
+      : `s\`${permission.join()}\``
+  } to perform this action ${
+    channelId !== null ? `in the channel <#${channelId}>` : ""
+  }`;
+
+const missingUserDiscordPermissionMessage = (
+  permission: string | string[],
+  channelId: string | null
+) => missingDiscordPermissionMessage("You are", permission, channelId);
+
+const missingBotDiscordPermissionMessage = (
+  permission: string | string[],
+  channelId: string | null
+) => missingDiscordPermissionMessage("The bot is", permission, channelId);
+export {
+  getGuildChannelHandleErrors,
+  missingBotDiscordPermissionMessage,
+  missingUserDiscordPermissionMessage,
 };
-export { getGuildChannelHandleErrors, checkDatabaseMessage };

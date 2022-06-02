@@ -10,9 +10,10 @@ import {
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 import { ExpectedFailure, InteractionOrRequestFinalStatus } from "../../errors";
+import { GuildSession } from "../../lib/session";
 import limits from "../../limits";
+import { InternalInteractionType } from "../interaction";
 
-import { InternalInteraction } from "../interaction";
 import {
   createModal,
   createTextInputWithRow,
@@ -20,7 +21,8 @@ import {
 import { InteractionReturnData } from "../types";
 
 export default async function handleReportButton(
-  internalInteraction: InternalInteraction<APIMessageComponentGuildInteraction>,
+  internalInteraction: InternalInteractionType<APIMessageComponentGuildInteraction>,
+  session: GuildSession,
   instance: FastifyInstance
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;

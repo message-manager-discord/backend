@@ -1,11 +1,13 @@
 import { APIMessageComponentGuildInteraction } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
+
 import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../../errors";
 import { checkEditPossible } from "../../lib/messages/edit";
-import { InternalInteraction } from "../interaction";
+import { GuildSession } from "../../lib/session";
+import { InternalInteractionType } from "../interaction";
 import {
   createModal,
   createTextInputWithRow,
@@ -13,7 +15,8 @@ import {
 import { InteractionReturnData } from "../types";
 
 export default async function handleEditButton(
-  internalInteraction: InternalInteraction<APIMessageComponentGuildInteraction>,
+  internalInteraction: InternalInteractionType<APIMessageComponentGuildInteraction>,
+  session: GuildSession,
   instance: FastifyInstance
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
@@ -25,8 +28,7 @@ export default async function handleEditButton(
     );
   }
   const databaseMessage = await checkEditPossible({
-    user: interaction.member,
-    guildId: interaction.guild_id,
+    session,
     channelId: interaction.channel_id,
     instance,
     messageId,

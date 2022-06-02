@@ -1,7 +1,8 @@
-import RedisClient, { Redis } from "ioredis";
+import { Snowflake } from "discord-api-types/v9";
 import { FastifyInstance, FastifyPluginOptions } from "fastify";
 import fp from "fastify-plugin";
-import { Snowflake } from "discord-api-types/v9";
+import RedisClient, { Redis } from "ioredis";
+
 import { StoredStateResponse } from "../authRoutes";
 
 type ArgType = Array<string | number>;
@@ -82,6 +83,9 @@ class RedisCache {
   }
   async getState(state: string): Promise<StoredStateResponse | undefined> {
     const data = await this._get({ key: `state:${state}` });
+    // We do not know what the data is, so we use falsy values
+    // Also an empty string should be returned as undefined anyways
+    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
     if (data) {
       return { redirectPath: JSON.parse(data as string) as string };
     }
@@ -104,7 +108,7 @@ class RedisCache {
     const userId = JSON.parse(
       (await this._get({ key: `session:${session}` })) as string
     ) as Snowflake | null;
-    if (!userId) {
+    if (userId === null) {
       return null;
     }
     return {
@@ -146,10 +150,10 @@ class RedisCache {
   async getGuildMigrationCommandRegistered(
     guildId: Snowflake
   ): Promise<boolean> {
-    const registered = await this._sendCommand("GET", [
+    const registered = (await this._sendCommand("GET", [
       `${guildId}:migrationCmdRegistered`,
-    ]);
-    return !!registered;
+    ])) as string | undefined | null;
+    return registered === "true";
   }
 }
 
@@ -169,7 +173,10 @@ interface RedisPluginOptions extends FastifyPluginOptions {
 const redisRestPlugin = fp(
   // eslint-disable-next-line @typescript-eslint/require-await
   async (server: FastifyInstance, options?: RedisPluginOptions) => {
-    if (!options?.redis?.port || !options?.redis?.host) {
+    if (
+      options?.redis?.port === undefined ||
+      options?.redis?.host === undefined
+    ) {
       throw new Error("Host or port not set");
     }
     server.log.info(

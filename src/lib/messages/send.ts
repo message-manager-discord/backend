@@ -1,83 +1,103 @@
+import { DiscordHTTPError } from "detritus-client-rest/lib/errors";
 import {
   APIEmbed,
-  APIInteractionGuildMember,
   APIMessage,
+  ChannelType,
   RESTPostAPIChannelMessageResult,
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 
-import {
-  checkAllPermissions,
-  Permission,
-  PermissionsData,
-} from "../permissions/checks";
-import { DiscordHTTPError } from "detritus-client-rest/lib/errors";
+import { embedPink } from "../../constants";
+import { parseDiscordPermissionValuesToStringNames } from "../../consts";
 import {
   ExpectedPermissionFailure,
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../../errors";
+import { InternalPermissions } from "../permissions/consts";
+import { GuildSession } from "../session";
 import {
-  checkDefaultDiscordPermissionsPresent,
-  ThreadOptionObject,
-} from "../permissions/discordChecks";
-import { embedPink } from "../../constants";
+  requiredPermissionsSendBot,
+  requiredPermissionsSendBotThread,
+  requiredPermissionsSendUser,
+} from "./consts";
+import {
+  missingBotDiscordPermissionMessage,
+  missingUserDiscordPermissionMessage,
+} from "./utils";
 
 const missingAccessMessage =
   "You do not have access to the bot permission for sending messages via the bot on this guild. Please contact an administrator.";
 
+interface ThreadOptionObject {
+  parentId?: string | null;
+  locked?: boolean;
+  type:
+    | ChannelType.GuildNewsThread
+    | ChannelType.GuildPublicThread
+    | ChannelType.GuildPrivateThread;
+}
 interface CheckSendMessageOptions {
   channelId: string;
-  guildId: string;
+
   instance: FastifyInstance;
-  user: APIInteractionGuildMember;
+
   thread?: ThreadOptionObject;
+  session: GuildSession;
 }
+
 interface SendMessageOptions extends CheckSendMessageOptions {
   content: string;
 }
 
 async function checkSendMessagePossible({
   channelId,
-  guildId,
-  instance,
-  user,
   thread,
+  session,
 }: CheckSendMessageOptions): Promise<true> {
   // Check if the user has the correct permissions
 
-  const { idOrParentId } = await checkDefaultDiscordPermissionsPresent({
-    instance,
-    user,
-    guildId,
-    channelId,
-    thread,
-  });
+  const userHasRequiredDiscordPermissions = await session.hasDiscordPermissions(
+    requiredPermissionsSendUser,
+    channelId
+  );
+  if (!userHasRequiredDiscordPermissions.allPresent) {
+    throw new ExpectedPermissionFailure(
+      InteractionOrRequestFinalStatus.USER_MISSING_DISCORD_PERMISSION,
 
-  const guild = await instance.prisma.guild.findUnique({
-    where: { id: BigInt(guildId) },
-    select: { permissions: true },
-  });
-  const channel = await instance.prisma.channel.findUnique({
-    where: { id: BigInt(idOrParentId) },
-    select: { permissions: true },
-  });
-
-  const cachedGuild = instance.redisGuildManager.getGuild(guildId);
+      missingUserDiscordPermissionMessage(
+        parseDiscordPermissionValuesToStringNames(
+          userHasRequiredDiscordPermissions.missing
+        ),
+        channelId
+      )
+    );
+  }
+  const botHasRequiredDiscordPermissions =
+    await session.botHasDiscordPermissions(
+      // If the target channel is a thread, also required the SEND_MESSAGES_IN_THREADS permission
+      thread ? requiredPermissionsSendBotThread : requiredPermissionsSendBot,
+      channelId
+    );
+  if (!botHasRequiredDiscordPermissions.allPresent) {
+    throw new ExpectedPermissionFailure(
+      InteractionOrRequestFinalStatus.BOT_MISSING_DISCORD_PERMISSION,
+      missingBotDiscordPermissionMessage(
+        parseDiscordPermissionValuesToStringNames(
+          botHasRequiredDiscordPermissions.missing
+        ),
+        channelId
+      )
+    );
+  }
 
   if (
-    !(await checkAllPermissions({
-      roles: user.roles,
-      userId: user.user.id,
-      guildPermissions: guild?.permissions as unknown as
-        | PermissionsData
-        | undefined,
-      channelPermissions: channel?.permissions as unknown as
-        | PermissionsData
-        | undefined,
-      permission: Permission.SEND_MESSAGES,
-      guild: cachedGuild,
-    }))
+    !(
+      await session.hasBotPermissions(
+        InternalPermissions.SEND_MESSAGES,
+        channelId
+      )
+    ).allPresent
   ) {
     throw new ExpectedPermissionFailure(
       InteractionOrRequestFinalStatus.USER_MISSING_INTERNAL_BOT_PERMISSION,
@@ -91,17 +111,19 @@ async function checkSendMessagePossible({
 async function sendMessage({
   content,
   channelId,
-  guildId,
+
   instance,
-  user,
+
   thread,
+  session,
 }: SendMessageOptions): Promise<APIMessage> {
   await checkSendMessagePossible({
     channelId,
-    guildId,
+
     instance,
-    user,
+
     thread,
+    session,
   });
   try {
     const messageResult = (await instance.restClient.createMessage(channelId, {
@@ -113,7 +135,7 @@ async function sendMessage({
         content: messageResult.content,
 
         editedAt: new Date(Date.now()),
-        editedBy: BigInt(user.user.id),
+        editedBy: BigInt(session.userId),
         channel: {
           connectOrCreate: {
             where: {
@@ -122,18 +144,18 @@ async function sendMessage({
 
             create: {
               id: BigInt(channelId),
-              guildId: BigInt(guildId),
+              guildId: BigInt(session.guildId),
             },
           },
         },
         guild: {
           connectOrCreate: {
             where: {
-              id: BigInt(guildId),
+              id: BigInt(session.guildId),
             },
 
             create: {
-              id: BigInt(guildId),
+              id: BigInt(session.guildId),
             },
           },
         },
@@ -146,14 +168,14 @@ async function sendMessage({
         `Message (${messageResult.id}) sent` +
         `\n**Content:**\n${messageResult.content}`,
       fields: [
-        { name: "Action By:", value: `<@${user.user.id}>`, inline: true },
+        { name: "Action By:", value: `<@${session.userId}>`, inline: true },
         { name: "Channel:", value: `<#${channelId}>`, inline: true },
       ],
       timestamp: new Date().toISOString(),
     };
     // Send log message
     await instance.loggingManager.sendLogMessage({
-      guildId: guildId,
+      guildId: session.guildId,
       embeds: [embed],
     });
     return messageResult;
@@ -176,4 +198,4 @@ async function sendMessage({
   }
 }
 
-export { sendMessage, checkSendMessagePossible, ThreadOptionObject };
+export { checkSendMessagePossible, sendMessage, ThreadOptionObject };

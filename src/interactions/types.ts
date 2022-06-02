@@ -41,8 +41,8 @@ const isInteractionReturnDataDeferred = (
 
 export {
   FormDataReturnData,
-  isFormDataReturnData,
-  isInteractionReturnDataDeferred,
   InteractionReturnData,
   InteractionReturnDataAfterDeferred,
+  isFormDataReturnData,
+  isInteractionReturnDataDeferred,
 };

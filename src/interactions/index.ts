@@ -4,6 +4,8 @@ import {
   APIApplicationCommandAutocompleteResponse,
   APIChatInputApplicationCommandGuildInteraction,
   APIChatInputApplicationCommandInteraction,
+  APIDMInteraction,
+  APIGuildInteraction,
   APIInteraction,
   APIMessageApplicationCommandGuildInteraction,
   APIMessageApplicationCommandInteraction,
@@ -21,38 +23,44 @@ import { FastifyInstance } from "fastify";
 import FastifyRawBody from "fastify-raw-body";
 import httpErrors from "http-errors";
 const { Forbidden } = httpErrors;
-import { FastifyRequest } from "fastify";
+import axios from "axios";
 import { verifyKey } from "discord-interactions";
-import handleInfoCommand, {
-  handleInfoAutocomplete,
-} from "./commands/chatInput/info";
-import handleSendCommand from "./commands/chatInput/send";
-import handleConfigCommand from "./commands/chatInput/config";
-import handleModalSend from "./modals/send";
-import { InternalInteraction } from "./interaction";
+import { FastifyRequest } from "fastify";
+
+import { discordAPIBaseURL } from "../constants";
 import {
   CustomError,
   ExpectedFailure,
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../errors";
-import handleActionMessageCommand from "./commands/message/actions";
+import { GuildSession, NonGuildSession } from "../lib/session";
+import handleCancelDeleteButton from "./buttons/cancel-delete";
+import handleConfirmDeleteButton from "./buttons/confirm-delete";
+import handleDeleteButton from "./buttons/delete";
+import handleEditButton from "./buttons/edit";
 import handleReportButton from "./buttons/report";
+import handleConfigCommand from "./commands/chatInput/config";
+import handleInfoCommand, {
+  handleInfoAutocomplete,
+} from "./commands/chatInput/info";
+import handleSendCommand from "./commands/chatInput/send";
+import handleActionMessageCommand from "./commands/message/actions";
+import handleAddMessageCommand from "./commands/message/addMessage";
 import handleFetchMessageCommand from "./commands/message/fetch";
+import {
+  createInternalInteraction,
+  InternalInteractionType,
+} from "./interaction";
+import handleModalEdit from "./modals/edit";
+import handleModalReport from "./modals/report";
+import handleModalSend from "./modals/send";
+import handleManagePermissionsSelect from "./selects/manage-permissions-select";
 import {
   InteractionReturnData,
   isFormDataReturnData,
   isInteractionReturnDataDeferred,
 } from "./types";
-import handleEditButton from "./buttons/edit";
-import handleDeleteButton from "./buttons/delete";
-import handleModalEdit from "./modals/edit";
-import handleConfirmDeleteButton from "./buttons/confirm-delete";
-import handleCancelDeleteButton from "./buttons/cancel-delete";
-import handleModalReport from "./modals/report";
-import handleAddMessageCommand from "./commands/message/addMessage";
-import axios from "axios";
-import { discordAPIBaseURL } from "../constants";
 
 class InteractionHandler {
   private readonly _client: FastifyInstance;
@@ -60,15 +68,16 @@ class InteractionHandler {
   private _commands: {
     [name: string]: {
       handler: (
-        interaction: InternalInteraction<
+        interaction: InternalInteractionType<
           | APIChatInputApplicationCommandInteraction
           | APIChatInputApplicationCommandGuildInteraction
         >,
+        session: NonGuildSession | GuildSession,
         instance: FastifyInstance
       ) => Promise<InteractionReturnData>;
       guildOnly?: boolean;
       autocompleteHandler?: (
-        interaction: InternalInteraction<
+        interaction: InternalInteractionType<
           | APIApplicationCommandAutocompleteInteraction
           | APIApplicationCommandAutocompleteGuildInteraction
         >,
@@ -79,10 +88,11 @@ class InteractionHandler {
   private _messageCommands: {
     [name: string]: {
       handler: (
-        interaction: InternalInteraction<
+        interaction: InternalInteractionType<
           | APIMessageApplicationCommandInteraction
           | APIMessageApplicationCommandGuildInteraction
         >,
+        session: NonGuildSession | GuildSession,
         instance: FastifyInstance
       ) => Promise<InteractionReturnData>;
       guildOnly?: boolean;
@@ -95,11 +105,12 @@ class InteractionHandler {
   addCommand(
     name: string,
     handler: (
-      interaction: InternalInteraction<APIChatInputApplicationCommandInteraction>,
+      interaction: InternalInteractionType<APIChatInputApplicationCommandInteraction>,
+      session: NonGuildSession | GuildSession,
       instance: FastifyInstance
     ) => Promise<InteractionReturnData>,
     autocompleteHandler?: (
-      interaction: InternalInteraction<APIApplicationCommandAutocompleteInteraction>,
+      interaction: InternalInteractionType<APIApplicationCommandAutocompleteInteraction>,
       instance: FastifyInstance
     ) => Promise<APIApplicationCommandAutocompleteResponse>
   ) {
@@ -111,21 +122,23 @@ class InteractionHandler {
   addGuildOnlyCommand(
     name: string,
     handler: (
-      interaction: InternalInteraction<APIChatInputApplicationCommandGuildInteraction>,
+      interaction: InternalInteractionType<APIChatInputApplicationCommandGuildInteraction>,
+      session: GuildSession,
       instance: FastifyInstance
     ) => Promise<InteractionReturnData>,
     autocompleteHandler?: (
-      interaction: InternalInteraction<APIApplicationCommandAutocompleteGuildInteraction>,
+      interaction: InternalInteractionType<APIApplicationCommandAutocompleteGuildInteraction>,
       instance: FastifyInstance
     ) => Promise<APIApplicationCommandAutocompleteResponse>
   ) {
     this._commands[name] = {
       handler: handler as (
-        interaction: InternalInteraction<APIChatInputApplicationCommandInteraction>,
+        interaction: InternalInteractionType<APIChatInputApplicationCommandInteraction>,
+        session: NonGuildSession | GuildSession,
         instance: FastifyInstance
       ) => Promise<InteractionReturnData>, // For some weird reason the types don't like to cross over
       autocompleteHandler: autocompleteHandler as (
-        interaction: InternalInteraction<APIApplicationCommandAutocompleteInteraction>,
+        interaction: InternalInteractionType<APIApplicationCommandAutocompleteInteraction>,
         instance: FastifyInstance
       ) => Promise<APIApplicationCommandAutocompleteResponse>,
       guildOnly: true,
@@ -134,7 +147,8 @@ class InteractionHandler {
   addMessageCommand(
     name: string,
     handler: (
-      interaction: InternalInteraction<APIMessageApplicationCommandInteraction>,
+      interaction: InternalInteractionType<APIMessageApplicationCommandInteraction>,
+      session: NonGuildSession | GuildSession,
       instance: FastifyInstance
     ) => Promise<InteractionReturnData>
   ) {
@@ -145,13 +159,15 @@ class InteractionHandler {
   addGuildOnlyMessageCommand(
     name: string,
     handler: (
-      interaction: InternalInteraction<APIMessageApplicationCommandGuildInteraction>,
+      interaction: InternalInteractionType<APIMessageApplicationCommandGuildInteraction>,
+      session: GuildSession,
       instance: FastifyInstance
     ) => Promise<InteractionReturnData>
   ) {
     this._messageCommands[name] = {
       handler: handler as (
-        interaction: InternalInteraction<APIMessageApplicationCommandInteraction>,
+        interaction: InternalInteractionType<APIMessageApplicationCommandInteraction>,
+        session: NonGuildSession | GuildSession,
         instance: FastifyInstance
       ) => Promise<InteractionReturnData>, // For some weird reason the types don't like to cross over
       guildOnly: true,
@@ -164,7 +180,7 @@ class InteractionHandler {
     if (
       typeof signature !== "string" ||
       typeof timestamp !== "string" ||
-      !request.rawBody
+      request.rawBody === undefined
     ) {
       return false;
     }
@@ -172,7 +188,7 @@ class InteractionHandler {
   }
 
   async handleInteraction(
-    internalInteraction: InternalInteraction<APIInteraction>
+    internalInteraction: InternalInteractionType<APIInteraction>
   ): Promise<InteractionReturnData> {
     const interaction = internalInteraction.interaction;
     switch (interaction.type) {
@@ -181,11 +197,11 @@ class InteractionHandler {
       case InteractionType.ApplicationCommand:
         if (interaction.data.type === ApplicationCommandType.ChatInput) {
           return await this.handleCommands(
-            internalInteraction as InternalInteraction<APIChatInputApplicationCommandInteraction>
+            internalInteraction as InternalInteractionType<APIChatInputApplicationCommandInteraction>
           );
         } else if (interaction.data.type === ApplicationCommandType.Message) {
           return await this.handleMessageCommands(
-            internalInteraction as InternalInteraction<APIMessageApplicationCommandInteraction>
+            internalInteraction as InternalInteractionType<APIMessageApplicationCommandInteraction>
           );
         } else {
           throw new UnexpectedFailure(
@@ -195,15 +211,15 @@ class InteractionHandler {
         }
       case InteractionType.ModalSubmit:
         return await this.handleModalSubmit(
-          internalInteraction as InternalInteraction<APIModalSubmitInteraction>
+          internalInteraction as InternalInteractionType<APIModalSubmitInteraction>
         );
       case InteractionType.MessageComponent:
         return await this.handleComponent(
-          internalInteraction as InternalInteraction<APIMessageComponentInteraction>
+          internalInteraction as InternalInteractionType<APIMessageComponentInteraction>
         );
       case InteractionType.ApplicationCommandAutocomplete:
         return await this.handleAutocomplete(
-          internalInteraction as InternalInteraction<APIApplicationCommandAutocompleteInteraction>
+          internalInteraction as InternalInteractionType<APIApplicationCommandAutocompleteInteraction>
         );
       default:
         throw new UnexpectedFailure(
@@ -215,23 +231,37 @@ class InteractionHandler {
         );
     }
   }
-  async handleMessageCommands(
-    internalInteraction: InternalInteraction<APIMessageApplicationCommandInteraction>
+  handleMessageCommands(
+    internalInteraction: InternalInteractionType<APIMessageApplicationCommandInteraction>
   ): Promise<InteractionReturnData> {
     const interaction = internalInteraction.interaction;
     const name = interaction.data.name.toLowerCase();
-    if (this._messageCommands[name]) {
+    if (this._messageCommands[name] !== undefined) {
       this._client.metrics.commandsUsed.inc({
         command: name,
       });
-      if (this._messageCommands[name].guildOnly && !interaction.guild_id) {
+      if (
+        (this._messageCommands[name].guildOnly ?? false) &&
+        interaction.guild_id === undefined
+      ) {
         throw new ExpectedFailure(
           InteractionOrRequestFinalStatus.DM_INTERACTION_RECEIVED_WHEN_SHOULD_BE_GUILD_ONLY,
           ":exclamation: This command is only available in guilds"
         );
       }
+      let session: GuildSession | NonGuildSession;
+      if (interaction.guild_id !== undefined) {
+        session = this._client.sessionManager.createSessionFromInteraction(
+          interaction as APIGuildInteraction
+        );
+      } else {
+        session = this._client.sessionManager.createSessionFromInteraction(
+          interaction as APIDMInteraction
+        );
+      }
       const data = this._messageCommands[name].handler(
         internalInteraction,
+        session,
         this._client
       );
       internalInteraction.responded = true;
@@ -243,24 +273,35 @@ class InteractionHandler {
       `No handler for command \`${interaction.data.name}\``
     );
   }
-  async handleCommands(
-    internalInteraction: InternalInteraction<APIChatInputApplicationCommandInteraction>
+  handleCommands(
+    internalInteraction: InternalInteractionType<APIChatInputApplicationCommandInteraction>
   ): Promise<InteractionReturnData> {
     const interaction = internalInteraction.interaction;
 
-    if (this._commands[interaction.data.name]) {
+    if (this._commands[interaction.data.name] !== undefined) {
       this._client.metrics.commandsUsed.inc({ command: interaction.data.name });
       if (
-        this._commands[interaction.data.name].guildOnly &&
-        !interaction.guild_id
+        (this._commands[interaction.data.name].guildOnly ?? false) &&
+        interaction.guild_id === undefined
       ) {
         throw new ExpectedFailure(
           InteractionOrRequestFinalStatus.DM_INTERACTION_RECEIVED_WHEN_SHOULD_BE_GUILD_ONLY,
           ":exclamation: This command is only available in guilds"
         );
       }
+      let session: GuildSession | NonGuildSession;
+      if (interaction.guild_id !== undefined) {
+        session = this._client.sessionManager.createSessionFromInteraction(
+          interaction as APIGuildInteraction
+        );
+      } else {
+        session = this._client.sessionManager.createSessionFromInteraction(
+          interaction as APIDMInteraction
+        );
+      }
       const data = this._commands[interaction.data.name].handler(
         internalInteraction,
+        session,
         this._client
       );
       internalInteraction.responded = true;
@@ -273,14 +314,14 @@ class InteractionHandler {
     );
   }
   async handleAutocomplete(
-    internalInteraction: InternalInteraction<APIApplicationCommandAutocompleteInteraction>
+    internalInteraction: InternalInteractionType<APIApplicationCommandAutocompleteInteraction>
   ): Promise<APIApplicationCommandAutocompleteResponse> {
     const interaction = internalInteraction.interaction;
     const command = this._commands[interaction.data.name];
 
-    if (command && command.autocompleteHandler) {
+    if (command !== undefined && command.autocompleteHandler) {
       // todo: metrics
-      if (command.guildOnly && !interaction.guild_id) {
+      if ((command.guildOnly ?? false) && interaction.guild_id === undefined) {
         throw new ExpectedFailure(
           InteractionOrRequestFinalStatus.DM_INTERACTION_RECEIVED_WHEN_SHOULD_BE_GUILD_ONLY,
           ":exclamation: This autocomplete command is only available in guilds"
@@ -300,14 +341,14 @@ class InteractionHandler {
     );
   }
   async handleModalSubmit(
-    internalInteraction: InternalInteraction<APIModalSubmitInteraction>
+    internalInteraction: InternalInteractionType<APIModalSubmitInteraction>
   ): Promise<InteractionReturnData> {
     const interaction = internalInteraction.interaction;
     const id = interaction.data.custom_id.split(":")[0];
     switch (id) {
       case "send":
         // Guild only
-        if (!interaction.guild_id) {
+        if (interaction.guild_id === undefined) {
           internalInteraction.responded = true;
           throw new ExpectedFailure(
             InteractionOrRequestFinalStatus.DM_INTERACTION_RECEIVED_WHEN_SHOULD_BE_GUILD_ONLY,
@@ -315,12 +356,15 @@ class InteractionHandler {
           );
         }
         return await handleModalSend(
-          internalInteraction as InternalInteraction<APIModalSubmitGuildInteraction>,
+          internalInteraction as InternalInteractionType<APIModalSubmitGuildInteraction>,
+          this._client.sessionManager.createSessionFromInteraction(
+            interaction as APIGuildInteraction
+          ),
           this._client
         );
       case "edit":
         // Guild only
-        if (!interaction.guild_id) {
+        if (interaction.guild_id === undefined) {
           internalInteraction.responded = true;
           throw new ExpectedFailure(
             InteractionOrRequestFinalStatus.DM_INTERACTION_RECEIVED_WHEN_SHOULD_BE_GUILD_ONLY,
@@ -328,12 +372,15 @@ class InteractionHandler {
           );
         }
         return await handleModalEdit(
-          internalInteraction as InternalInteraction<APIModalSubmitGuildInteraction>,
+          internalInteraction as InternalInteractionType<APIModalSubmitGuildInteraction>,
+          this._client.sessionManager.createSessionFromInteraction(
+            interaction as APIGuildInteraction
+          ),
           this._client
         );
       case "report":
         // Guild only
-        if (!interaction.guild_id) {
+        if (interaction.guild_id === undefined) {
           internalInteraction.responded = true;
           throw new ExpectedFailure(
             InteractionOrRequestFinalStatus.DM_INTERACTION_RECEIVED_WHEN_SHOULD_BE_GUILD_ONLY,
@@ -341,7 +388,10 @@ class InteractionHandler {
           );
         }
         return await handleModalReport(
-          internalInteraction as InternalInteraction<APIModalSubmitGuildInteraction>,
+          internalInteraction as InternalInteractionType<APIModalSubmitGuildInteraction>,
+          this._client.sessionManager.createSessionFromInteraction(
+            interaction as APIGuildInteraction
+          ),
           this._client
         );
 
@@ -355,14 +405,14 @@ class InteractionHandler {
     );
   }
   async handleComponent(
-    internalInteraction: InternalInteraction<APIMessageComponentInteraction>
+    internalInteraction: InternalInteractionType<APIMessageComponentInteraction>
   ): Promise<InteractionReturnData> {
     const interaction = internalInteraction.interaction;
     const name = interaction.data.custom_id.split(":")[0];
     switch (name) {
       case "edit":
         // Guild only
-        if (!interaction.guild_id) {
+        if (interaction.guild_id === undefined) {
           internalInteraction.responded = true;
           throw new UnexpectedFailure(
             InteractionOrRequestFinalStatus.GUILD_COMPONENT_IN_DM_INTERACTION,
@@ -370,12 +420,15 @@ class InteractionHandler {
           );
         }
         return await handleEditButton(
-          internalInteraction as InternalInteraction<APIMessageComponentGuildInteraction>,
+          internalInteraction as InternalInteractionType<APIMessageComponentGuildInteraction>,
+          this._client.sessionManager.createSessionFromInteraction(
+            interaction as APIGuildInteraction
+          ),
           this._client
         );
       case "delete":
         // Guild only
-        if (!interaction.guild_id) {
+        if (interaction.guild_id === undefined) {
           internalInteraction.responded = true;
           throw new UnexpectedFailure(
             InteractionOrRequestFinalStatus.GUILD_COMPONENT_IN_DM_INTERACTION,
@@ -383,13 +436,16 @@ class InteractionHandler {
           );
         }
         return await handleDeleteButton(
-          internalInteraction as InternalInteraction<APIMessageComponentGuildInteraction>,
+          internalInteraction as InternalInteractionType<APIMessageComponentGuildInteraction>,
+          this._client.sessionManager.createSessionFromInteraction(
+            interaction as APIGuildInteraction
+          ),
           this._client
         );
 
       case "confirm-delete":
         // Guild only
-        if (!interaction.guild_id) {
+        if (interaction.guild_id === undefined) {
           internalInteraction.responded = true;
           throw new UnexpectedFailure(
             InteractionOrRequestFinalStatus.GUILD_COMPONENT_IN_DM_INTERACTION,
@@ -397,13 +453,16 @@ class InteractionHandler {
           );
         }
         return await handleConfirmDeleteButton(
-          internalInteraction as InternalInteraction<APIMessageComponentGuildInteraction>,
+          internalInteraction as InternalInteractionType<APIMessageComponentGuildInteraction>,
+          this._client.sessionManager.createSessionFromInteraction(
+            interaction as APIGuildInteraction
+          ),
           this._client
         );
 
       case "cancel-delete":
         // Guild only
-        if (!interaction.guild_id) {
+        if (interaction.guild_id === undefined) {
           internalInteraction.responded = true;
           throw new UnexpectedFailure(
             InteractionOrRequestFinalStatus.GUILD_COMPONENT_IN_DM_INTERACTION,
@@ -411,13 +470,16 @@ class InteractionHandler {
           );
         }
         return await handleCancelDeleteButton(
-          internalInteraction as InternalInteraction<APIMessageComponentGuildInteraction>,
+          internalInteraction as InternalInteractionType<APIMessageComponentGuildInteraction>,
+          this._client.sessionManager.createSessionFromInteraction(
+            interaction as APIGuildInteraction
+          ),
           this._client
         );
 
       case "report":
         // Guild only
-        if (!interaction.guild_id) {
+        if (interaction.guild_id === undefined) {
           internalInteraction.responded = true;
           throw new UnexpectedFailure(
             InteractionOrRequestFinalStatus.GUILD_COMPONENT_IN_DM_INTERACTION,
@@ -425,7 +487,27 @@ class InteractionHandler {
           );
         }
         return await handleReportButton(
-          internalInteraction as InternalInteraction<APIMessageComponentGuildInteraction>,
+          internalInteraction as InternalInteractionType<APIMessageComponentGuildInteraction>,
+          this._client.sessionManager.createSessionFromInteraction(
+            interaction as APIGuildInteraction
+          ),
+          this._client
+        );
+
+      case "manage-permissions-select":
+        // Guild only
+        if (interaction.guild_id === undefined) {
+          internalInteraction.responded = true;
+          throw new UnexpectedFailure(
+            InteractionOrRequestFinalStatus.GUILD_COMPONENT_IN_DM_INTERACTION,
+            ":exclamation: This select menu is only available in guilds"
+          );
+        }
+        return await handleManagePermissionsSelect(
+          internalInteraction as InternalInteractionType<APIMessageComponentGuildInteraction>,
+          this._client.sessionManager.createSessionFromInteraction(
+            interaction as APIGuildInteraction
+          ),
           this._client
         );
 
@@ -479,7 +561,9 @@ const interactionsPlugin = async (instance: FastifyInstance) => {
     },
 
     async (request, reply) => {
-      const internalInteraction = new InternalInteraction(request.body);
+      const internalInteraction = createInternalInteraction<APIInteraction>(
+        request.body
+      );
 
       try {
         const returnData = await handler.handleInteraction(internalInteraction);
@@ -544,7 +628,8 @@ const interactionsPlugin = async (instance: FastifyInstance) => {
           }
         } else {
           const message =
-            !!error && !!(error as Error).message
+            (error as Error | undefined) !== undefined &&
+            !!(error as Error).message
               ? (error as Error).message
               : "";
 
@@ -561,6 +646,33 @@ const interactionsPlugin = async (instance: FastifyInstance) => {
             "\n*PS: This shouldn't happen, and if it does, congratulations you've managed to find something unexpected*";
         }
         if (!internalInteraction.deferred) {
+          if (internalInteraction.interaction.message !== undefined) {
+            const message = internalInteraction.interaction.message;
+            // Update message components with the original components
+            // This is to prevent the changing of default values in selects when an error occurs
+            void (async () => {
+              // wait 1/4 of a second so that the interaction has been "responded" to before the follow up is sent
+              await new Promise((resolve) => setTimeout(resolve, 250));
+              await axios.request({
+                method: "POST",
+                url: `${discordAPIBaseURL}/webhooks/${instance.envVars.DISCORD_CLIENT_ID}/${internalInteraction.interaction.token}`,
+                data: {
+                  content: errorMessage,
+                  components,
+                  flags: MessageFlags.Ephemeral,
+                },
+              });
+            })();
+
+            return {
+              type: InteractionResponseType.UpdateMessage,
+              data: {
+                content: message.content,
+                embeds: message.embeds,
+                components: message.components,
+              },
+            };
+          }
           return {
             type: InteractionResponseType.ChannelMessageWithSource,
             data: {
