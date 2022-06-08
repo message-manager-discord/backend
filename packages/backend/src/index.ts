@@ -1,8 +1,8 @@
+import fastifyAuth from "@fastify/auth";
+import fastifyCookie, { FastifyCookieOptions } from "@fastify/cookie";
+import fastifyCors from "@fastify/cors";
 import Sentry from "@sentry/node";
 import fastify, { FastifyInstance } from "fastify";
-import fastifyAuth from "fastify-auth";
-import fastifyCookie, { FastifyCookieOptions } from "fastify-cookie";
-import fastifyCors from "fastify-cors";
 
 import authRoutePlugin from "./authRoutes";
 import interactionsPlugin from "./interactions/index";

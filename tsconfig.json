@@ -1,19 +1,11 @@
 {
-  "$schema": "https://json.schemastore.org/tsconfig",
-  "display": "Node 16",
-
-  "compilerOptions": {
-    "module": "esnext",
-    "target": "es2021",
-
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "rootDir": "src",
-    "resolveJsonModule": true,
-    "moduleResolution": "node",
-    "sourceMap": true,
-    "outDir": "dist"
-  }
+  "exclude": ["packages/**/tests/**", "packages/**/dist/**"],
+  "references": [
+    {
+      "path": "./packages/gateway"
+    },
+    {
+      "path": "./packages/backend"
+    }
+  ]
 }
