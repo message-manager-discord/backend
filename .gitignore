@@ -3,5 +3,4 @@ node_modules
 dist
 .nyc_output
 logs
-.yarn/cache
 *.tsbuildinfo
