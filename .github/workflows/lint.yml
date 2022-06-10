@@ -6,7 +6,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install modules
-        run: yarn install --immutable --immutable-cache
+        run: yarn install --immutable
       - name: Run ESLint
         run: yarn lint
       - name: Run Prettier
