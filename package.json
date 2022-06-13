@@ -1,5 +1,5 @@
 {
-  "name": "message-manager-backend",
+  "name": "message-manager",
   "packageManager": "yarn@3.2.1",
   "private": true,
   "scripts": {
