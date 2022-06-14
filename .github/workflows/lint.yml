@@ -8,7 +8,7 @@ jobs:
       - name: Update Yarn
         run: yarn set version 3.2.1
       - name: Install modules
-        run: yarn install
+        run: yarn install --immutable
       - name: Run ESLint
         run: yarn lint
       - name: Run Prettier
