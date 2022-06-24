@@ -1,6 +1,6 @@
+import { DiscordAPIError, RawFile } from "@discordjs/rest";
 import { Message } from "@prisma/client";
-import { DiscordHTTPError } from "detritus-client-rest/lib/errors";
-import { APIEmbed, Snowflake } from "discord-api-types/v9";
+import { APIEmbed, Routes, Snowflake } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 
 import { embedPink } from "../../constants";
@@ -14,6 +14,7 @@ import { InternalPermissions } from "../permissions/consts";
 import { GuildSession } from "../session";
 import { checkDatabaseMessage } from "./checks";
 import { requiredPermissionsDelete } from "./consts";
+import { StoredEmbed } from "./embeds/types";
 import {
   missingBotDiscordPermissionMessage,
   missingUserDiscordPermissionMessage,
@@ -98,12 +99,27 @@ async function deleteMessage({
 }: DeleteOptions) {
   await checkDeletePossible({ channelId, instance, messageId, session });
   try {
-    await instance.restClient.deleteMessage(channelId, messageId);
-    const messageBefore = (await instance.prisma.message.findFirst({
+    await instance.restClient.delete(
+      Routes.channelMessage(channelId, messageId)
+    );
+    const messageBefore = await instance.prisma.message.findFirst({
       where: { id: BigInt(messageId) },
 
       orderBy: { editedAt: "desc" },
-    })) as Message;
+      include: {
+        embed: {
+          include: {
+            fields: true,
+          },
+        },
+      },
+    });
+    if (!messageBefore) {
+      throw new UnexpectedFailure(
+        InteractionOrRequestFinalStatus.MESSAGE_NOT_FOUND_IN_DATABASE_AFTER_CHECKS_DONE,
+        "MESSAGE_NOT_FOUND_IN_DATABASE_AFTER_CHECKS_DONE"
+      );
+    }
     // this is also a create, as messages will form a message history
     await instance.prisma.message.create({
       data: {
@@ -138,7 +154,7 @@ async function deleteMessage({
         },
       },
     });
-    const embed: APIEmbed = {
+    const logEmbed: APIEmbed = {
       color: embedPink,
       title: "Message Deleted",
       description:
@@ -150,13 +166,37 @@ async function deleteMessage({
       ],
       timestamp: new Date().toISOString(),
     };
+    let embedBefore: StoredEmbed | undefined = undefined;
+    if (messageBefore?.embed !== null && messageBefore?.embed !== undefined) {
+      embedBefore = {
+        title: messageBefore.embed.title ?? undefined,
+        description: messageBefore.embed.description ?? undefined,
+        url: messageBefore.embed.url ?? undefined,
+        timestamp: messageBefore.embed.timestamp?.toISOString() ?? undefined,
+        color: messageBefore.embed.color ?? undefined,
+        footerText: messageBefore.embed.footerText ?? undefined,
+        authorName: messageBefore.embed.authorName ?? undefined,
+        fields: messageBefore.embed.fields ?? undefined,
+      };
+    }
+
+    const files: RawFile[] = [];
+    if (embedBefore !== undefined) {
+      files.push({
+        name: "embed.json",
+        data: JSON.stringify(embedBefore),
+      });
+      logEmbed.description +=
+        "\nEmbed representation can be found in the attachment.";
+    }
     // Send log message
     await instance.loggingManager.sendLogMessage({
       guildId: session.guildId,
-      embeds: [embed],
+      embeds: [logEmbed],
+      files,
     });
   } catch (error) {
-    if (error instanceof DiscordHTTPError) {
+    if (error instanceof DiscordAPIError) {
       if (error.code === 404) {
         throw new UnexpectedFailure(
           InteractionOrRequestFinalStatus.CHANNEL_NOT_FOUND_DISCORD_HTTP,

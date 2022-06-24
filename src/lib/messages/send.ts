@@ -1,9 +1,11 @@
-import { DiscordHTTPError } from "detritus-client-rest/lib/errors";
+import { DiscordAPIError, RawFile } from "@discordjs/rest";
+import { Prisma } from "@prisma/client";
 import {
   APIEmbed,
   APIMessage,
   ChannelType,
   RESTPostAPIChannelMessageResult,
+  Routes,
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 
@@ -21,6 +23,11 @@ import {
   requiredPermissionsSendBotThread,
   requiredPermissionsSendUser,
 } from "./consts";
+import {
+  createSendableEmbedFromStoredEmbed,
+  createStoredEmbedFromAPIMessage,
+} from "./embeds/parser";
+import { StoredEmbed } from "./embeds/types";
 import {
   missingBotDiscordPermissionMessage,
   missingUserDiscordPermissionMessage,
@@ -48,6 +55,7 @@ interface CheckSendMessageOptions {
 
 interface SendMessageOptions extends CheckSendMessageOptions {
   content: string;
+  embed?: StoredEmbed;
 }
 
 async function checkSendMessagePossible({
@@ -110,6 +118,7 @@ async function checkSendMessagePossible({
 
 async function sendMessage({
   content,
+  embed,
   channelId,
 
   instance,
@@ -125,10 +134,54 @@ async function sendMessage({
     thread,
     session,
   });
+  const embeds: APIEmbed[] = [];
+  if (embed) {
+    embeds.push(createSendableEmbedFromStoredEmbed(embed));
+  }
   try {
-    const messageResult = (await instance.restClient.createMessage(channelId, {
-      content,
-    })) as RESTPostAPIChannelMessageResult;
+    const messageResult = (await instance.restClient.post(
+      Routes.channelMessages(channelId),
+      {
+        body: { content, embeds },
+      }
+    )) as RESTPostAPIChannelMessageResult;
+    const sentEmbed = createStoredEmbedFromAPIMessage(messageResult);
+    let embedQuery:
+      | Prisma.MessageEmbedCreateNestedOneWithoutMessageInput
+      | undefined = undefined;
+    if (sentEmbed !== null) {
+      let fieldQuery:
+        | Prisma.EmbedFieldCreateNestedManyWithoutEmbedInput
+        | undefined;
+
+      if (sentEmbed.fields && sentEmbed.fields.length > 0) {
+        fieldQuery = {
+          create: sentEmbed.fields.map((field) => ({
+            name: field.name,
+            value: field.value,
+            inline: field.inline,
+          })),
+        };
+      }
+      let timestamp: Date | undefined;
+      if (sentEmbed.timestamp !== undefined) {
+        timestamp = new Date(sentEmbed.timestamp);
+      }
+
+      embedQuery = {
+        create: {
+          title: sentEmbed.title,
+          description: sentEmbed.description,
+          url: sentEmbed.url,
+          timestamp,
+          color: sentEmbed.color,
+          footerText: sentEmbed.footerText,
+          authorName: sentEmbed.authorName,
+          fields: fieldQuery,
+        },
+      };
+    }
+
     await instance.prisma.message.create({
       data: {
         id: BigInt(messageResult.id),
@@ -159,9 +212,10 @@ async function sendMessage({
             },
           },
         },
+        embed: embedQuery,
       },
     });
-    const embed: APIEmbed = {
+    const logEmbed: APIEmbed = {
       color: embedPink,
       title: "Message Sent",
       description:
@@ -173,14 +227,24 @@ async function sendMessage({
       ],
       timestamp: new Date().toISOString(),
     };
+    const files: RawFile[] = [];
+    if (sentEmbed !== null) {
+      files.push({
+        name: "embed.json",
+        data: JSON.stringify(sentEmbed),
+      });
+      logEmbed.description +=
+        "\nEmbed representation can be found in the attachment.";
+    }
     // Send log message
     await instance.loggingManager.sendLogMessage({
       guildId: session.guildId,
-      embeds: [embed],
+      embeds: [logEmbed],
+      files,
     });
     return messageResult;
   } catch (error) {
-    if (error instanceof DiscordHTTPError) {
+    if (error instanceof DiscordAPIError) {
       if (error.code === 404) {
         throw new UnexpectedFailure(
           InteractionOrRequestFinalStatus.CHANNEL_NOT_FOUND_DISCORD_HTTP,

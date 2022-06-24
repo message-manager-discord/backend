@@ -1,11 +1,12 @@
-import { RequestTypes } from "detritus-client-rest";
-import { DiscordHTTPError } from "detritus-client-rest/lib/errors";
+import { DiscordAPIError, RawFile } from "@discordjs/rest";
 import { Snowflake } from "discord-api-types/globals";
 import {
   APIMessage,
   RESTGetAPIChannelWebhooksResult,
   RESTPostAPIChannelWebhookResult,
+  RESTPostAPIWebhookWithTokenJSONBody,
   RESTPostAPIWebhookWithTokenWaitResult,
+  Routes,
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 
@@ -60,11 +61,11 @@ export default class WebhookManager {
   ): Promise<MinimalWebhook> {
     let webhooks: RESTGetAPIChannelWebhooksResult;
     try {
-      webhooks = (await this._instance.restClient.fetchChannelWebhooks(
-        channelId
+      webhooks = (await this._instance.restClient.get(
+        Routes.channelWebhooks(channelId)
       )) as RESTGetAPIChannelWebhooksResult;
     } catch (error) {
-      if (error instanceof DiscordHTTPError) {
+      if (error instanceof DiscordAPIError) {
         if (error.code === 403 || error.code === 50013) {
           throw new ExpectedFailure(
             InteractionOrRequestFinalStatus.BOT_MISSING_DISCORD_PERMISSION,
@@ -127,11 +128,16 @@ export default class WebhookManager {
   ): Promise<MinimalWebhook> {
     let webhook: RESTPostAPIChannelWebhookResult;
     try {
-      webhook = (await this._instance.restClient.createWebhook(channelId, {
-        name: "Message Manager Logging",
-      })) as RESTPostAPIChannelWebhookResult;
+      webhook = (await this._instance.restClient.post(
+        Routes.channelWebhooks(channelId),
+        {
+          body: {
+            name: "Message Manager Logging",
+          },
+        }
+      )) as RESTPostAPIChannelWebhookResult;
     } catch (error) {
-      if (error instanceof DiscordHTTPError) {
+      if (error instanceof DiscordAPIError) {
         if (error.code === 403 || error.code === 50013) {
           throw new UnexpectedFailure(
             InteractionOrRequestFinalStatus.BOT_MISSING_DISCORD_PERMISSION,
@@ -183,17 +189,18 @@ export default class WebhookManager {
   public async sendWebhookMessage(
     channelId: Snowflake,
     guildId: Snowflake,
-    data: RequestTypes.ExecuteWebhook
+    data: RESTPostAPIWebhookWithTokenJSONBody,
+    files?: RawFile[]
   ): Promise<APIMessage> {
     const webhook = await this.getWebhook(channelId, guildId);
-    if (data.wait ?? false) {
-      // Always wait for the message to send
-      data.wait = true;
-    }
-    const message = (await this._instance.restClient.executeWebhook(
-      webhook.id,
-      webhook.token,
-      data
+
+    const message = (await this._instance.restClient.post(
+      Routes.webhook(webhook.id, webhook.token),
+      {
+        body: data,
+        files,
+        query: new URLSearchParams({ wait: "true" }),
+      }
     )) as RESTPostAPIWebhookWithTokenWaitResult;
     return message;
   }

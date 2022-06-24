@@ -52,7 +52,7 @@ instance.setErrorHandler(async (error, request, reply) => {
 // These are plugins that are separate from versioning
 await instance.register(prismaPlugin);
 await instance.register(discordRestPlugin, {
-  detritus: { token: instance.envVars.DISCORD_TOKEN },
+  discord: { token: instance.envVars.DISCORD_TOKEN },
 });
 await instance.register(redisRestPlugin, {
   redis: {

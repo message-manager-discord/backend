@@ -1,5 +1,8 @@
 import { Snowflake } from "discord-api-types/globals";
-import { RESTGetAPIApplicationGuildCommandsResult } from "discord-api-types/v9";
+import {
+  RESTGetAPIApplicationGuildCommandsResult,
+  Routes,
+} from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 
 import command from "../../discord_commands/guildAddMessage.json" assert { type: "json" };
@@ -7,9 +10,8 @@ async function registerAddCommand(
   guildId: Snowflake,
   instance: FastifyInstance
 ) {
-  const commands = (await instance.restClient.fetchApplicationGuildCommands(
-    instance.envVars.DISCORD_CLIENT_ID,
-    guildId
+  const commands = (await instance.restClient.get(
+    Routes.applicationGuildCommands(instance.envVars.DISCORD_CLIENT_ID, guildId)
   )) as RESTGetAPIApplicationGuildCommandsResult;
   if (
     commands.find(
@@ -19,12 +21,12 @@ async function registerAddCommand(
     return; // The command is already registered
   }
 
-  await instance.restClient.createApplicationGuildCommand(
-    instance.envVars.DISCORD_CLIENT_ID,
-    guildId,
-
-    // @ts-expect-error The client does not accept / is not updated to include message commands. However it should still work
-    command
+  await instance.restClient.post(
+    Routes.applicationGuildCommands(
+      instance.envVars.DISCORD_CLIENT_ID,
+      guildId
+    ),
+    { body: command }
   );
 }
 export { registerAddCommand };
