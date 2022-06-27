@@ -3,11 +3,7 @@
 import { Snowflake } from "discord-api-types/globals";
 import { FastifyInstance } from "fastify";
 
-import {
-  ExpectedFailure,
-  InteractionOrRequestFinalStatus,
-  LimitHit,
-} from "../../errors";
+import { InteractionOrRequestFinalStatus, LimitHit } from "../../errors";
 import { checkEmbedMeetsLimits } from "./embeds/checks";
 import { StoredEmbed } from "./embeds/types";
 
