@@ -48,17 +48,21 @@ model Message {
 }
 
 model MessageEmbed {
-  id          Int          @id @default(autoincrement())
-  title       String? /// @encrypted
-  description String? /// @encrypted
-  url         String? /// @encrypted
-  authorName  String? /// @encrypted
-  footerText  String? /// @encrypted
-  timestamp   DateTime?
-  color       Int?
-  fields      EmbedField[]
-  messageId   Int          @unique
-  message     Message      @relation(fields: [messageId], references: [internalId], onDelete: Cascade, onUpdate: NoAction)
+  id            Int          @id @default(autoincrement())
+  title         String? /// @encrypted
+  description   String? /// @encrypted
+  url           String? /// @encrypted
+  authorName    String? /// @encrypted
+  authorUrl     String? /// @encrypted
+  authorIconUrl String? /// @encrypted
+  footerText    String? /// @encrypted
+  footerIconUrl String? /// @encrypted
+  thumbnailUrl  String? /// @encrypted
+  timestamp     DateTime?
+  color         Int?
+  fields        EmbedField[]
+  messageId     Int          @unique
+  message       Message      @relation(fields: [messageId], references: [internalId], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model EmbedField {

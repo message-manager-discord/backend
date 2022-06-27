@@ -10,8 +10,18 @@ interface StoredEmbed {
   url?: string;
   timestamp?: string;
   color?: number;
-  footerText?: string;
-  authorName?: string;
+  footer?: {
+    text: string; // Max 2048 characters
+    icon_url?: string;
+  };
+  author?: {
+    name: string; // Max 256 characters
+    url?: string;
+    icon_url?: string;
+  };
+  thumbnail?: {
+    url: string; // Max 2048 characters
+  };
   fields?: StoredField[]; // Max 25
 }
 

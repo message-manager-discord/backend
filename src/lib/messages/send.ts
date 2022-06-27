@@ -12,6 +12,7 @@ import { FastifyInstance } from "fastify";
 import { embedPink } from "../../constants";
 import { parseDiscordPermissionValuesToStringNames } from "../../consts";
 import {
+  ExpectedFailure,
   ExpectedPermissionFailure,
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
@@ -54,7 +55,7 @@ interface CheckSendMessageOptions {
 }
 
 interface SendMessageOptions extends CheckSendMessageOptions {
-  content: string;
+  content?: string;
   embed?: StoredEmbed;
 }
 
@@ -134,6 +135,13 @@ async function sendMessage({
     thread,
     session,
   });
+
+  if ((content === undefined || content === "") && embed === undefined) {
+    throw new ExpectedFailure(
+      InteractionOrRequestFinalStatus.ATTEMPTING_TO_SEND_WHEN_NO_CONTENT_SET,
+      "No content or embeds have been set, this is required to send a message"
+    );
+  }
   const embeds: APIEmbed[] = [];
   if (embed) {
     embeds.push(createSendableEmbedFromStoredEmbed(embed));
@@ -175,8 +183,12 @@ async function sendMessage({
           url: sentEmbed.url,
           timestamp,
           color: sentEmbed.color,
-          footerText: sentEmbed.footerText,
-          authorName: sentEmbed.authorName,
+          footerText: sentEmbed.footer?.text,
+          footerIconUrl: sentEmbed.footer?.icon_url,
+          authorName: sentEmbed.author?.name,
+          authorIconUrl: sentEmbed.author?.icon_url,
+          authorUrl: sentEmbed.author?.url,
+          thumbnailUrl: sentEmbed.thumbnail?.url,
           fields: fieldQuery,
         },
       };

@@ -1,6 +1,12 @@
 import { DiscordAPIError, RawFile } from "@discordjs/rest";
 import { Message, Prisma } from "@prisma/client";
-import { APIEmbed, Routes, Snowflake } from "discord-api-types/v9";
+import {
+  APIEmbed,
+  APIEmbedAuthor,
+  APIEmbedFooter,
+  Routes,
+  Snowflake,
+} from "discord-api-types/v9";
 import { RESTPatchAPIChannelMessageResult } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 
@@ -166,8 +172,12 @@ async function editMessage({
           url: sentEmbed.url,
           timestamp,
           color: sentEmbed.color,
-          footerText: sentEmbed.footerText,
-          authorName: sentEmbed.authorName,
+          footerText: sentEmbed.footer?.text,
+          footerIconUrl: sentEmbed.footer?.icon_url,
+          authorName: sentEmbed.author?.name,
+          authorIconUrl: sentEmbed.author?.icon_url,
+          authorUrl: sentEmbed.author?.url,
+          thumbnailUrl: sentEmbed.thumbnail?.url,
           fields: fieldQuery,
         },
       };
@@ -252,15 +262,37 @@ async function editMessage({
     };
     let embedBefore: StoredEmbed | undefined = undefined;
     if (messageBefore?.embed !== null && messageBefore?.embed !== undefined) {
+      let footer: APIEmbedFooter | undefined = undefined;
+      if (messageBefore.embed.footerText !== null) {
+        footer = {
+          text: messageBefore.embed.footerText,
+          icon_url: messageBefore.embed.footerIconUrl ?? undefined,
+        };
+      }
+      let author: APIEmbedAuthor | undefined = undefined;
+      if (messageBefore.embed.authorName !== null) {
+        author = {
+          name: messageBefore.embed.authorName,
+          url: messageBefore.embed.authorUrl ?? undefined,
+          icon_url: messageBefore.embed.authorIconUrl ?? undefined,
+        };
+      }
+
       embedBefore = {
         title: messageBefore.embed.title ?? undefined,
         description: messageBefore.embed.description ?? undefined,
         url: messageBefore.embed.url ?? undefined,
         timestamp: messageBefore.embed.timestamp?.toISOString() ?? undefined,
         color: messageBefore.embed.color ?? undefined,
-        footerText: messageBefore.embed.footerText ?? undefined,
-        authorName: messageBefore.embed.authorName ?? undefined,
+        footer: footer,
+        author: author,
         fields: messageBefore.embed.fields ?? undefined,
+        thumbnail:
+          messageBefore.embed.thumbnailUrl !== null
+            ? {
+                url: messageBefore.embed.thumbnailUrl,
+              }
+            : undefined,
       };
     }
 

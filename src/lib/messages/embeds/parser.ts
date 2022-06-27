@@ -25,8 +25,9 @@ const createStoredEmbedFromAPIMessage = (
     url: embed.url,
     timestamp: embed.timestamp,
     color: embed.color,
-    footerText: embed.footer?.text,
-    authorName: embed.author?.name,
+    footer: embed.footer,
+    author: embed.author,
+    thumbnail: embed.thumbnail,
     fields: embed.fields,
   };
 };
@@ -37,22 +38,16 @@ const createSendableEmbedFromStoredEmbed = (embed: StoredEmbed): APIEmbed => {
     description: embed.description,
     url: embed.url,
     timestamp: embed.timestamp,
+    footer: embed.footer,
+    author: embed.author,
+    thumbnail: embed.thumbnail,
     color: embed.color,
   };
-  if (embed.footerText !== undefined) {
-    sendableEmbed.footer = {
-      text: embed.footerText,
-    };
-  }
-  if (embed.authorName !== undefined) {
-    sendableEmbed.author = {
-      name: embed.authorName,
-    };
-  }
+
   if (embed.fields !== undefined) {
     sendableEmbed.fields = embed.fields;
   }
   return sendableEmbed;
 };
 
-export { createSendableEmbedFromStoredEmbed,createStoredEmbedFromAPIMessage };
+export { createSendableEmbedFromStoredEmbed, createStoredEmbedFromAPIMessage };
