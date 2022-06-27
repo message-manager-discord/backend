@@ -10,6 +10,7 @@ import { FastifyInstance } from "fastify";
 import { embedPink } from "../../constants";
 import {
   InteractionOrRequestFinalStatus,
+  LimitHit,
   UnexpectedFailure,
 } from "../../errors";
 import {
@@ -186,6 +187,14 @@ export default async function handleMessageGenerationButton(
         ],
       });
     case "embed-add-field":
+      // Check if there are 25+ fields - if so cannot add any more
+
+      if ((currentStatus.embed?.fields?.length ?? 0) >= 25) {
+        throw new LimitHit(
+          InteractionOrRequestFinalStatus.EMBED_EXCEEDS_DISCORD_LIMITS,
+          "Only 25 fields allowed in an embed."
+        );
+      }
       return createModal({
         title: "Add Embed Field",
         custom_id: interaction.data.custom_id, // This is the same
