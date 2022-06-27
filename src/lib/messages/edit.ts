@@ -13,6 +13,7 @@ import { FastifyInstance } from "fastify";
 import { embedPink } from "../../constants";
 import { parseDiscordPermissionValuesToStringNames } from "../../consts";
 import {
+  ExpectedFailure,
   ExpectedPermissionFailure,
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
@@ -22,6 +23,7 @@ import { InternalPermissions } from "../permissions/consts";
 import { GuildSession } from "../session";
 import { checkDatabaseMessage } from "./checks";
 import { requiredPermissionsEdit } from "./consts";
+import { checkEmbedMeetsLimits } from "./embeds/checks";
 import {
   createSendableEmbedFromStoredEmbed,
   createStoredEmbedFromAPIMessage,
@@ -121,6 +123,16 @@ async function editMessage({
 }: EditMessageOptions) {
   await checkEditPossible({ channelId, instance, messageId, session });
   try {
+    // Check if embed exceeds limits
+    if (embed !== undefined) {
+      const exceedsLimits = checkEmbedMeetsLimits(embed);
+      if (exceedsLimits) {
+        throw new ExpectedFailure(
+          InteractionOrRequestFinalStatus.EMBED_EXCEEDS_DISCORD_LIMITS,
+          "The embed exceeds one or more of limits on embeds."
+        );
+      }
+    }
     const embeds: APIEmbed[] = [];
     if (embed) {
       embeds.push(createSendableEmbedFromStoredEmbed(embed));

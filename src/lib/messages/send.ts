@@ -24,6 +24,7 @@ import {
   requiredPermissionsSendBotThread,
   requiredPermissionsSendUser,
 } from "./consts";
+import { checkEmbedMeetsLimits } from "./embeds/checks";
 import {
   createSendableEmbedFromStoredEmbed,
   createStoredEmbedFromAPIMessage,
@@ -141,6 +142,16 @@ async function sendMessage({
       InteractionOrRequestFinalStatus.ATTEMPTING_TO_SEND_WHEN_NO_CONTENT_SET,
       "No content or embeds have been set, this is required to send a message"
     );
+  }
+  // Check if embed exceeds limits
+  if (embed !== undefined) {
+    const exceedsLimits = checkEmbedMeetsLimits(embed);
+    if (exceedsLimits) {
+      throw new ExpectedFailure(
+        InteractionOrRequestFinalStatus.EMBED_EXCEEDS_DISCORD_LIMITS,
+        "The embed exceeds one or more of limits on embeds."
+      );
+    }
   }
   const embeds: APIEmbed[] = [];
   if (embed) {
