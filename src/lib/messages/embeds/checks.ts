@@ -3,7 +3,7 @@ import { StoredEmbed } from "./types";
 // Sum of title, description, field.name, field.value, footer.text, and author.name must not exceed 6000 characters
 
 // Check if an embed exceeds any of the limits
-function checkExceedsEmbedLimits(embed: StoredEmbed): boolean {
+function checkEmbedMeetsLimits(embed: StoredEmbed): boolean {
   let totalCheckableLength = 0;
   // First check if each individual part of the embed exceeds it's limit, only for parts that have their own limits
   if (embed.title !== undefined && embed.title.length > 256) {
@@ -44,4 +44,4 @@ function checkExceedsEmbedLimits(embed: StoredEmbed): boolean {
   return false;
 }
 
-export { checkExceedsEmbedLimits as exceedsEmbedLimits };
+export { checkEmbedMeetsLimits };

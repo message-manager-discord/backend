@@ -3,6 +3,8 @@
 import { Snowflake } from "discord-api-types/globals";
 import { FastifyInstance } from "fastify";
 
+import { ExpectedFailure, InteractionOrRequestFinalStatus } from "../../errors";
+import { checkEmbedMeetsLimits } from "./embeds/checks";
 import { StoredEmbed } from "./embeds/types";
 
 const createMessageCacheKey = (
@@ -36,6 +38,16 @@ const saveMessageToCache = ({
   data: MessageSavedInCache;
   instance: FastifyInstance;
 }): Promise<void> => {
+  // Check if embed exceeds limits
+  if (data.embed !== undefined) {
+    const exceedsLimits = checkEmbedMeetsLimits(data.embed);
+    if (exceedsLimits) {
+      throw new ExpectedFailure(
+        InteractionOrRequestFinalStatus.EMBED_EXCEEDS_DISCORD_LIMITS,
+        "The embed exceeds one or more of limits on embeds."
+      );
+    }
+  }
   return instance.redisCache.setMessageCache(key, data);
 };
 
