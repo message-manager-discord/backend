@@ -15,6 +15,7 @@ import {
   ExpectedFailure,
   ExpectedPermissionFailure,
   InteractionOrRequestFinalStatus,
+  LimitHit,
   UnexpectedFailure,
 } from "../../errors";
 import { InternalPermissions } from "../permissions/consts";
@@ -147,7 +148,7 @@ async function sendMessage({
   if (embed !== undefined) {
     const exceedsLimits = checkEmbedMeetsLimits(embed);
     if (exceedsLimits) {
-      throw new ExpectedFailure(
+      throw new LimitHit(
         InteractionOrRequestFinalStatus.EMBED_EXCEEDS_DISCORD_LIMITS,
         "The embed exceeds one or more of limits on embeds."
       );

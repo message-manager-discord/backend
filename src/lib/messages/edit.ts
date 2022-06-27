@@ -13,9 +13,9 @@ import { FastifyInstance } from "fastify";
 import { embedPink } from "../../constants";
 import { parseDiscordPermissionValuesToStringNames } from "../../consts";
 import {
-  ExpectedFailure,
   ExpectedPermissionFailure,
   InteractionOrRequestFinalStatus,
+  LimitHit,
   UnexpectedFailure,
 } from "../../errors";
 import limits from "../../limits";
@@ -127,7 +127,7 @@ async function editMessage({
     if (embed !== undefined) {
       const exceedsLimits = checkEmbedMeetsLimits(embed);
       if (exceedsLimits) {
-        throw new ExpectedFailure(
+        throw new LimitHit(
           InteractionOrRequestFinalStatus.EMBED_EXCEEDS_DISCORD_LIMITS,
           "The embed exceeds one or more of limits on embeds."
         );
