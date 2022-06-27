@@ -153,6 +153,13 @@ async function sendMessage({
         "The embed exceeds one or more of limits on embeds."
       );
     }
+    // Also check if title and / or description is set on the embed
+    if (embed.title === undefined && embed.description === undefined) {
+      throw new ExpectedFailure(
+        InteractionOrRequestFinalStatus.EMBED_REQUIRES_TITLE_OR_DESCRIPTION,
+        "The embed requires a title or description."
+      );
+    }
   }
   const embeds: APIEmbed[] = [];
   if (embed) {

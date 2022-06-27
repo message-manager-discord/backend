@@ -13,6 +13,7 @@ import { FastifyInstance } from "fastify";
 import { embedPink } from "../../constants";
 import { parseDiscordPermissionValuesToStringNames } from "../../consts";
 import {
+  ExpectedFailure,
   ExpectedPermissionFailure,
   InteractionOrRequestFinalStatus,
   LimitHit,
@@ -130,6 +131,14 @@ async function editMessage({
         throw new LimitHit(
           InteractionOrRequestFinalStatus.EMBED_EXCEEDS_DISCORD_LIMITS,
           "The embed exceeds one or more of limits on embeds."
+        );
+      }
+
+      // Also check if title and / or description is set on the embed
+      if (embed.title === undefined && embed.description === undefined) {
+        throw new ExpectedFailure(
+          InteractionOrRequestFinalStatus.EMBED_REQUIRES_TITLE_OR_DESCRIPTION,
+          "The embed requires a title or description."
         );
       }
     }
