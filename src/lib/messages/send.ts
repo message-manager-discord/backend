@@ -243,7 +243,7 @@ async function sendMessage({
     if (sentEmbed !== null) {
       files.push({
         name: "embed.json",
-        data: JSON.stringify(sentEmbed),
+        data: JSON.stringify(sentEmbed, undefined, 2),
       });
       logEmbed.description +=
         "\nEmbed representation can be found in the attachment.";

@@ -212,7 +212,7 @@ async function deleteMessage({
     if (embedBefore !== undefined) {
       files.push({
         name: "embed.json",
-        data: JSON.stringify(embedBefore),
+        data: JSON.stringify(embedBefore, undefined, 2),
       });
       logEmbed.description +=
         "\nEmbed representation can be found in the attachment.";

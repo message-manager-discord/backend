@@ -304,11 +304,11 @@ async function editMessage({
     ) {
       files.push({
         name: "embed-before.json",
-        data: JSON.stringify(embedBefore),
+        data: JSON.stringify(embedBefore, undefined, 2),
       });
       files.push({
         name: "embed-after.json",
-        data: JSON.stringify(sentEmbed),
+        data: JSON.stringify(sentEmbed, undefined, 2),
       });
       logEmbed.description +=
         "\nEmbed representation can be found in the attachment.";
