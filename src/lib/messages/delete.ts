@@ -221,7 +221,7 @@ async function deleteMessage({
         data: JSON.stringify(embedBefore, undefined, 2),
       });
       logEmbed.description +=
-        "\nEmbed representation can be found in the attachment.";
+        "\n\nEmbed representation can be found in the attachment.";
     }
     // Send log message
     await instance.loggingManager.sendLogMessage({
