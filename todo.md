@@ -40,3 +40,8 @@
 // Move permission checks for permissions to the logic
 // Add permission presets
 // Add permission tag to /info cmd
+
+\\\\\
+
+DEFER if adding command on actions
+DEFER ALL COMMANDS THAT MAKE API REQUESTS
