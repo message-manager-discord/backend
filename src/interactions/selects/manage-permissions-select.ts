@@ -113,7 +113,6 @@ export default async function handleManagePermissionsSelect(
         messageId: interaction.message.id,
       });
     }
-    // TODO Allow
   } else {
     // Action is allow
     const permissionsToAllow: number[] = [];
