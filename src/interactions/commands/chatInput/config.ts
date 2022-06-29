@@ -659,7 +659,7 @@ async function handleLoggingChannelRemoveSubcommand({
       {
         embeds: [logEmbed],
         username: "Message Manager Logging",
-        avatarUrl: instance.envVars.AVATAR_URL,
+        avatar_url: instance.envVars.AVATAR_URL,
       }
     );
   }

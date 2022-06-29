@@ -1,14 +1,22 @@
-import { Message } from "@prisma/client";
-import { DiscordHTTPError } from "detritus-client-rest/lib/errors";
-import { APIEmbed, Snowflake } from "discord-api-types/v9";
+import { DiscordAPIError, RawFile } from "@discordjs/rest";
+import { EmbedField, Message, MessageEmbed, Prisma } from "@prisma/client";
+import {
+  APIEmbed,
+  APIEmbedAuthor,
+  APIEmbedFooter,
+  Routes,
+  Snowflake,
+} from "discord-api-types/v9";
 import { RESTPatchAPIChannelMessageResult } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 
 import { embedPink } from "../../constants";
 import { parseDiscordPermissionValuesToStringNames } from "../../consts";
 import {
+  ExpectedFailure,
   ExpectedPermissionFailure,
   InteractionOrRequestFinalStatus,
+  LimitHit,
   UnexpectedFailure,
 } from "../../errors";
 import limits from "../../limits";
@@ -16,6 +24,12 @@ import { InternalPermissions } from "../permissions/consts";
 import { GuildSession } from "../session";
 import { checkDatabaseMessage } from "./checks";
 import { requiredPermissionsEdit } from "./consts";
+import { checkEmbedMeetsLimits } from "./embeds/checks";
+import {
+  createSendableEmbedFromStoredEmbed,
+  createStoredEmbedFromAPIMessage,
+} from "./embeds/parser";
+import { StoredEmbed } from "./embeds/types";
 import {
   missingBotDiscordPermissionMessage,
   missingUserDiscordPermissionMessage,
@@ -36,7 +50,15 @@ const checkEditPossible = async ({
   instance,
   messageId,
   session,
-}: CheckEditPossibleOptions): Promise<Message> => {
+}: CheckEditPossibleOptions): Promise<
+  Message & {
+    embed:
+      | (MessageEmbed & {
+          fields: EmbedField[];
+        })
+      | null;
+  }
+> => {
   const userHasRequiredDiscordPermissions = await session.hasDiscordPermissions(
     requiredPermissionsEdit,
     channelId
@@ -70,6 +92,13 @@ const checkEditPossible = async ({
 
   const databaseMessage = await instance.prisma.message.findFirst({
     where: { id: BigInt(messageId) },
+    include: {
+      embed: {
+        include: {
+          fields: true,
+        },
+      },
+    },
     orderBy: { editedAt: "desc" },
   });
   if (!checkDatabaseMessage(databaseMessage)) {
@@ -96,7 +125,8 @@ const checkEditPossible = async ({
 };
 
 interface EditMessageOptions extends CheckEditPossibleOptions {
-  content: string;
+  content?: string;
+  embed?: StoredEmbed;
 }
 
 async function editMessage({
@@ -105,20 +135,95 @@ async function editMessage({
   instance,
   messageId,
   session,
+  embed,
 }: EditMessageOptions) {
   await checkEditPossible({ channelId, instance, messageId, session });
   try {
-    const response = (await instance.restClient.editMessage(
-      channelId,
-      messageId,
+    // Check if embed exceeds limits
+    if ((content === undefined || content === "") && embed === undefined) {
+      throw new ExpectedFailure(
+        InteractionOrRequestFinalStatus.ATTEMPTING_TO_SEND_WHEN_NO_CONTENT_SET,
+        "No content or embeds have been set, this is required to send a message"
+      );
+    }
+    if (embed !== undefined) {
+      const exceedsLimits = checkEmbedMeetsLimits(embed);
+      if (exceedsLimits) {
+        throw new LimitHit(
+          InteractionOrRequestFinalStatus.EMBED_EXCEEDS_DISCORD_LIMITS,
+          "The embed exceeds one or more of limits on embeds."
+        );
+      }
+
+      // Also check if title and / or description is set on the embed
+      if (embed.title === undefined && embed.description === undefined) {
+        throw new ExpectedFailure(
+          InteractionOrRequestFinalStatus.EMBED_REQUIRES_TITLE_OR_DESCRIPTION,
+          "The embed requires a title or description."
+        );
+      }
+    }
+    const embeds: APIEmbed[] = [];
+    if (embed) {
+      embeds.push(createSendableEmbedFromStoredEmbed(embed));
+    }
+    const response = (await instance.restClient.patch(
+      Routes.channelMessage(channelId, messageId),
       {
-        content: content,
+        body: { content: content, embeds },
       }
     )) as RESTPatchAPIChannelMessageResult;
     const messageBefore = await instance.prisma.message.findFirst({
       where: { id: BigInt(messageId) },
       orderBy: { editedAt: "desc" },
+      include: {
+        embed: {
+          include: {
+            fields: true,
+          },
+        },
+      },
     });
+    const sentEmbed = createStoredEmbedFromAPIMessage(response);
+    let embedQuery:
+      | Prisma.MessageEmbedCreateNestedOneWithoutMessageInput
+      | undefined = undefined;
+    if (sentEmbed !== null) {
+      let fieldQuery:
+        | Prisma.EmbedFieldCreateNestedManyWithoutEmbedInput
+        | undefined;
+
+      if (sentEmbed.fields && sentEmbed.fields.length > 0) {
+        fieldQuery = {
+          create: sentEmbed.fields.map((field) => ({
+            name: field.name,
+            value: field.value,
+            inline: field.inline,
+          })),
+        };
+      }
+      let timestamp: Date | undefined;
+      if (sentEmbed.timestamp !== undefined) {
+        timestamp = new Date(sentEmbed.timestamp);
+      }
+
+      embedQuery = {
+        create: {
+          title: sentEmbed.title,
+          description: sentEmbed.description,
+          url: sentEmbed.url,
+          timestamp,
+          color: sentEmbed.color,
+          footerText: sentEmbed.footer?.text,
+          footerIconUrl: sentEmbed.footer?.icon_url,
+          authorName: sentEmbed.author?.name,
+          authorIconUrl: sentEmbed.author?.icon_url,
+          authorUrl: sentEmbed.author?.url,
+          thumbnailUrl: sentEmbed.thumbnail?.url,
+          fields: fieldQuery,
+        },
+      };
+    }
 
     // Since message will contain message history too
     await instance.prisma.message.create({
@@ -152,6 +257,7 @@ async function editMessage({
             },
           },
         },
+        embed: embedQuery,
       },
     });
     // Check if message history count hasn't exceeded the limit, if it has then delete the oldest history
@@ -181,28 +287,97 @@ async function editMessage({
         });
       }
     }
-    const embed: APIEmbed = {
+    const logEmbed: APIEmbed = {
       color: embedPink,
       title: "Message Edited",
       description:
         `Message (${messageId}) edited` +
-        `\n**Original Content:**\n${
-          messageBefore?.content ?? "" //This should never be null as the message is being edited
+        `${
+          messageBefore !== null &&
+          messageBefore.content !== null &&
+          messageBefore.content !== ""
+            ? `\n**Original Content:**\n${messageBefore.content}`
+            : messageBefore?.content === ""
+            ? "\n**Original Content was empty**"
+            : ""
         }` +
-        `\n**New Content:**\n${response.content}`,
+        `${
+          response.content !== undefined &&
+          response.content !== null &&
+          response.content !== ""
+            ? `\n**New Content:**\n${response.content}`
+            : response.content === ""
+            ? "\n**New Content is empty**"
+            : ""
+        }`,
       fields: [
         { name: "Action By:", value: `<@${session.userId}>`, inline: true },
         { name: "Channel:", value: `<#${channelId}>`, inline: true },
       ],
       timestamp: new Date().toISOString(),
     };
+    let embedBefore: StoredEmbed | undefined = undefined;
+    if (messageBefore?.embed !== null && messageBefore?.embed !== undefined) {
+      let footer: APIEmbedFooter | undefined = undefined;
+      if (messageBefore.embed.footerText !== null) {
+        footer = {
+          text: messageBefore.embed.footerText,
+          icon_url: messageBefore.embed.footerIconUrl ?? undefined,
+        };
+      }
+      let author: APIEmbedAuthor | undefined = undefined;
+      if (messageBefore.embed.authorName !== null) {
+        author = {
+          name: messageBefore.embed.authorName,
+          url: messageBefore.embed.authorUrl ?? undefined,
+          icon_url: messageBefore.embed.authorIconUrl ?? undefined,
+        };
+      }
+
+      embedBefore = {
+        title: messageBefore.embed.title ?? undefined,
+        description: messageBefore.embed.description ?? undefined,
+        url: messageBefore.embed.url ?? undefined,
+        timestamp: messageBefore.embed.timestamp?.toISOString() ?? undefined,
+        color: messageBefore.embed.color ?? undefined,
+        footer: footer,
+        author: author,
+        fields: messageBefore.embed.fields ?? undefined,
+        thumbnail:
+          messageBefore.embed.thumbnailUrl !== null
+            ? {
+                url: messageBefore.embed.thumbnailUrl,
+              }
+            : undefined,
+      };
+    }
+
+    const files: RawFile[] = [];
+    if (
+      sentEmbed !== null &&
+      sentEmbed !== undefined &&
+      embedBefore !== undefined
+    ) {
+      files.push({
+        name: "embed-before.json",
+        data: JSON.stringify(embedBefore, undefined, 2),
+      });
+      files.push({
+        name: "embed-after.json",
+        data: JSON.stringify(sentEmbed, undefined, 2),
+      });
+      logEmbed.description +=
+        "\nEmbed representation can be found in the attachment.";
+    }
+
     // Send log message
     await instance.loggingManager.sendLogMessage({
       guildId: session.guildId,
-      embeds: [embed],
+      embeds: [logEmbed],
+      files,
     });
   } catch (error) {
-    if (error instanceof DiscordHTTPError) {
+    if (error instanceof DiscordAPIError) {
       if (error.code === 404) {
         throw new UnexpectedFailure(
           InteractionOrRequestFinalStatus.CHANNEL_NOT_FOUND_DISCORD_HTTP,

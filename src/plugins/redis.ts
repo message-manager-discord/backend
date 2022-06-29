@@ -4,6 +4,7 @@ import fp from "fastify-plugin";
 import RedisClient, { Redis } from "ioredis";
 
 import { StoredStateResponse } from "../authRoutes";
+import { MessageSavedInCache } from "../lib/messages/cache";
 
 type ArgType = Array<string | number>;
 class RedisCache {
@@ -93,6 +94,30 @@ class RedisCache {
   }
   deleteState(state: string): Promise<number> {
     return this._delete({ key: `state:${state}` });
+  }
+
+  async setMessageCache(
+    key: string,
+    message: MessageSavedInCache
+  ): Promise<void> {
+    key = `message:${key}`;
+    // TTL of one day
+    await this._set({ key, value: JSON.stringify(message) });
+    await this._setExpiry({ key, expiry: 1000 * 60 * 60 * 24 });
+  }
+  async getMessageCache(key: string): Promise<MessageSavedInCache | null> {
+    const data = await this._get({ key: `message:${key}` });
+
+    // We do not know what the data is, so we use falsy values
+    // Also an empty string should be returned as undefined anyways
+    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+    if (data) {
+      return JSON.parse(data as string) as MessageSavedInCache;
+    }
+    return null;
+  }
+  async deleteMessageCache(key: string): Promise<number> {
+    return this._delete({ key: `message:${key}` });
   }
   async setSession(session: string, userId: Snowflake): Promise<void> {
     const key = `session:${session}`;

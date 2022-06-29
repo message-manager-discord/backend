@@ -1,8 +1,11 @@
 import {
+  APIApplicationCommandInteractionDataBooleanOption,
   APIApplicationCommandInteractionDataChannelOption,
   APIChatInputApplicationCommandGuildInteraction,
   ApplicationCommandOptionType,
   ChannelType,
+  InteractionResponseType,
+  MessageFlags,
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 
@@ -10,6 +13,10 @@ import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../../../errors";
+import {
+  createMessageCacheKey,
+  saveMessageToCache,
+} from "../../../lib/messages/cache";
 import {
   checkSendMessagePossible,
   ThreadOptionObject,
@@ -20,6 +27,7 @@ import {
   createModal,
   createTextInputWithRow,
 } from "../../modals/createStructures";
+import { createInitialMessageGenerationEmbed } from "../../shared/message-generation";
 import { InteractionReturnData } from "../../types";
 
 export default async function handleSendCommand(
@@ -49,6 +57,15 @@ export default async function handleSendCommand(
       "Channel not found in resolved data"
     );
   }
+  const contentOnly: boolean =
+    (
+      interaction.data.options?.find(
+        (option) =>
+          option.name === "content-only" &&
+          option.type === ApplicationCommandOptionType.Boolean
+      ) as APIApplicationCommandInteractionDataBooleanOption
+    )?.value ?? false;
+
   let threadData: undefined | ThreadOptionObject = undefined;
 
   if (
@@ -69,20 +86,37 @@ export default async function handleSendCommand(
     thread: threadData,
     session,
   });
+  if (contentOnly) {
+    return createModal({
+      title: `Sending a message to #${channel.name}`,
+      custom_id: `send:${channelId}`,
+      components: [
+        createTextInputWithRow({
+          label: "Message Content",
+          placeholder: "Message content to send",
+          max_length: 2000,
+          min_length: 1,
+          required: true,
+          custom_id: "content",
+          short: false,
+        }),
+      ],
+    });
+  }
+  const messageGenerationKey = createMessageCacheKey(interaction.id, channelId);
+  await saveMessageToCache({ key: messageGenerationKey, data: {}, instance }); // Otherwise it'll return null when fetching and throw an error.
+  const embedData = createInitialMessageGenerationEmbed(
+    messageGenerationKey,
+    {}, // Empty as this is the start of the process,
+    interaction.guild_id
+  );
 
-  return createModal({
-    title: `Sending a message to #${channel.name}`,
-    custom_id: `send:${channelId}`,
-    components: [
-      createTextInputWithRow({
-        label: "Message Content",
-        placeholder: "Message content to send",
-        max_length: 2000,
-        min_length: 1,
-        required: true,
-        custom_id: "content",
-        short: false,
-      }),
-    ],
-  });
+  return {
+    type: InteractionResponseType.ChannelMessageWithSource,
+    data: {
+      embeds: [embedData.embed],
+      components: embedData.components,
+      flags: MessageFlags.Ephemeral,
+    },
+  };
 }

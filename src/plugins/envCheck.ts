@@ -111,7 +111,7 @@ declare module "fastify" {
 }
 // eslint-disable-next-line @typescript-eslint/require-await
 const envPlugin = fp(async (instance: FastifyInstance) => {
-  const envVars = envSchema<EnvVars>({ schema: schemaForEnv });
+  const envVars = envSchema<EnvVars>({ schema: schemaForEnv, dotenv: true });
   instance.decorate("envVars", envVars);
 });
 

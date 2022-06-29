@@ -1,17 +1,26 @@
-import { APIMessageComponentGuildInteraction } from "discord-api-types/v9";
+import {
+  APIEmbedAuthor,
+  APIEmbedFooter,
+  APIMessageComponentGuildInteraction,
+  InteractionResponseType,
+  MessageFlags,
+} from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 
 import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../../errors";
+import {
+  MessageSavedInCache,
+  saveMessageToCache,
+} from "../../lib/messages/cache";
+import { createMessageCacheKey } from "../../lib/messages/cache";
 import { checkEditPossible } from "../../lib/messages/edit";
+import { StoredEmbed } from "../../lib/messages/embeds/types";
 import { GuildSession } from "../../lib/session";
 import { InternalInteractionType } from "../interaction";
-import {
-  createModal,
-  createTextInputWithRow,
-} from "../modals/createStructures";
+import { createInitialMessageGenerationEmbed } from "../shared/message-generation";
 import { InteractionReturnData } from "../types";
 
 export default async function handleEditButton(
@@ -33,19 +42,74 @@ export default async function handleEditButton(
     instance,
     messageId,
   });
-  return createModal({
-    title: "Edit Message",
-    custom_id: interaction.data.custom_id, // This is the same ( `edit${messageId}`)
-    components: [
-      createTextInputWithRow({
-        label: "Message Content",
-        value: databaseMessage.content,
-        max_length: 2000,
-        min_length: 1,
-        required: true,
-        custom_id: "content",
-        short: false,
-      }),
-    ],
+
+  let embed: StoredEmbed | undefined = undefined;
+  if (databaseMessage?.embed !== null && databaseMessage?.embed !== undefined) {
+    let footer: APIEmbedFooter | undefined = undefined;
+    if (databaseMessage.embed.footerText !== null) {
+      footer = {
+        text: databaseMessage.embed.footerText,
+        icon_url: databaseMessage.embed.footerIconUrl ?? undefined,
+      };
+    }
+    let author: APIEmbedAuthor | undefined = undefined;
+    if (databaseMessage.embed.authorName !== null) {
+      author = {
+        name: databaseMessage.embed.authorName,
+        url: databaseMessage.embed.authorUrl ?? undefined,
+        icon_url: databaseMessage.embed.authorIconUrl ?? undefined,
+      };
+    }
+
+    embed = {
+      title: databaseMessage.embed.title ?? undefined,
+      description: databaseMessage.embed.description ?? undefined,
+      url: databaseMessage.embed.url ?? undefined,
+      timestamp: databaseMessage.embed.timestamp?.toISOString() ?? undefined,
+      color: databaseMessage.embed.color ?? undefined,
+      footer: footer,
+      author: author,
+      fields:
+        databaseMessage.embed.fields.map((field) => ({
+          name: field.name,
+          value: field.value,
+          inline: field.inline,
+        })) ?? undefined,
+      thumbnail:
+        databaseMessage.embed.thumbnailUrl !== null
+          ? {
+              url: databaseMessage.embed.thumbnailUrl,
+            }
+          : undefined,
+    };
+  }
+
+  const messageGenerationKey = createMessageCacheKey(
+    interaction.id,
+    interaction.channel_id // TODO: Check if this is ok
+  );
+  const cacheData: MessageSavedInCache = {
+    content: databaseMessage.content ?? undefined,
+    embed,
+    messageId: messageId,
+  };
+  await saveMessageToCache({
+    key: messageGenerationKey,
+    data: cacheData,
+    instance,
   });
+  const embedData = createInitialMessageGenerationEmbed(
+    messageGenerationKey,
+    cacheData,
+    interaction.guild_id
+  );
+
+  return {
+    type: InteractionResponseType.UpdateMessage,
+    data: {
+      embeds: [embedData.embed],
+      components: embedData.components,
+      flags: MessageFlags.Ephemeral,
+    },
+  };
 }

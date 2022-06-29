@@ -57,7 +57,7 @@ export default async function handleModalReport(
   await instance.prisma.report.create({
     data: {
       userId: BigInt(interaction.member.user.id),
-      content: storedMessage.content,
+      content: storedMessage.content ?? "",
       reportedAt: new Date(),
       guildId: storedMessage.guildId,
       channelId: storedMessage.channelId,

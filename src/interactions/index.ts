@@ -39,6 +39,7 @@ import handleCancelDeleteButton from "./buttons/cancel-delete";
 import handleConfirmDeleteButton from "./buttons/confirm-delete";
 import handleDeleteButton from "./buttons/delete";
 import handleEditButton from "./buttons/edit";
+import handleMessageGenerationButton from "./buttons/message-generation";
 import handleReportButton from "./buttons/report";
 import handleConfigCommand from "./commands/chatInput/config";
 import handleInfoCommand, {
@@ -53,6 +54,7 @@ import {
   InternalInteractionType,
 } from "./interaction";
 import handleModalEdit from "./modals/edit";
+import handleModalMessageGeneration from "./modals/message-generation";
 import handleModalReport from "./modals/report";
 import handleModalSend from "./modals/send";
 import handleManagePermissionsSelect from "./selects/manage-permissions-select";
@@ -394,7 +396,22 @@ class InteractionHandler {
           ),
           this._client
         );
-
+      case "message-generation":
+        // Guild only
+        if (interaction.guild_id === undefined) {
+          internalInteraction.responded = true;
+          throw new ExpectedFailure(
+            InteractionOrRequestFinalStatus.DM_INTERACTION_RECEIVED_WHEN_SHOULD_BE_GUILD_ONLY,
+            ":exclamation: This modal is only available in guilds"
+          );
+        }
+        return await handleModalMessageGeneration(
+          internalInteraction as InternalInteractionType<APIModalSubmitGuildInteraction>,
+          this._client.sessionManager.createSessionFromInteraction(
+            interaction as APIGuildInteraction
+          ),
+          this._client
+        );
       default:
         break;
     }
@@ -504,6 +521,23 @@ class InteractionHandler {
           );
         }
         return await handleManagePermissionsSelect(
+          internalInteraction as InternalInteractionType<APIMessageComponentGuildInteraction>,
+          this._client.sessionManager.createSessionFromInteraction(
+            interaction as APIGuildInteraction
+          ),
+          this._client
+        );
+
+      case "message-generation":
+        // Guild only
+        if (interaction.guild_id === undefined) {
+          internalInteraction.responded = true;
+          throw new UnexpectedFailure(
+            InteractionOrRequestFinalStatus.GUILD_COMPONENT_IN_DM_INTERACTION,
+            ":exclamation: This button is only available in guilds"
+          );
+        }
+        return await handleMessageGenerationButton(
           internalInteraction as InternalInteractionType<APIMessageComponentGuildInteraction>,
           this._client.sessionManager.createSessionFromInteraction(
             interaction as APIGuildInteraction

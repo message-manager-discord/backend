@@ -44,7 +44,7 @@ export default async function handleDeleteButton(
     title: "Delete Message",
     url: `https://discord.com/channels/${interaction.guild_id}/${databaseMessage.channelId}/${messageId}`,
     description: `Are you sure you want to delete this message?\n**Content:**\n\n${
-      content.length > maxLength
+      content !== null && content.length > maxLength
         ? `${content.substring(0, maxLength)}...`
         : content
     }`,
