@@ -1,4 +1,6 @@
+import { Prisma } from "@prisma/client";
 import {
+  APIEmbed,
   APIMessage,
   APIMessageApplicationCommandGuildInteraction,
   InteractionResponseType,
@@ -69,12 +71,60 @@ export default async function handleAddMessageCommand(
       "Message already added to the database. This command is just for migrating messages to the new system."
     );
   }
+  // Only allow one embed
+  if (message.embeds.length > 1) {
+    throw new ExpectedFailure(
+      InteractionOrRequestFinalStatus.MIGRATION_ATTEMPTED_ON_MESSAGE_WITH_MULTIPLE_EMBEDS,
+      "Message must have only one embed to be added!"
+    );
+  }
+  const embed: APIEmbed | undefined = message.embeds[0];
 
   await checkSendMessagePossible({
     channelId: message.channel_id,
     instance,
     session,
   });
+  let embedQuery:
+    | Prisma.MessageEmbedCreateNestedOneWithoutMessageInput
+    | undefined = undefined;
+  if (embed !== null) {
+    let fieldQuery:
+      | Prisma.EmbedFieldCreateNestedManyWithoutEmbedInput
+      | undefined;
+
+    if (embed.fields && embed.fields.length > 0) {
+      fieldQuery = {
+        create: embed.fields.map((field) => ({
+          name: field.name,
+          value: field.value,
+          inline: field.inline,
+        })),
+      };
+    }
+    let timestamp: Date | undefined;
+    if (embed.timestamp !== undefined) {
+      timestamp = new Date(embed.timestamp);
+    }
+
+    embedQuery = {
+      create: {
+        title: embed.title,
+        description: embed.description,
+        url: embed.url,
+        timestamp,
+        color: embed.color,
+        footerText: embed.footer?.text,
+        footerIconUrl: embed.footer?.icon_url,
+        authorName: embed.author?.name,
+        authorIconUrl: embed.author?.icon_url,
+        authorUrl: embed.author?.url,
+        thumbnailUrl: embed.thumbnail?.url,
+        fields: fieldQuery,
+      },
+    };
+  }
+
   // User should be able to send messages in the channel to add the message
   // Add the message to the database
   await instance.prisma.message.create({
@@ -108,6 +158,7 @@ export default async function handleAddMessageCommand(
           },
         },
       },
+      embed: embedQuery,
     },
   });
 
@@ -121,7 +172,7 @@ export default async function handleAddMessageCommand(
         addTipToEmbed({
           title: "Message Added",
           color: embedPink,
-          description: `Message added! You can now perform all usual actions on that [message](${messageLink}).`,
+          description: `Message added! You can now perform all usual actions on this [message](${messageLink}).`,
           timestamp: new Date().toISOString(),
           url: messageLink,
         }),
