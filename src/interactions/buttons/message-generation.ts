@@ -18,6 +18,7 @@ import {
   MessageSavedInCache,
   splitMessageCacheKey,
 } from "../../lib/messages/cache";
+import { editMessage } from "../../lib/messages/edit";
 import { sendMessage } from "../../lib/messages/send";
 import { GuildSession } from "../../lib/session";
 import { addTipToEmbed } from "../../lib/tips";
@@ -206,7 +207,7 @@ export default async function handleMessageGenerationButton(
             required: true,
             custom_id: "name",
             placeholder: "Field name",
-            short: true,
+            short: false,
           }),
           createTextInputWithRow({
             label: "Embed Field Value",
@@ -264,7 +265,8 @@ export default async function handleMessageGenerationButton(
     case "embed-back":
       returnData = createInitialMessageGenerationEmbed(
         messageGenerationKey,
-        currentStatus
+        currentStatus,
+        interaction.guild_id
       );
       return {
         type: InteractionResponseType.UpdateMessage,
@@ -277,6 +279,16 @@ export default async function handleMessageGenerationButton(
 
     case "send":
       return await handleSend({
+        channelId,
+        currentStatus,
+        instance,
+        session,
+        interaction,
+        messageGenerationKey,
+      });
+
+    case "edit":
+      return await handleEdit({
         channelId,
         currentStatus,
         instance,
@@ -331,6 +343,62 @@ const handleSend = async ({
     color: embedPink,
     title: "Message Sent",
     description: `Message sent! [Jump to message](${messageLink})`,
+    url: messageLink,
+    timestamp: new Date().toISOString(),
+  };
+
+  return {
+    type: InteractionResponseType.UpdateMessage,
+    data: {
+      embeds: [addTipToEmbed(embed)],
+      components: [],
+      flags: MessageFlags.Ephemeral,
+    },
+  };
+};
+
+const handleEdit = async ({
+  channelId,
+  currentStatus,
+
+  instance,
+
+  session,
+  interaction,
+  messageGenerationKey,
+}: {
+  channelId: string;
+  currentStatus: MessageSavedInCache;
+  instance: FastifyInstance;
+
+  session: GuildSession;
+  interaction: APIMessageComponentGuildInteraction;
+  messageGenerationKey: string;
+}): Promise<APIInteractionResponse> => {
+  if (currentStatus.messageId === undefined) {
+    throw new UnexpectedFailure(
+      InteractionOrRequestFinalStatus.MESSAGE_ID_MISSING_ON_MESSAGE_EDIT_CACHE,
+      "Message ID missing on message edit cache"
+    );
+  }
+
+  await editMessage({
+    channelId,
+    messageId: currentStatus.messageId,
+    content: currentStatus.content,
+    embed: currentStatus.embed,
+    instance,
+    session,
+  });
+
+  await instance.redisCache.deleteMessageCache(messageGenerationKey);
+
+  const messageLink = `https://discord.com/channels/${interaction.guild_id}/${channelId}/${currentStatus.messageId}`;
+
+  const embed: APIEmbed = {
+    color: embedPink,
+    title: "Message Edited",
+    description: `Message edited! [Jump to message](${messageLink})`,
     url: messageLink,
     timestamp: new Date().toISOString(),
   };

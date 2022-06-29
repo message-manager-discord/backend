@@ -35,7 +35,7 @@ model Message {
   guild       Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   channelId   BigInt
   channel     Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  content     String /// @encrypted
+  content     String? /// @encrypted
   editedAt    DateTime
   editedBy    BigInt
   deleted     Boolean  @default(false)

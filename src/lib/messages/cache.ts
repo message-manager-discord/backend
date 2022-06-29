@@ -3,7 +3,11 @@
 import { Snowflake } from "discord-api-types/globals";
 import { FastifyInstance } from "fastify";
 
-import { InteractionOrRequestFinalStatus, LimitHit } from "../../errors";
+import {
+  ExpectedFailure,
+  InteractionOrRequestFinalStatus,
+  LimitHit,
+} from "../../errors";
 import { checkEmbedMeetsLimits } from "./embeds/checks";
 import { StoredEmbed } from "./embeds/types";
 
@@ -16,7 +20,10 @@ const createMessageCacheKey = (
 
 const splitMessageCacheKey = (
   key: string
-): { interactionId: Snowflake; channelId: Snowflake } => {
+): {
+  interactionId: Snowflake;
+  channelId: Snowflake;
+} => {
   const [interactionId, channelId] = key.split("-");
   return {
     interactionId,
@@ -27,6 +34,7 @@ const splitMessageCacheKey = (
 interface MessageSavedInCache {
   content?: string;
   embed?: StoredEmbed;
+  messageId?: Snowflake;
 }
 
 const saveMessageToCache = ({
@@ -60,10 +68,10 @@ const getMessageFromCache = async ({
 }): Promise<MessageSavedInCache> => {
   const message = await instance.redisCache.getMessageCache(key);
   if (message === null) {
-    return {
-      embed: undefined,
-      content: undefined,
-    };
+    throw new ExpectedFailure(
+      InteractionOrRequestFinalStatus.MESSAGE_GENERATION_CACHE_NOT_FOUND,
+      "The cache for this message generation was not found. This could be due to a timeout - or a restart. \nPlease try the initial action again, and if this error persists, contact support."
+    );
   }
   return message;
 };

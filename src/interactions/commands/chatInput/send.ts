@@ -13,7 +13,10 @@ import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../../../errors";
-import { createMessageCacheKey } from "../../../lib/messages/cache";
+import {
+  createMessageCacheKey,
+  saveMessageToCache,
+} from "../../../lib/messages/cache";
 import {
   checkSendMessagePossible,
   ThreadOptionObject,
@@ -101,9 +104,11 @@ export default async function handleSendCommand(
     });
   }
   const messageGenerationKey = createMessageCacheKey(interaction.id, channelId);
+  await saveMessageToCache({ key: messageGenerationKey, data: {}, instance }); // Otherwise it'll return null when fetching and throw an error.
   const embedData = createInitialMessageGenerationEmbed(
     messageGenerationKey,
-    {} // Empty as this is the start of the process
+    {}, // Empty as this is the start of the process,
+    interaction.guild_id
   );
 
   return {

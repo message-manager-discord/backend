@@ -72,7 +72,7 @@ export default async function handleMessageGenerationSelect(
         required: false,
         custom_id: "name",
         placeholder: "Field name",
-        short: true,
+        short: false,
       }),
       createTextInputWithRow({
         label: "Embed Field Value",

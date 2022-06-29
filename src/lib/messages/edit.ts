@@ -1,5 +1,5 @@
 import { DiscordAPIError, RawFile } from "@discordjs/rest";
-import { Message, Prisma } from "@prisma/client";
+import { EmbedField, Message, MessageEmbed, Prisma } from "@prisma/client";
 import {
   APIEmbed,
   APIEmbedAuthor,
@@ -50,7 +50,15 @@ const checkEditPossible = async ({
   instance,
   messageId,
   session,
-}: CheckEditPossibleOptions): Promise<Message> => {
+}: CheckEditPossibleOptions): Promise<
+  Message & {
+    embed:
+      | (MessageEmbed & {
+          fields: EmbedField[];
+        })
+      | null;
+  }
+> => {
   const userHasRequiredDiscordPermissions = await session.hasDiscordPermissions(
     requiredPermissionsEdit,
     channelId
@@ -84,6 +92,13 @@ const checkEditPossible = async ({
 
   const databaseMessage = await instance.prisma.message.findFirst({
     where: { id: BigInt(messageId) },
+    include: {
+      embed: {
+        include: {
+          fields: true,
+        },
+      },
+    },
     orderBy: { editedAt: "desc" },
   });
   if (!checkDatabaseMessage(databaseMessage)) {
@@ -110,7 +125,7 @@ const checkEditPossible = async ({
 };
 
 interface EditMessageOptions extends CheckEditPossibleOptions {
-  content: string;
+  content?: string;
   embed?: StoredEmbed;
 }
 
@@ -125,6 +140,12 @@ async function editMessage({
   await checkEditPossible({ channelId, instance, messageId, session });
   try {
     // Check if embed exceeds limits
+    if ((content === undefined || content === "") && embed === undefined) {
+      throw new ExpectedFailure(
+        InteractionOrRequestFinalStatus.ATTEMPTING_TO_SEND_WHEN_NO_CONTENT_SET,
+        "No content or embeds have been set, this is required to send a message"
+      );
+    }
     if (embed !== undefined) {
       const exceedsLimits = checkEmbedMeetsLimits(embed);
       if (exceedsLimits) {
@@ -271,10 +292,24 @@ async function editMessage({
       title: "Message Edited",
       description:
         `Message (${messageId}) edited` +
-        `\n**Original Content:**\n${
-          messageBefore?.content ?? "" //This should never be null as the message is being edited
+        `${
+          messageBefore !== null &&
+          messageBefore.content !== null &&
+          messageBefore.content !== ""
+            ? `\n**Original Content:**\n${messageBefore.content}`
+            : messageBefore?.content === ""
+            ? "\n**Original Content was empty**"
+            : ""
         }` +
-        `\n**New Content:**\n${response.content}`,
+        `${
+          response.content !== undefined &&
+          response.content !== null &&
+          response.content !== ""
+            ? `\n**New Content:**\n${response.content}`
+            : response.content === ""
+            ? "\n**New Content is empty**"
+            : ""
+        }`,
       fields: [
         { name: "Action By:", value: `<@${session.userId}>`, inline: true },
         { name: "Channel:", value: `<#${channelId}>`, inline: true },

@@ -251,7 +251,13 @@ async function sendMessage({
       title: "Message Sent",
       description:
         `Message (${messageResult.id}) sent` +
-        `\n**Content:**\n${messageResult.content}`,
+        `${
+          messageResult.content !== undefined &&
+          messageResult.content !== "" &&
+          messageResult.content !== null
+            ? `\n**Content:**\n${messageResult.content}`
+            : ""
+        }`,
       fields: [
         { name: "Action By:", value: `<@${session.userId}>`, inline: true },
         { name: "Channel:", value: `<#${channelId}>`, inline: true },

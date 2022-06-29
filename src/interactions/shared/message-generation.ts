@@ -1,3 +1,4 @@
+import { Snowflake } from "discord-api-types/globals";
 import {
   APIActionRowComponent,
   APIEmbed,
@@ -8,13 +9,17 @@ import {
 } from "discord-api-types/v9";
 
 import { embedPink } from "../../constants";
-import { MessageSavedInCache } from "../../lib/messages/cache";
+import {
+  MessageSavedInCache,
+  splitMessageCacheKey,
+} from "../../lib/messages/cache";
 import { addTipToEmbed } from "../../lib/tips";
 
 type MessageGenerationButtonTypes =
   | "content"
   | "embed"
   | "send"
+  | "edit"
   | "embed-metadata"
   | "select-fields"
   | "embed-footer"
@@ -39,19 +44,35 @@ interface CreateMessageGenerationEmbedResult {
 }
 const createInitialMessageGenerationEmbed = (
   messageGenerationKey: string,
-  currentStatus: MessageSavedInCache
+  currentStatus: MessageSavedInCache,
+  guildId: Snowflake
 ): CreateMessageGenerationEmbedResult => {
+  const type = currentStatus.messageId === undefined ? "send" : "edit";
+  const channelId = splitMessageCacheKey(messageGenerationKey).channelId;
+  const messageLink = `https://discord.com/channels/${guildId}/${channelId}/${
+    currentStatus.messageId ?? ""
+  }`;
   return {
     embed: addTipToEmbed({
-      title: "Message Generation Flow",
+      title: `Message Generation Flow - ${
+        type[0].toUpperCase() + type.slice(1)
+      }`,
       description:
-        "Use the buttons below to update the state of the message and embed. When you are done, click the send button." +
+        `Use the buttons below to update the state of the message and embed. When you are done, click the ${type} button.` +
         "\n\n" +
-        `**Current Content**: ${currentStatus.content ?? ""}` +
-        "\n\n" +
+        `${
+          currentStatus.content !== undefined
+            ? `**Current Content**: ${currentStatus.content ?? ""}`
+            : ""
+        }\n\n` +
         `${
           currentStatus.embed !== undefined
             ? "Embed exists, click the edit embed button to edit it."
+            : ""
+        }\n\n` +
+        `${
+          currentStatus.messageId !== undefined
+            ? `[Jump to message being edited](${messageLink})`
             : ""
         }`,
       color: embedPink,
@@ -81,11 +102,11 @@ const createInitialMessageGenerationEmbed = (
 
           {
             type: ComponentType.Button,
-            label: "Send",
+            label: type[0].toUpperCase() + type.slice(1),
             style: ButtonStyle.Success,
             custom_id: generateMessageGenerationCustomId(
               messageGenerationKey,
-              "send"
+              type
             ),
           },
         ],
@@ -116,6 +137,7 @@ const createEmbedMessageGenerationEmbed = (
           max_values: 1,
           min_values: 1,
           options: currentStatus.embed.fields.map((field, index) => {
+            console.log(field);
             return {
               label: field.name,
               value: index.toString(),

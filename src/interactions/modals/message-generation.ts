@@ -145,7 +145,8 @@ const handleContent = async ({
 
   const responseData = createInitialMessageGenerationEmbed(
     messageGenerationKey,
-    currentStatus
+    currentStatus,
+    interaction.guild_id
   );
 
   return {

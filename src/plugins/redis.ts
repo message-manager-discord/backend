@@ -101,10 +101,9 @@ class RedisCache {
     message: MessageSavedInCache
   ): Promise<void> {
     key = `message:${key}`;
-    await this._set({
-      key,
-      value: JSON.stringify(message),
-    });
+    // TTL of one day
+    await this._set({ key, value: JSON.stringify(message) });
+    await this._setExpiry({ key, expiry: 1000 * 60 * 60 * 24 });
   }
   async getMessageCache(key: string): Promise<MessageSavedInCache | null> {
     const data = await this._get({ key: `message:${key}` });

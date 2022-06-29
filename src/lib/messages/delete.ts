@@ -165,7 +165,13 @@ async function deleteMessage({
       title: "Message Deleted",
       description:
         `Message (${messageId}) deleted` +
-        `\n\n**Message Content:**\n${messageBefore.content}`,
+        `${
+          messageBefore.content !== null && messageBefore.content !== ""
+            ? `\n\n**Message Content:**\n${messageBefore.content}`
+            : messageBefore.content === ""
+            ? "\n**Message Content was empty**"
+            : ""
+        }`,
       fields: [
         { name: "Action By:", value: `<@${session.userId}>`, inline: true },
         { name: "Channel:", value: `<#${channelId}>`, inline: true },
