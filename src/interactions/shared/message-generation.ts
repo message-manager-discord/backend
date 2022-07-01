@@ -59,6 +59,7 @@ const createInitialMessageGenerationEmbed = (
       }`,
       description:
         `Use the buttons below to update the state of the message and embed. When you are done, click the ${type} button.` +
+        `\nTo remove the embed, if you have not already done so, make sure all fields and other properties are removed (empty)` +
         "\n\n" +
         `${
           currentStatus.content !== undefined
@@ -175,7 +176,8 @@ const createEmbedMessageGenerationEmbed = (
     embed: addTipToEmbed({
       title: "Message Generation Flow - Embed",
       description:
-        "Use the buttons below to update the state of the embed. When you are done, click the back button.",
+        "Use the buttons below to update the state of the embed. When you are done, click the back button." +
+        "\nTo remove the embed, if you have not already done so, make sure all fields and other properties are removed (empty)",
       color: embedPink,
     }),
     components: [

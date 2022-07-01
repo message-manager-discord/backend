@@ -346,6 +346,22 @@ const handleSend = async ({
     url: messageLink,
     timestamp: new Date().toISOString(),
   };
+  // Check embed for any set values. If none set embed to undefined
+  if (currentStatus.embed !== undefined) {
+    const hasAnySet =
+      (currentStatus.embed?.fields?.length ?? 0) > 0 ||
+      currentStatus.embed?.author?.name !== undefined ||
+      currentStatus.embed?.footer?.text !== undefined ||
+      currentStatus.embed?.description !== undefined ||
+      currentStatus.embed?.title !== undefined ||
+      currentStatus.embed?.url !== undefined ||
+      currentStatus.embed?.thumbnail?.url !== undefined ||
+      currentStatus.embed?.timestamp !== undefined ||
+      currentStatus.embed?.color !== undefined;
+    if (!hasAnySet) {
+      currentStatus.embed = undefined;
+    }
+  }
 
   return {
     type: InteractionResponseType.UpdateMessage,
@@ -380,6 +396,23 @@ const handleEdit = async ({
       InteractionOrRequestFinalStatus.MESSAGE_ID_MISSING_ON_MESSAGE_EDIT_CACHE,
       "Message ID missing on message edit cache"
     );
+  }
+
+  // Check embed for any set values. If none set embed to undefined
+  if (currentStatus.embed !== undefined) {
+    const hasAnySet =
+      (currentStatus.embed?.fields?.length ?? 0) > 0 ||
+      currentStatus.embed?.author?.name !== undefined ||
+      currentStatus.embed?.footer?.text !== undefined ||
+      currentStatus.embed?.description !== undefined ||
+      currentStatus.embed?.title !== undefined ||
+      currentStatus.embed?.url !== undefined ||
+      currentStatus.embed?.thumbnail?.url !== undefined ||
+      currentStatus.embed?.timestamp !== undefined ||
+      currentStatus.embed?.color !== undefined;
+    if (!hasAnySet) {
+      currentStatus.embed = undefined;
+    }
   }
 
   await editMessage({
