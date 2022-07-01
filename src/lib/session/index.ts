@@ -62,7 +62,7 @@ class GuildSession {
 
   private async _getCachedGuild(): Promise<Guild> {
     if (!this._cachedGuild) {
-      const cachedGuild = this._guildManager.getGuild(this.guildId);
+      const cachedGuild = await this._guildManager.getGuild(this.guildId);
       try {
         await cachedGuild.ownerId;
         // This will check if the guild is in cache or not

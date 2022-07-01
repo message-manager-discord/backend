@@ -76,6 +76,8 @@ enum InteractionOrRequestFinalStatus {
   EMBED_EDITING_MISSING_DISCORD_REQUIRED_VALUE,
   MESSAGE_ID_MISSING_ON_MESSAGE_EDIT_CACHE,
   INTERACTION_TIMED_OUT_HTTP,
+  GENERIC_OUTAGE = 7000,
+  GATEWAY_CACHE_SHARD_OUTAGE,
 }
 
 class CustomError extends Error {
@@ -112,6 +114,9 @@ class UnexpectedFailure extends CustomError {
   // status should be 6xxx
 }
 
+class Outage extends CustomError {
+  // status should be 7000
+}
 export {
   CustomError,
   ExpectedFailure,
@@ -119,5 +124,5 @@ export {
   ExpectedPermissionFailure,
   InteractionOrRequestFinalStatus,
   LimitHit,
-  UnexpectedFailure,
-};
+  Outage,
+  UnexpectedFailure};

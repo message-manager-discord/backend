@@ -203,7 +203,9 @@ const userPlugin = async (instance: FastifyInstance) => {
       const filteredGuilds = [];
       for (const guild of guilds) {
         try {
-          await instance.redisGuildManager.getGuild(guild.id).name; // Test if the guild is in cache, if it's not the getter will throw
+          await (
+            await instance.redisGuildManager.getGuild(guild.id)
+          ).name; // Test if the guild is in cache, if it's not the getter will throw
           filteredGuilds.push({
             id: guild.id,
             name: guild.name,

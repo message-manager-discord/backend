@@ -22,6 +22,7 @@ import {
 import { FastifyInstance } from "fastify";
 import FastifyRawBody from "fastify-raw-body";
 import httpErrors from "http-errors";
+import { ShardInactive } from "redis-discord-cache/dist/errors";
 const { Forbidden } = httpErrors;
 import axios from "axios";
 import { verifyKey } from "discord-interactions";
@@ -32,6 +33,7 @@ import {
   CustomError,
   ExpectedFailure,
   InteractionOrRequestFinalStatus,
+  Outage,
   UnexpectedFailure,
 } from "../errors";
 import { GuildSession, NonGuildSession } from "../lib/session";
@@ -655,11 +657,28 @@ const interactionsPlugin = async (instance: FastifyInstance) => {
               `\nError code: \`${error.status}\`` +
               "\n*PS: This shouldn't happen*";
             components = error.components;
+          } else if (error instanceof Outage) {
+            errorMessage =
+              `:exclamation: There is currently an outage! Please check https://status--message.anothercat.me for updates - or join the support server` +
+              `\nOutage error: ${error.message}` +
+              `\nOutage error code: \`${error.status}\``;
+            components = error.components;
           } else {
             // Expected errors
             errorMessage = `:exclamation: ${error.message}`;
             components = error.components;
           }
+        } else if (error instanceof ShardInactive) {
+          errorMessage =
+            `:exclamation: There is currently an outage! Please check <https://status--message.anothercat.me> for updates - or join the support server` +
+            // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+            `\nOutage error: ${error.message}` +
+            `\nOutage error code: \`${InteractionOrRequestFinalStatus.GATEWAY_CACHE_SHARD_OUTAGE}\``;
+          instance.metrics.interactionsReceived.inc({
+            type: internalInteraction.interaction.type,
+            status: InteractionOrRequestFinalStatus.GATEWAY_CACHE_SHARD_OUTAGE,
+            deferred: internalInteraction.deferred.toString(),
+          });
         } else {
           const message =
             (error as Error | undefined) !== undefined &&
