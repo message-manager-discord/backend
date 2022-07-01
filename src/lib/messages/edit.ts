@@ -368,6 +368,16 @@ async function editMessage({
       });
       logEmbed.description +=
         "\n\nEmbed representation can be found in the attachment.";
+    } else if (sentEmbed !== null && sentEmbed !== undefined) {
+      files.push({
+        name: "embed-after.json",
+        data: JSON.stringify(sentEmbed, undefined, 2),
+      });
+    } else if (embedBefore !== undefined) {
+      files.push({
+        name: "embed-before.json",
+        data: JSON.stringify(embedBefore, undefined, 2),
+      });
     }
 
     // Send log message
