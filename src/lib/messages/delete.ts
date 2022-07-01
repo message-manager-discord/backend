@@ -1,5 +1,5 @@
 import { DiscordAPIError, RawFile } from "@discordjs/rest";
-import { Message } from "@prisma/client";
+import { EmbedField, Message, MessageEmbed } from "@prisma/client";
 import {
   APIEmbed,
   APIEmbedAuthor,
@@ -44,7 +44,15 @@ const checkDeletePossible = async ({
   instance,
   messageId,
   session,
-}: DeleteOptions): Promise<Message> => {
+}: DeleteOptions): Promise<
+  Message & {
+    embed:
+      | (MessageEmbed & {
+          fields: EmbedField[];
+        })
+      | null;
+  }
+> => {
   const userHasViewChannel = await session.hasDiscordPermissions(
     requiredPermissionsDelete,
     channelId
@@ -75,6 +83,13 @@ const checkDeletePossible = async ({
   const databaseMessage = await instance.prisma.message.findFirst({
     where: { id: BigInt(messageId) },
     orderBy: { editedAt: "desc" }, // Needs to be ordered, as this is returned
+    include: {
+      embed: {
+        include: {
+          fields: true,
+        },
+      },
+    },
   });
   if (!checkDatabaseMessage(databaseMessage)) {
     throw new UnexpectedFailure(

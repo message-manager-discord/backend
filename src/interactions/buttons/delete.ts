@@ -40,14 +40,24 @@ export default async function handleDeleteButton(
   });
   const content = databaseMessage.content;
   const maxLength = 150;
+  const hasEmbed = databaseMessage.embed !== null;
   const embed: APIEmbed = {
     title: "Delete Message",
     url: `https://discord.com/channels/${interaction.guild_id}/${databaseMessage.channelId}/${messageId}`,
-    description: `Are you sure you want to delete this message?\n**Content:**\n\n${
-      content !== null && content.length > maxLength
-        ? `${content.substring(0, maxLength)}...`
-        : content
-    }`,
+    // Also include a message about the embed if an embed exists
+    description:
+      `Are you sure you want to delete this message?${
+        content === null
+          ? "No Content"
+          : `\n**Content:**\n\n${
+              content.length > maxLength
+                ? `${content.substring(0, maxLength)}...`
+                : content
+            }`
+      }` +
+      (hasEmbed
+        ? "\n\nMessage also contains an embed. This action will also delete the embed.}"
+        : ""),
 
     color: embedPink,
   };
