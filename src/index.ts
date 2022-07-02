@@ -18,9 +18,11 @@ import redisRestPlugin from "./plugins/redis";
 import sessionPlugin from "./plugins/session";
 import versionOnePlugin from "./v1";
 
+const productionEnv = process.env.PRODUCTION === "true";
+
 const instance: FastifyInstance = fastify({
   logger: {
-    level: "info",
+    level: productionEnv ? "warn" : "info",
   },
 });
 
