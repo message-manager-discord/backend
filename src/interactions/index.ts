@@ -1,3 +1,4 @@
+import Sentry from "@sentry/node";
 import {
   APIApplicationCommandAutocompleteGuildInteraction,
   APIApplicationCommandAutocompleteInteraction,
@@ -657,12 +658,16 @@ const interactionsPlugin = async (instance: FastifyInstance) => {
               `\nError code: \`${error.status}\`` +
               "\n*PS: This shouldn't happen*";
             components = error.components;
+            Sentry.captureException(error);
+            instance.log.error(error);
           } else if (error instanceof Outage) {
             errorMessage =
               `:exclamation: There is currently an outage! Please check https://status--message.anothercat.me for updates - or join the support server` +
               `\nOutage error: ${error.message}` +
               `\nOutage error code: \`${error.status}\``;
             components = error.components;
+            Sentry.captureException(error);
+            instance.log.error(error);
           } else {
             // Expected errors
             errorMessage = `:exclamation: ${error.message}`;
@@ -679,6 +684,8 @@ const interactionsPlugin = async (instance: FastifyInstance) => {
             status: InteractionOrRequestFinalStatus.GATEWAY_CACHE_SHARD_OUTAGE,
             deferred: internalInteraction.deferred.toString(),
           });
+          Sentry.captureException(error);
+          instance.log.error(error);
         } else {
           const message =
             (error as Error | undefined) !== undefined &&
@@ -690,6 +697,7 @@ const interactionsPlugin = async (instance: FastifyInstance) => {
             type: internalInteraction.interaction.type,
             status: InteractionOrRequestFinalStatus.GENERIC_UNEXPECTED_FAILURE,
           });
+          Sentry.captureException(error);
           instance.log.error(error);
           errorMessage =
             ":exclamation: Something went wrong! Please try again." +
