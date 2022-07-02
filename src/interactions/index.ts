@@ -195,6 +195,7 @@ class InteractionHandler {
   async handleInteraction(
     internalInteraction: InternalInteractionType<APIInteraction>
   ): Promise<InteractionReturnData> {
+    throw new Error(); /*
     const interaction = internalInteraction.interaction;
     switch (interaction.type) {
       case InteractionType.Ping:
@@ -234,7 +235,7 @@ class InteractionHandler {
           // eslint-disable-next-line @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
           `No handler for interaction type \`${(interaction as any).type}\``
         );
-    }
+    }*/
   }
   handleMessageCommands(
     internalInteraction: InternalInteractionType<APIMessageApplicationCommandInteraction>
