@@ -88,7 +88,7 @@ export default async function handleAddMessageCommand(
   let embedQuery:
     | Prisma.MessageEmbedCreateNestedOneWithoutMessageInput
     | undefined = undefined;
-  if (embed !== null) {
+  if (embed !== null && embed !== undefined) {
     let fieldQuery:
       | Prisma.EmbedFieldCreateNestedManyWithoutEmbedInput
       | undefined;
