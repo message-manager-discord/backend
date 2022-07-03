@@ -27,7 +27,7 @@ RUN echo $SENTRY_ORG
 RUN echo $SENTRY_PROJECT
 RUN echo $SENTRY_VERSION
 
-RUN npx -y @sentry/cli releases new $SENTRY_VERSION --org $SENTRY_ORG --project $SENTRY_PROJECT --auth-token $SENTRY_AUTH_TOKEN
+RUN npx -y @sentry/cli releases new $SENTRY_VERSION --org $SENTRY_ORG --project $SENTRY_PROJECT --auth-token ${cat /run/secrets/sentry_auth_token}
 RUN npx -y @sentry/cli releases files $SENTRY_VERSION upload-sourcemaps --ext map --ext js --ext ts ./dist --org $SENTRY_ORG --project $SENTRY_PROJECT --auth-token $SENTRY_AUTH_TOKEN
 RUN npx -y @sentry/cli releases set-commits $SENTRY_VERSION --auto --org $SENTRY_ORG --project $SENTRY_PROJECT --auth-token $SENTRY_AUTH_TOKEN
 RUN npx -y @sentry/cli releases finalize $SENTRY_VERSION --org $SENTRY_ORG --project $SENTRY_PROJECT --auth-token $SENTRY_AUTH_TOKEN
