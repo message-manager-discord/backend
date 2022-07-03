@@ -1,8 +1,11 @@
+import { RewriteFrames } from "@sentry/integrations";
 import Sentry from "@sentry/node";
+import childProcess from "child_process";
 import fastify, { FastifyInstance } from "fastify";
 import fastifyAuth from "fastify-auth";
 import fastifyCookie, { FastifyCookieOptions } from "fastify-cookie";
 import fastifyCors from "fastify-cors";
+import * as url from "url";
 
 import authRoutePlugin from "./authRoutes";
 import interactionsPlugin from "./interactions/index";
@@ -18,6 +21,11 @@ import redisRestPlugin from "./plugins/redis";
 import sessionPlugin from "./plugins/session";
 import versionOnePlugin from "./v1";
 
+const gitRevision = childProcess
+  .execSync("git rev-parse HEAD")
+  .toString()
+  .trim();
+
 const productionEnv = process.env.PRODUCTION === "true";
 
 const instance: FastifyInstance = fastify({
@@ -31,8 +39,19 @@ await instance.register(envPlugin); // Load env variables
 // Sentry is registered before all other plugins incase they throw errors
 // Sentry is not a plugin so all errors are captured
 
+const rootDir =
+  url.fileURLToPath(new URL(".", import.meta.url)) || process.cwd();
+
 Sentry.init({
   dsn: instance.envVars.SENTRY_DSN,
+  integrations: [
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+    new RewriteFrames({
+      root: rootDir,
+    }),
+  ],
+  //release: "my-project-name@" + (process.env.npm_package_version ?? ""),
+  release: gitRevision,
 });
 
 instance.setErrorHandler(async (error, request, reply) => {
