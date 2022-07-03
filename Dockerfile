@@ -12,6 +12,9 @@ COPY . .
 RUN npm run generate
 RUN npm run build:production 
 
+RUN --mount=type=secret,id=sentry_auth_token \
+  cat /run/secrets/sentry_auth_token
+
 
 
 ARG SENTRY_VERSION
