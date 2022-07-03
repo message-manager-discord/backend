@@ -125,4 +125,5 @@ export {
   InteractionOrRequestFinalStatus,
   LimitHit,
   Outage,
-  UnexpectedFailure};
+  UnexpectedFailure,
+};
