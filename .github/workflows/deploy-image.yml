@@ -57,6 +57,9 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           secrets: |
             "sentry_auth_token=${{ secrets.SENTRY_AUTH_TOKEN }}"
+            "sentry_org=${{ secrets.SENTRY_ORG }}"
+            "sentry_project=${{ secrets.SENTRY_PROJECT }}"
+            "sentry_version=${{ github.sha }}"
           build-args: |
             SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
             SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
