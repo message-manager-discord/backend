@@ -20,6 +20,9 @@ ARG SENTRY_PROJECT
 ARG SENTRY_AUTH_TOKEN
 
 RUN echo $SENTRY_AUTH_TOKEN
+RUN echo $SENTRY_ORG
+RUN echo $SENTRY_PROJECT
+RUN echo $SENTRY_VERSION
 
 RUN npx -y @sentry/cli releases new $SENTRY_VERSION --org $SENTRY_ORG --project $SENTRY_PROJECT --auth-token $SENTRY_AUTH_TOKEN
 RUN npx -y @sentry/cli releases files $SENTRY_VERSION upload-sourcemaps --ext map --ext js --ext ts ./dist --org $SENTRY_ORG --project $SENTRY_PROJECT --auth-token $SENTRY_AUTH_TOKEN
