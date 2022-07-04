@@ -112,7 +112,8 @@
           }
         ]
       }
-    ]
+    ],
+    "dm_permission": false
   },
 
   {
@@ -121,7 +122,8 @@
   },
   {
     "name": "Actions",
-    "type": 3
+    "type": 3,
+    "dm_permission": false
   },
   {
     "default_permission": true,
@@ -142,7 +144,8 @@
         "description": "Send a message quickly by only sending content",
         "required": false
       }
-    ]
+    ],
+    "dm_permission": false
   },
   {
     "default_permission": true,
