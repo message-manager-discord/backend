@@ -150,6 +150,21 @@
   {
     "default_permission": true,
     "type": 1,
+    "name": "actions",
+    "description": "Start actions on a message - edit, delete, or report",
+    "options": [
+      {
+        "name": "message-id",
+        "type": 3,
+        "description": "The ID of the message to get actions for - must be in the same channel.",
+        "required": true
+      }
+    ],
+    "dm_permission": false
+  },
+  {
+    "default_permission": true,
+    "type": 1,
     "name": "info",
     "description": "Information Commands",
     "options": [

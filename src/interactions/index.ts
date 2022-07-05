@@ -44,13 +44,15 @@ import handleDeleteButton from "./buttons/delete";
 import handleEditButton from "./buttons/edit";
 import handleMessageGenerationButton from "./buttons/message-generation";
 import handleReportButton from "./buttons/report";
+import handleActionsCommand from "./commands/chatInput/actions";
+import handleAddMessageCommand from "./commands/chatInput/add-message";
 import handleConfigCommand from "./commands/chatInput/config";
 import handleInfoCommand, {
   handleInfoAutocomplete,
 } from "./commands/chatInput/info";
 import handleSendCommand from "./commands/chatInput/send";
 import handleActionMessageCommand from "./commands/message/actions";
-import handleAddMessageCommand from "./commands/message/addMessage";
+import handleAddMessageMessageCommand from "./commands/message/addMessage";
 import handleFetchMessageCommand from "./commands/message/fetch";
 import {
   createInternalInteraction,
@@ -569,11 +571,16 @@ const interactionsPlugin = async (instance: FastifyInstance) => {
   handler.addCommand("info", handleInfoCommand, handleInfoAutocomplete);
   handler.addGuildOnlyCommand("send", handleSendCommand);
   handler.addGuildOnlyCommand("config", handleConfigCommand);
+  handler.addGuildOnlyCommand("actions", handleActionsCommand);
+  handler.addGuildOnlyCommand("add-message", handleAddMessageCommand);
 
   // Add message commands to handler
   handler.addGuildOnlyMessageCommand("actions", handleActionMessageCommand);
   handler.addGuildOnlyMessageCommand("fetch", handleFetchMessageCommand);
-  handler.addGuildOnlyMessageCommand("add message", handleAddMessageCommand);
+  handler.addGuildOnlyMessageCommand(
+    "add message",
+    handleAddMessageMessageCommand
+  );
 
   await instance.register(FastifyRawBody, {
     field: "rawBody", // change the default request.rawBody property name

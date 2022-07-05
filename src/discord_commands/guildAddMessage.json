@@ -1,4 +1,19 @@
-{
-  "name": "Add Message",
-  "type": 3
-}
+[
+  {
+    "name": "Add Message",
+    "type": 3
+  },
+  {
+    "type": 1,
+    "name": "add-message",
+    "description": "Add a message to the bot - use this to migrate old messages",
+    "options": [
+      {
+        "name": "message-id",
+        "type": 3,
+        "description": "The ID of the message to add - must be in the same channel.",
+        "required": true
+      }
+    ]
+  }
+]

@@ -37,7 +37,10 @@ async function checkIfMessageExistsAndHandleAdding({
     const guild = await instance.prisma.guild.findUnique({
       where: { id: BigInt(session.guildId) },
     });
-    if (guild?.beforeMigration ?? false) {
+    if (
+      (guild?.beforeMigration ?? false) &&
+      message.author.id === instance.envVars.DISCORD_CLIENT_ID
+    ) {
       // If guild has not had command registered, register it
       if (
         !(await instance.redisCache.getGuildMigrationCommandRegistered(
@@ -55,8 +58,8 @@ async function checkIfMessageExistsAndHandleAdding({
           InteractionOrRequestFinalStatus.MESSAGE_NOT_FOUND_IN_DATABASE_MIGRATION_POSSIBLE,
           `That message was not sent via the bot! ${
             userHasSendMessagePermission.allPresent
-              ? 'Try using the "Add Message" context menu command'
-              : "Ask someone who has send messages to add this message"
+              ? 'Try using the "Add Message" context menu command or the `/add-message` slash command'
+              : "Ask someone who has the send messages bot permission to add this message"
           } (for more info check out \`/info migration\`)`
         );
       }
