@@ -1,6 +1,6 @@
-import { RawFile } from "@discordjs/rest";
+import { RawFile, DiscordAPIError } from "@discordjs/rest";
 import { Snowflake } from "discord-api-types/globals";
-import { APIEmbed, APIMessage } from "discord-api-types/v9";
+import { APIEmbed, APIMessage, RESTJSONErrorCodes } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 
 import { DiscordPermissions } from "../../consts";
@@ -84,6 +84,7 @@ export default class LoggingManager {
     message,
     embeds,
     files,
+    session,
   }: {
     guildId: Snowflake;
 
@@ -91,6 +92,7 @@ export default class LoggingManager {
     message?: string;
     embeds: APIEmbed[] | undefined;
     files?: RawFile[];
+    session: GuildSession;
   }): Promise<APIMessage | void> {
     // Logs can be "passed" if the channel isn't set, or if the webhook doesn't exist and the bot cannot create a new webhook
     // This means that this function can be called without checking if the log channel is set
@@ -107,7 +109,8 @@ export default class LoggingManager {
     };
 
     try {
-      return this._webhookManager.sendWebhookMessage(
+      return await this._webhookManager.sendWebhookMessage(
+        // TODO: ADD AWAIT
         channelId,
         guildId,
         data,
@@ -115,6 +118,17 @@ export default class LoggingManager {
       );
       // eslint-disable-next-line no-empty
     } catch (error) {
+      if (
+        error instanceof DiscordAPIError &&
+        error.code === RESTJSONErrorCodes.UnknownChannel
+      ) {
+        // remove channel
+        // This threw on the attempt to add / create a webhook on the channel
+        // This is because the channel doesn't exist anymore
+        await this.removeGuildLoggingChannel(session);
+        return;
+      }
+
       if (!(ignoreErrors ?? false)) {
         throw error;
       }

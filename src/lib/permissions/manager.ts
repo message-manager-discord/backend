@@ -95,7 +95,7 @@ class PermissionManager {
       actionBy: session.userId,
       actionType: ActionType.GENERAL,
     });
-    await session.sendLoggingMessage(embed);
+    await session.sendLoggingMessage({ logEmbeds: [embed] });
   }
 
   private async _sendAllowDenyLogMessage({
@@ -179,7 +179,7 @@ class PermissionManager {
       actionBy: session.userId,
       actionType: ActionType.GENERAL,
     });
-    await session.sendLoggingMessage(embed);
+    await session.sendLoggingMessage({ logEmbeds: [embed] });
   }
 
   async getAllGuildPermissions(

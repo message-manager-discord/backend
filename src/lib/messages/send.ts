@@ -274,10 +274,9 @@ async function sendMessage({
         "\n\nEmbed representation can be found in the attachment.";
     }
     // Send log message
-    await instance.loggingManager.sendLogMessage({
-      guildId: session.guildId,
-      embeds: [logEmbed],
-      files,
+    await session.sendLoggingMessage({
+      logEmbeds: [logEmbed],
+      files: files,
     });
     return messageResult;
   } catch (error) {

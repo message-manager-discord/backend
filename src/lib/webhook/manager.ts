@@ -3,6 +3,7 @@ import { Snowflake } from "discord-api-types/globals";
 import {
   APIMessage,
   RESTGetAPIChannelWebhooksResult,
+  RESTJSONErrorCodes,
   RESTPostAPIChannelWebhookResult,
   RESTPostAPIWebhookWithTokenJSONBody,
   RESTPostAPIWebhookWithTokenWaitResult,
@@ -45,6 +46,29 @@ export default class WebhookManager {
             where: {
               id: BigInt(guildId),
             },
+
+            create: {
+              id: BigInt(guildId),
+            },
+          },
+        },
+      },
+    });
+  }
+  private _removeStoredWebhook(
+    channelId: Snowflake,
+    guildId: Snowflake
+  ): Promise<unknown> {
+    return this._instance.prisma.channel.upsert({
+      where: { id: BigInt(channelId) },
+      update: { webhookId: null, webhookToken: null },
+      create: {
+        id: BigInt(channelId),
+        webhookId: null,
+        webhookToken: null,
+        guild: {
+          connectOrCreate: {
+            where: { id: BigInt(guildId) },
 
             create: {
               id: BigInt(guildId),
@@ -120,6 +144,7 @@ export default class WebhookManager {
     }
     // If here this means that there are no webhooks that match the application id, and the token is null
     // Therefore we need to create a new webhook
+
     return await this._createWebhook(channelId, guildId);
   }
   private async _createWebhook(
@@ -138,7 +163,10 @@ export default class WebhookManager {
       )) as RESTPostAPIChannelWebhookResult;
     } catch (error) {
       if (error instanceof DiscordAPIError) {
-        if (error.code === 403 || error.code === 50013) {
+        if (
+          error.status === 403 ||
+          error.code === RESTJSONErrorCodes.MissingPermissions
+        ) {
           throw new UnexpectedFailure(
             InteractionOrRequestFinalStatus.BOT_MISSING_DISCORD_PERMISSION,
             "Missing the permission `MANAGE_WEBHOOKS` on that channel"
@@ -193,15 +221,28 @@ export default class WebhookManager {
     files?: RawFile[]
   ): Promise<APIMessage> {
     const webhook = await this.getWebhook(channelId, guildId);
-
-    const message = (await this._instance.restClient.post(
-      Routes.webhook(webhook.id, webhook.token),
-      {
-        body: data,
-        files,
-        query: new URLSearchParams({ wait: "true" }),
+    try {
+      const message = (await this._instance.restClient.post(
+        Routes.webhook(webhook.id, webhook.token),
+        {
+          body: data,
+          files,
+          query: new URLSearchParams({ wait: "true" }),
+        }
+      )) as RESTPostAPIWebhookWithTokenWaitResult;
+      return message;
+    } catch (error) {
+      if (
+        error instanceof DiscordAPIError &&
+        error.code === RESTJSONErrorCodes.UnknownWebhook
+      ) {
+        // If the webhook is not found, it means that it has been deleted, so we need to recreate it
+        // First delete the webhook so it is not attempted to be used again, incase creating the webhook fails
+        await this._removeStoredWebhook(channelId, guildId);
+        await this._createWebhook(channelId, guildId);
+        return await this.sendWebhookMessage(channelId, guildId, data, files);
       }
-    )) as RESTPostAPIWebhookWithTokenWaitResult;
-    return message;
+      throw error;
+    }
   }
 }

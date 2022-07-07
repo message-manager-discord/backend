@@ -381,10 +381,10 @@ async function editMessage({
     }
 
     // Send log message
-    await instance.loggingManager.sendLogMessage({
-      guildId: session.guildId,
-      embeds: [logEmbed],
-      files,
+
+    await session.sendLoggingMessage({
+      logEmbeds: [logEmbed],
+      files: files,
     });
   } catch (error) {
     if (error instanceof DiscordAPIError) {

@@ -598,6 +598,7 @@ async function handleLoggingChannelSetSubcommand({
       guildId: interaction.guild_id,
       embeds: [logEmbed],
       ignoreErrors: false,
+      session,
     });
   }
   // If this fails it will be returned to the user

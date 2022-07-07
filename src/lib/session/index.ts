@@ -1,3 +1,4 @@
+import { RawFile } from "@discordjs/rest";
 import { Snowflake } from "discord-api-types/globals";
 import {
   APIDMInteraction,
@@ -126,11 +127,22 @@ class GuildSession {
     });
   }
 
-  async sendLoggingMessage(logEmbed: APIEmbed): Promise<void> {
+  async sendLoggingMessage({
+    logEmbeds,
+    message,
+    files,
+  }: {
+    logEmbeds?: APIEmbed[];
+    message?: string;
+    files?: RawFile[];
+  }): Promise<void> {
     await this._instance.loggingManager.sendLogMessage({
-      embeds: [logEmbed],
+      embeds: logEmbeds,
+      message,
+      files,
       guildId: this.guildId,
       ignoreErrors: true,
+      session: this,
     });
   }
 }
