@@ -164,6 +164,7 @@
   },
   {
     "default_permission": true,
+    "dm_permission": true,
     "type": 1,
     "name": "info",
     "description": "Information Commands",
@@ -174,6 +175,53 @@
         "type": 3,
         "autocomplete": true,
         "required": true
+      }
+    ]
+  },
+  {
+    "type": 1,
+    "name": "raw-format",
+    "description": "Get the raw format of user, channel and role mentions. Use this format to show mentions in messages",
+    "dm_permission": true,
+    "options": [
+      {
+        "type": 1,
+        "name": "user",
+        "description": "Get the raw format of a user mention",
+        "options": [
+          {
+            "type": 6,
+            "name": "user",
+            "required": true,
+            "description": "The user to get the raw format of"
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "role",
+        "description": "Get the raw format of a role mention",
+        "options": [
+          {
+            "type": 8,
+            "name": "role",
+            "required": true,
+            "description": "The role to get the raw format of"
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "channel",
+        "description": "Get the raw format of a channel mention",
+        "options": [
+          {
+            "type": 7,
+            "name": "channel",
+            "required": true,
+            "description": "The channel to get the raw format of"
+          }
+        ]
       }
     ]
   }

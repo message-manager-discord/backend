@@ -50,6 +50,7 @@ import handleConfigCommand from "./commands/chatInput/config";
 import handleInfoCommand, {
   handleInfoAutocomplete,
 } from "./commands/chatInput/info";
+import handleRawFormatCommand from "./commands/chatInput/raw-format";
 import handleSendCommand from "./commands/chatInput/send";
 import handleActionMessageCommand from "./commands/message/actions";
 import handleAddMessageMessageCommand from "./commands/message/addMessage";
@@ -573,6 +574,7 @@ const interactionsPlugin = async (instance: FastifyInstance) => {
   handler.addGuildOnlyCommand("config", handleConfigCommand);
   handler.addGuildOnlyCommand("actions", handleActionsCommand);
   handler.addGuildOnlyCommand("add-message", handleAddMessageCommand);
+  handler.addGuildOnlyCommand("raw-format", handleRawFormatCommand);
 
   // Add message commands to handler
   handler.addGuildOnlyMessageCommand("actions", handleActionMessageCommand);

@@ -14,6 +14,10 @@ const allTips: Tip[] = [
   {
     message: "Discord administrators always have all bot permissions",
   },
+  {
+    message:
+      "Use /raw-format to get the format for mentions to show up in messages!",
+  },
 ];
 
 export { allTips };
