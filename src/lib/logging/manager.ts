@@ -1,4 +1,4 @@
-import { RawFile, DiscordAPIError } from "@discordjs/rest";
+import { DiscordAPIError,RawFile } from "@discordjs/rest";
 import { Snowflake } from "discord-api-types/globals";
 import { APIEmbed, APIMessage, RESTJSONErrorCodes } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
