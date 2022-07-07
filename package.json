@@ -1,6 +1,6 @@
 {
   "name": "message-manager-backend",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "Backend for the message manager site",
   "main": "./dist/index.js",
   "exports": "./dist/index.js",
