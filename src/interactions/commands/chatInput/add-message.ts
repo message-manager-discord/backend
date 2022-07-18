@@ -25,7 +25,7 @@ export default async function handleAddMessageCommand(
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   // First option: Message Id
-  const messageId: string | undefined = (
+  let messageId: string | undefined = (
     interaction.data.options?.find(
       (option) =>
         option.name === "message-id" &&
@@ -37,6 +37,18 @@ export default async function handleAddMessageCommand(
       InteractionOrRequestFinalStatus.APPLICATION_COMMAND_MISSING_EXPECTED_OPTION,
       "No message id option on add message command"
     );
+  }
+  // Check if messageId is a valid snowflake
+  if (!/^[0-9]{16,20}$/.test(messageId)) {
+    // Check if messageId is in the format of ${channelId}-${messageId}
+    if (/^[0-9]{16,20}-[0-9]{16,20}$/.test(messageId)) {
+      messageId = messageId.split("-")[1];
+    } else {
+      throw new ExpectedFailure(
+        InteractionOrRequestFinalStatus.APPLICATION_COMMAND_SNOWFLAKE_OPTION_NOT_VALID,
+        "Invalid message id option on actions command - make sure this is a valid message id"
+      );
+    }
   }
   // Fetch message from api
   try {
@@ -63,6 +75,11 @@ export default async function handleAddMessageCommand(
       throw new ExpectedFailure(
         InteractionOrRequestFinalStatus.MESSAGE_NOT_FOUND_DISCORD_DELETED_OR_NOT_EXIST,
         "That message could not be found, make sure you are using the command in the same channel as the message"
+      );
+    } else if (error.code === 50035) {
+      throw new ExpectedFailure(
+        InteractionOrRequestFinalStatus.APPLICATION_COMMAND_SNOWFLAKE_OPTION_NOT_VALID,
+        "Invalid message id option on actions command - make sure this is a valid message id"
       );
     }
     throw error;
