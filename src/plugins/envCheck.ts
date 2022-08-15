@@ -15,7 +15,7 @@ const schemaForEnv = {
     "DISCORD_CLIENT_ID",
     "DISCORD_CLIENT_SECRET",
     "DISCORD_INTERACTIONS_PUBLIC_KEY",
-    "BASE_API_URL",
+    "SITE_URL",
     "METRICS_AUTH_TOKEN",
     "AVATAR_URL",
     "PRISMA_FIELD_ENCRYPTION_KEY",
@@ -55,7 +55,7 @@ const schemaForEnv = {
     DISCORD_INTERACTIONS_PUBLIC_KEY: {
       type: "string",
     },
-    BASE_API_URL: {
+    SITE_URL: {
       type: "string",
     },
     METRICS_AUTH_TOKEN: {
@@ -94,7 +94,7 @@ interface EnvVars {
   DISCORD_CLIENT_ID: string;
   DISCORD_CLIENT_SECRET: string;
   DISCORD_INTERACTIONS_PUBLIC_KEY: string;
-  BASE_API_URL: string;
+  SITE_URL: string;
   METRICS_AUTH_TOKEN: string;
   AVATAR_URL: string;
   PORT: number;

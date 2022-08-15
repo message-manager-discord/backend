@@ -4,7 +4,7 @@ import httpErrors from "http-errors";
 const { Forbidden } = httpErrors;
 import { Static, Type } from "@sinclair/typebox";
 import crypto from "crypto";
-import { v5 as uuidv5 } from "uuid";
+import { v4 as uuidv4 } from "uuid";
 
 import DiscordOauthRequests from "./discordOauth";
 
@@ -16,7 +16,7 @@ const CallbackQuerystring = Type.Object({
 type CallbackQuerystringType = Static<typeof CallbackQuerystring>;
 
 const AuthorizeQuerystring = Type.Object({
-  redirect_to: Type.Optional(Type.String()),
+  redirect_url: Type.Optional(Type.String()),
 });
 
 type AuthorizeQuerystringType = Static<typeof AuthorizeQuerystring>;
@@ -36,20 +36,23 @@ const addPlugin = async (instance: FastifyInstance) => {
       schema: {
         querystring: AuthorizeQuerystring,
         response: {
-          307: {},
+          200: {
+            type: "object",
+            properties: {
+              redirectUrl: { type: "string" },
+            },
+          },
         },
       },
     },
     async (request, reply) => {
-      const { redirect_to } = request.query;
+      const { redirect_url } = request.query;
 
       const state = crypto.randomBytes(16).toString("hex");
-      await instance.redisCache.setState(state, redirect_to ?? null);
+      await instance.redisCache.setState(state, redirect_url ?? null);
+      const redirectUrl = instance.discordOauthRequests.generateAuthUrl(state);
 
-      return reply.redirect(
-        307,
-        instance.discordOauthRequests.generateAuthUrl(state)
-      );
+      return reply.send({ redirectUrl });
     }
   );
   instance.get<{ Querystring: CallbackQuerystringType }>(
@@ -58,7 +61,17 @@ const addPlugin = async (instance: FastifyInstance) => {
       schema: {
         querystring: CallbackQuerystring,
         response: {
-          307: {},
+          200: {
+            type: "object",
+            properties: {
+              redirectUrl: {
+                type: "string",
+              },
+              token: {
+                type: "string",
+              },
+            },
+          },
         },
       },
     },
@@ -96,22 +109,13 @@ const addPlugin = async (instance: FastifyInstance) => {
         },
       });
 
-      const session = uuidv5(user.id, instance.envVars.UUID_NAMESPACE);
-      await instance.redisCache.setSession(session, user.id);
+      const sessionToken = `browser.${uuidv4()}.${user.id}.${Date.now()}`;
+      await instance.redisCache.setSession(sessionToken, user.id);
       const date = new Date();
       date.setDate(date.getDate() + 7);
-
       const redirectPath = cachedState.redirectPath ?? "/";
-      return reply
-        .setCookie("_HOST-session", session, {
-          secure: true,
-          sameSite: "none",
-          httpOnly: true,
-          path: "/",
-          expires: date,
-          signed: true,
-        })
-        .redirect(307, redirectPath);
+      console.log({ redirectUrl: redirectPath, token: sessionToken });
+      return reply.send({ redirectUrl: redirectPath, token: sessionToken });
     }
   );
 };
