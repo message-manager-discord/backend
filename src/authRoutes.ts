@@ -114,7 +114,6 @@ const addPlugin = async (instance: FastifyInstance) => {
       const date = new Date();
       date.setDate(date.getDate() + 7);
       const redirectPath = cachedState.redirectPath ?? "/";
-      console.log({ redirectUrl: redirectPath, token: sessionToken });
       return reply.send({ redirectUrl: redirectPath, token: sessionToken });
     }
   );

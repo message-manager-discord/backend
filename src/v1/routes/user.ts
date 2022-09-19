@@ -55,7 +55,7 @@ const userPlugin = async (instance: FastifyInstance) => {
           },
           404: {
             description: "Not Found - User needs to log in",
-            $ref: "responses.notfound#",
+            $ref: "responses.notFound#",
           },
         },
       },
@@ -87,6 +87,11 @@ const userPlugin = async (instance: FastifyInstance) => {
           userId: userStored.id.toString(),
           token: userStored.oauthToken,
           staff: userStored.staff,
+          admin: instance.envVars.API_ADMIN_IDS.includes(
+            userStored.id.toString()
+          )
+            ? true
+            : undefined,
         };
       }
 
@@ -99,6 +104,7 @@ const userPlugin = async (instance: FastifyInstance) => {
         discriminator: userInfo.discriminator,
         accent_color: userInfo.accent_color,
         staff: user.staff,
+        admin: user.admin,
       };
     }
   );
@@ -126,7 +132,7 @@ const userPlugin = async (instance: FastifyInstance) => {
           },
           404: {
             description: "Not Found - User needs to log in",
-            $ref: "responses.notfound#",
+            $ref: "responses.notFound#",
           },
         },
       },
@@ -140,7 +146,7 @@ const userPlugin = async (instance: FastifyInstance) => {
         throw new BadRequest("You can't edit your own user");
       }
 
-      if (!requestUser.staff) {
+      if (!requestUser.admin) {
         throw new Forbidden("You don't have permission to edit users");
       }
 

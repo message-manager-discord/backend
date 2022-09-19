@@ -1,11 +1,22 @@
+import fastifySwagger from "@fastify/swagger";
 import { FastifyInstance } from "fastify";
-import fastifySwagger from "fastify-swagger";
 
+import reportPlugin from "./routes/reports";
 import rootPlugin from "./routes/rootTesting";
 import userPlugin from "./routes/user";
+import { schemas } from "./types";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 const versionOnePlugin = async (instance: FastifyInstance) => {
+  instance.addSchema({
+    $id: "responses.badRequest",
+    type: "object",
+    properties: {
+      statusCode: { type: "integer", example: 400 },
+      error: { type: "string", example: "Bad Request" },
+      message: { type: "string", example: "Missing querystring value" },
+    },
+  });
   instance.addSchema({
     $id: "responses.unauthorized",
     type: "object",
@@ -26,7 +37,7 @@ const versionOnePlugin = async (instance: FastifyInstance) => {
   });
 
   instance.addSchema({
-    $id: "responses.notfound",
+    $id: "responses.notFound",
     type: "object",
     properties: {
       statusCode: { type: "integer", example: 404 },
@@ -56,6 +67,8 @@ const versionOnePlugin = async (instance: FastifyInstance) => {
       staff: { type: "boolean", example: false },
     },
   });
+
+  schemas.forEach((schema) => instance.addSchema(schema));
 
   // eslint-disable-next-line @typescript-eslint/no-floating-promises
   instance.register(fastifySwagger, {
@@ -97,6 +110,8 @@ const versionOnePlugin = async (instance: FastifyInstance) => {
   instance.register(rootPlugin);
   // eslint-disable-next-line @typescript-eslint/no-floating-promises
   instance.register(userPlugin);
+  // eslint-disable-next-line @typescript-eslint/no-floating-promises
+  instance.register(reportPlugin);
 };
 
 export default versionOnePlugin;

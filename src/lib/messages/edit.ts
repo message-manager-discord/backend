@@ -28,6 +28,7 @@ import { checkEmbedMeetsLimits } from "./embeds/checks";
 import {
   createSendableEmbedFromStoredEmbed,
   createStoredEmbedFromAPIMessage,
+  createStoredEmbedFromDataBaseEmbed,
 } from "./embeds/parser";
 import { StoredEmbed } from "./embeds/types";
 import {
@@ -318,38 +319,7 @@ async function editMessage({
     };
     let embedBefore: StoredEmbed | undefined = undefined;
     if (messageBefore?.embed !== null && messageBefore?.embed !== undefined) {
-      let footer: APIEmbedFooter | undefined = undefined;
-      if (messageBefore.embed.footerText !== null) {
-        footer = {
-          text: messageBefore.embed.footerText,
-          icon_url: messageBefore.embed.footerIconUrl ?? undefined,
-        };
-      }
-      let author: APIEmbedAuthor | undefined = undefined;
-      if (messageBefore.embed.authorName !== null) {
-        author = {
-          name: messageBefore.embed.authorName,
-          url: messageBefore.embed.authorUrl ?? undefined,
-          icon_url: messageBefore.embed.authorIconUrl ?? undefined,
-        };
-      }
-
-      embedBefore = {
-        title: messageBefore.embed.title ?? undefined,
-        description: messageBefore.embed.description ?? undefined,
-        url: messageBefore.embed.url ?? undefined,
-        timestamp: messageBefore.embed.timestamp?.toISOString() ?? undefined,
-        color: messageBefore.embed.color ?? undefined,
-        footer: footer,
-        author: author,
-        fields: messageBefore.embed.fields ?? undefined,
-        thumbnail:
-          messageBefore.embed.thumbnailUrl !== null
-            ? {
-                url: messageBefore.embed.thumbnailUrl,
-              }
-            : undefined,
-      };
+      embedBefore = createStoredEmbedFromDataBaseEmbed(messageBefore.embed);
     }
 
     const files: RawFile[] = [];

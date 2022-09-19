@@ -54,18 +54,18 @@ export default async function handleModalReport(
     );
   }
 
-  await instance.prisma.report.create({
-    data: {
-      userId: BigInt(interaction.member.user.id),
-      content: storedMessage.content ?? "",
-      reportedAt: new Date(),
-      guildId: storedMessage.guildId,
-      channelId: storedMessage.channelId,
-      messageId: storedMessage.id,
-      userReportReason: reason,
-      status: ReportStatus.Spam,
-    },
-  });
+  // await instance.prisma.report.create({
+  //   data: {
+  //     userId: BigInt(interaction.member.user.id),
+  //     content: storedMessage.content ?? "",
+  //     reportedAt: new Date(),
+  //     guildId: storedMessage.guildId,
+  //     channelId: storedMessage.channelId,
+  //     messageId: storedMessage.id,
+  //     userReportReason: reason,
+  //     status: ReportStatus.Spam,
+  //   },
+  // });
   return {
     type: InteractionResponseType.ChannelMessageWithSource,
     data: {

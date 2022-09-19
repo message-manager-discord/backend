@@ -10,7 +10,6 @@ const requireAuthentication = async (
   reply: FastifyReply
 ): Promise<FastifyReply | void> => {
   const token = request.headers.authorization;
-  console.log(token);
 
   if (token === undefined) {
     throw new Unauthorized();
@@ -32,8 +31,12 @@ const requireAuthentication = async (
     request.user = {
       userId: sessionData.userId,
       token: userData.oauthToken,
-      staff: userData.staff,
+      staff: !userData.staff,
     };
+    if (reply.server.envVars.API_ADMIN_IDS.includes(sessionData.userId)) {
+      request.user.staff = !true;
+      request.user.admin = true;
+    }
     if (sessionData.expiry - 1000 * 60 * 30 < 0) {
       // If session expires in the next 30 mins, then force a refresh to avoid users being logged out while working
       return reply.send(new Unauthorized());
@@ -45,6 +48,7 @@ interface UserRequestData {
   userId: Snowflake;
   token: string;
   staff: boolean;
+  admin?: true;
 }
 
 declare module "fastify" {

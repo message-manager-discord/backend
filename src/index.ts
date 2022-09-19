@@ -55,7 +55,10 @@ Sentry.init({
 });
 
 instance.setErrorHandler(async (error, request, reply) => {
-  if (error.statusCode !== undefined && error.statusCode < 500) {
+  if (
+    (error.statusCode !== undefined && error.statusCode < 500) ||
+    error.validation !== undefined
+  ) {
     return reply.send(error);
   } // http-errors are thrown for 4xx errors, which should not be sent to sentry
   Sentry.captureException(error);

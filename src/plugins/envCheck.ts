@@ -23,6 +23,7 @@ const schemaForEnv = {
     "HOST",
     "NO_MIGRATION_AFTER",
     "SENTRY_DSN",
+    "API_ADMIN_IDS",
   ],
   properties: {
     UUID_NAMESPACE: {
@@ -80,6 +81,9 @@ const schemaForEnv = {
     SENTRY_DSN: {
       type: "string",
     },
+    API_ADMIN_IDS: {
+      type: "string",
+    },
   },
 };
 
@@ -102,6 +106,7 @@ interface EnvVars {
   PRISMA_FIELD_ENCRYPTION_KEY: string;
   NO_MIGRATION_AFTER: number;
   SENTRY_DSN: string;
+  API_ADMIN_IDS: string;
 }
 
 declare module "fastify" {
