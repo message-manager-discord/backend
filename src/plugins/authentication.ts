@@ -1,3 +1,9 @@
+/**
+ * This contains a function that adds a user object to the request
+ * It sends an Unauthorized error if not authenticated
+ * The function must be added in a pre-handler hook to run - this is so only routes that need authentication will require it
+ */
+
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import httpErrors from "http-errors";
 const { Unauthorized } = httpErrors;
@@ -14,21 +20,27 @@ const requireAuthentication = async (
   try {
     session = request.unsignCookie(sessionSigned)["value"];
   } catch {
+    // Unsigning the cookie will throw if it is invalid. This likely means either it is empty, or it's been changed by an attacker
     throw new Unauthorized();
   }
 
   if (session === null) {
+    // Not logged in
     throw new Unauthorized();
   }
 
+  // Check if the session is valid and not expired
   const sessionData = await request.server.redisCache.getSession(session);
   if (!sessionData) {
+    // Clear cookie so cache doesn't get hit again on next request
     return reply.clearCookie("_HOST-session").send(new Unauthorized());
   } else {
+    // Then get the user's data from the database - it is separate as sessions should expire but the user's data should not
     const userData = await request.server.prisma.user.findUnique({
       select: { oauthToken: true, staff: true },
       where: { id: BigInt(sessionData.userId) },
     });
+    // We also need the oauthToken - if it's not there not signed in (to get another one)
     if (!userData || userData.oauthToken === null) {
       return reply.send(new Unauthorized());
     }

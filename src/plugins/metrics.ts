@@ -1,3 +1,7 @@
+/**
+ * Metric logging logic - for promethrius
+ */
+
 import { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
 import httpErrors from "http-errors";
