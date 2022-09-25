@@ -1,8 +1,8 @@
+import fastifyAuth from "@fastify/auth";
 import { RewriteFrames } from "@sentry/integrations";
 import Sentry from "@sentry/node";
 import childProcess from "child_process";
 import fastify, { FastifyInstance } from "fastify";
-import fastifyAuth from "fastify-auth";
 import fastifyCookie, { FastifyCookieOptions } from "fastify-cookie";
 import fastifyCors from "fastify-cors";
 import * as url from "url";
