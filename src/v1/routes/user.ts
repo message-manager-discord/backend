@@ -34,6 +34,9 @@ const userPlugin = async (instance: FastifyInstance) => {
   instance.get<{ Params: UserParamsType }>(
     `${rootPath}/:id`,
     {
+      config: { ratelimit: { max: 9, timeWindow: 3 * 1000 } },
+      // This route can be called pretty often by the website, so allows for more than other, 3/second with allowing for bursts up to 9
+      // Also shorter time window so resets more often
       schema: {
         description: "Get user information",
         tags: ["user"],
@@ -114,6 +117,7 @@ const userPlugin = async (instance: FastifyInstance) => {
   }>(
     `${rootPath}/:id`,
     {
+      config: { ratelimit: { max: 1, timeWindow: 5 * 1000 } }, // Not used often, shouldn't be tried often
       schema: {
         description: "Update a user - requires staff privileges",
         tags: ["user"],
@@ -169,6 +173,7 @@ const userPlugin = async (instance: FastifyInstance) => {
   }>(
     `${rootPath}/@me/guilds`,
     {
+      config: { ratelimit: { max: 3, timeWindow: 5 * 1000 } }, // Called often(ish), but resource heavy, so limit to 3/5s
       schema: {
         description:
           "Get user's mutual guilds - only for own guilds, filtered by connected or user has the `MANAGE_SERVER` discord permission",

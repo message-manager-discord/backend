@@ -1,12 +1,13 @@
+import fastifyRateLimit from "@fastify/rate-limit";
 import fastifySwagger from "@fastify/swagger";
 import { FastifyInstance } from "fastify";
+import Redis from "ioredis";
 
 import reportPlugin from "./routes/reports";
 import rootPlugin from "./routes/rootTesting";
 import userPlugin from "./routes/user";
 import { schemas } from "./types";
 
-// eslint-disable-next-line @typescript-eslint/require-await
 const versionOnePlugin = async (instance: FastifyInstance) => {
   instance.addSchema({
     $id: "responses.badRequest",
@@ -70,8 +71,7 @@ const versionOnePlugin = async (instance: FastifyInstance) => {
 
   schemas.forEach((schema) => instance.addSchema(schema));
 
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
-  instance.register(fastifySwagger, {
+  await instance.register(fastifySwagger, {
     routePrefix: "/docs",
     openapi: {
       info: {
@@ -106,12 +106,29 @@ const versionOnePlugin = async (instance: FastifyInstance) => {
     exposeRoute: true,
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
-  instance.register(rootPlugin);
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
-  instance.register(userPlugin);
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
-  instance.register(reportPlugin);
+  instance.addHook("onRequest", instance.addAuthentication);
+
+  await instance.register(fastifyRateLimit, {
+    global: true,
+    max: 80, // 80 requests per minute
+    timeWindow: 60 * 1000, // 1 minute
+    cache: 10000,
+    redis: new Redis({
+      connectionName: "my-connection-name",
+      host: instance.envVars.BACKEND_REDIS_HOST,
+      port: instance.envVars.BACKEND_REDIS_PORT,
+      connectTimeout: 1000,
+      maxRetriesPerRequest: 1,
+    }),
+
+    keyGenerator: (request) =>
+      request.user?.userId !== undefined ? request.user.userId : request.ip,
+    enableDraftSpec: true,
+  });
+
+  await instance.register(rootPlugin);
+  await instance.register(userPlugin);
+  await instance.register(reportPlugin);
 };
 
 export default versionOnePlugin;

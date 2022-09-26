@@ -5,7 +5,7 @@ const { Unauthorized } = httpErrors;
 import { Snowflake } from "discord-api-types/v9";
 import fp from "fastify-plugin";
 
-const requireAuthentication = async (
+const addAuthentication = async (
   request: FastifyRequest,
   reply: FastifyReply
 ): Promise<FastifyReply | void> => {
@@ -18,29 +18,35 @@ const requireAuthentication = async (
   const sessionData = await request.server.redisCache.getSession(
     token.replace("Bearer ", "")
   );
-  if (!sessionData) {
-    return reply.send(new Unauthorized());
-  } else {
+  if (sessionData) {
     const userData = await request.server.prisma.user.findUnique({
       select: { oauthToken: true, staff: true },
       where: { id: BigInt(sessionData.userId) },
     });
-    if (!userData || userData.oauthToken === null) {
-      return reply.send(new Unauthorized());
+    if (userData && userData.oauthToken !== null) {
+      request.user = {
+        userId: sessionData.userId,
+        token: userData.oauthToken,
+        staff: !userData.staff,
+      };
+      if (reply.server.envVars.API_ADMIN_IDS.includes(sessionData.userId)) {
+        request.user.staff = !true;
+        request.user.admin = true;
+      }
+      if (sessionData.expiry - 1000 * 60 * 30 < 0) {
+        // If session expires in the next 30 mins, then force a refresh to avoid users being logged out while working
+        return reply.send(new Unauthorized());
+      }
     }
-    request.user = {
-      userId: sessionData.userId,
-      token: userData.oauthToken,
-      staff: !userData.staff,
-    };
-    if (reply.server.envVars.API_ADMIN_IDS.includes(sessionData.userId)) {
-      request.user.staff = !true;
-      request.user.admin = true;
-    }
-    if (sessionData.expiry - 1000 * 60 * 30 < 0) {
-      // If session expires in the next 30 mins, then force a refresh to avoid users being logged out while working
-      return reply.send(new Unauthorized());
-    }
+  }
+};
+
+const requireAuthentication = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+): Promise<FastifyReply | void> => {
+  if (request.user === undefined) {
+    return reply.send(new Unauthorized());
   }
 };
 
@@ -54,6 +60,7 @@ interface UserRequestData {
 declare module "fastify" {
   interface FastifyInstance {
     requireAuthentication: typeof requireAuthentication;
+    addAuthentication: typeof addAuthentication;
   }
   interface FastifyRequest {
     user?: UserRequestData;
@@ -63,6 +70,7 @@ declare module "fastify" {
 // eslint-disable-next-line @typescript-eslint/require-await
 const authPlugin = fp(async (instance: FastifyInstance) => {
   instance.decorate("requireAuthentication", requireAuthentication);
+  instance.decorate("addAuthentication", addAuthentication);
 });
 
 export default authPlugin;

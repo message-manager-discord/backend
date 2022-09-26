@@ -2,8 +2,10 @@
 import { FastifyInstance } from "fastify";
 import httpErrors from "http-errors";
 const { Forbidden } = httpErrors;
+import fastifyRateLimit from "@fastify/rate-limit";
 import { Static, Type } from "@sinclair/typebox";
 import crypto from "crypto";
+import Redis from "ioredis";
 import { v4 as uuidv4 } from "uuid";
 
 import DiscordOauthRequests from "./discordOauth";
@@ -30,6 +32,31 @@ const rootPath = "/auth";
 // Since this is a plugin
 // eslint-disable-next-line @typescript-eslint/require-await
 const addPlugin = async (instance: FastifyInstance) => {
+  await instance.register(fastifyRateLimit, {
+    global: true,
+    max: 20, // 20 requests per minute, shouldn't be hit by a user
+    timeWindow: 60 * 1000, // 1 minute
+    cache: 10000,
+    redis: new Redis({
+      connectionName: "my-connection-name",
+      host: instance.envVars.BACKEND_REDIS_HOST,
+      port: instance.envVars.BACKEND_REDIS_PORT,
+      connectTimeout: 500,
+      maxRetriesPerRequest: 1,
+    }),
+    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+    keyGenerator: (request) => {
+      console.log(request.ip);
+      console.log(request.user);
+      console.log(request.user?.userId);
+
+      return request.user?.userId !== undefined
+        ? request.user.userId
+        : request.ip;
+    },
+    enableDraftSpec: true,
+  });
+  // Must be registered a second time as v1 and auth routes are separate
   instance.get<{ Querystring: AuthorizeQuerystringType }>(
     `${rootPath}/authorize`,
     {
@@ -42,6 +69,13 @@ const addPlugin = async (instance: FastifyInstance) => {
               redirectUrl: { type: "string" },
             },
           },
+        },
+      },
+      config: {
+        ratelimit: {
+          max: 2,
+          timeWindow: 5 * 1000,
+          // 2 per 5 seconds
         },
       },
     },
@@ -72,6 +106,14 @@ const addPlugin = async (instance: FastifyInstance) => {
               },
             },
           },
+        },
+      },
+      config: {
+        ratelimit: {
+          max: 2,
+          timeWindow: 5 * 1000,
+          // 2 per 5 seconds
+          // To prevent brute force attacks
         },
       },
     },
