@@ -214,7 +214,7 @@ const getReports = async ({
   filterByUser,
   guildId,
   limit,
-  before,
+  skip,
   staff,
 }: {
   instance: FastifyInstance;
@@ -223,7 +223,7 @@ const getReports = async ({
   filterByUser?: Snowflake;
   guildId?: Snowflake;
   limit?: number;
-  before?: string;
+  skip?: number;
   staff: boolean;
 }): Promise<ReportListingModelType> => {
   const statusFilter: ReportStatus[] | undefined =
@@ -258,7 +258,7 @@ const getReports = async ({
       createdAt: "desc",
     },
     take: limit ?? 25,
-    ...(before !== undefined && { cursor: { id: BigInt(before) } }),
+    skip: skip ?? 0,
     include: {
       guild: true,
       reportedMessageSnapshot: true,
@@ -266,27 +266,37 @@ const getReports = async ({
     },
   });
 
-  return reports.map((report) => {
-    let messageCount = 0;
-    if (staff) {
-      messageCount = report.ReportMessages.length;
-    } else {
-      messageCount = report.ReportMessages.filter(
-        (message) => !message.staffOnly
-      ).length;
-    }
-    return {
-      id: report.id.toString(),
-      title: report.title,
-      status: report.status,
-      reporting_user_id: report.reportingUserId.toString(),
-      assigned_staff_id: report.assignedStaffId?.toString(),
-      guild_id: report.guildId.toString(),
-      created_at: report.createdAt.toString(),
-      updated_at: report.updatedAt.toString(),
-      message_count: messageCount,
-    };
-  });
+  return {
+    reports: reports.map((report) => {
+      let messageCount = 0;
+      if (staff) {
+        messageCount = report.ReportMessages.length;
+      } else {
+        messageCount = report.ReportMessages.filter(
+          (message) => !message.staffOnly
+        ).length;
+      }
+      return {
+        id: report.id.toString(),
+        title: report.title,
+        status: report.status,
+        reporting_user_id: report.reportingUserId.toString(),
+        assigned_staff_id: report.assignedStaffId?.toString(),
+        guild_id: report.guildId.toString(),
+        created_at: report.createdAt.toString(),
+        updated_at: report.updatedAt.toString(),
+        message_count: messageCount,
+      };
+    }),
+    report_count: await instance.prisma.report.count({
+      where: {
+        status: {
+          in: statusFilter,
+        },
+      },
+    }),
+    skipped: skip ?? 0,
+  };
 };
 
 const createReport = async ({

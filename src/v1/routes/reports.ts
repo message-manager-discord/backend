@@ -33,7 +33,7 @@ const GetReportsQuerystring = Type.Object({
   assigned_to: Type.Optional(Type.String()),
   guild: Type.Optional(Type.String()),
   limit: Type.Optional(Type.Number({ minimum: 1, maximum: 100 })),
-  before: Type.Optional(Type.String()),
+  skip: Type.Optional(Type.Number()),
   staff_view: Type.Optional(Type.Boolean()),
 });
 type GetReportGuildsQuerystringType = Static<typeof GetReportsQuerystring>;
@@ -172,7 +172,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
       },
     },
     async (request) => {
-      const { status, assigned_to, guild, limit, before, staff_view } =
+      const { status, assigned_to, guild, limit, skip, staff_view } =
         request.query;
 
       // Can be disabled as these routes are under authentication, and therefore will have a user
@@ -198,7 +198,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
         filterByUser,
         guildId: guild,
         limit,
-        before,
+        skip,
         staff: user.staff,
       });
     }

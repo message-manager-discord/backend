@@ -112,21 +112,27 @@ const ReportModel = Type.Object(
 
 type ReportModelType = Static<typeof ReportModel>;
 
-const ReportListingModel = Type.Array(
-  Type.Object({
-    id: Type.String({ examples: ["123456789012345678"] }),
-    title: Type.String({ examples: ["Hello world"] }),
-    status: ReportStatusEnum,
-    reporting_user_id: Type.String({ examples: ["123456789012345678"] }),
-    assigned_staff_id: Type.Optional(
-      Type.String({ examples: ["123456789012345678"] })
-    ),
-    guild_id: Type.String({ examples: ["123456789012345678"] }),
-    created_at: Type.String({ examples: ["2021-01-01T00:00:00.000Z"] }),
-    updated_at: Type.String({ examples: ["2021-01-01T00:00:00.000Z"] }),
+const ReportListingModel = Type.Object(
+  {
+    reports: Type.Array(
+      Type.Object({
+        id: Type.String({ examples: ["123456789012345678"] }),
+        title: Type.String({ examples: ["Hello world"] }),
+        status: ReportStatusEnum,
+        reporting_user_id: Type.String({ examples: ["123456789012345678"] }),
+        assigned_staff_id: Type.Optional(
+          Type.String({ examples: ["123456789012345678"] })
+        ),
+        guild_id: Type.String({ examples: ["123456789012345678"] }),
+        created_at: Type.String({ examples: ["2021-01-01T00:00:00.000Z"] }),
+        updated_at: Type.String({ examples: ["2021-01-01T00:00:00.000Z"] }),
 
-    message_count: Type.Number({ examples: [1] }), // The value changes depending on if the user is staff or not
-  }),
+        message_count: Type.Number({ examples: [1] }), // The value changes depending on if the user is staff or not
+      })
+    ),
+    report_count: Type.Number({ examples: [1] }),
+    skipped: Type.Number({ examples: [0] }),
+  },
   { $id: "models.reportList" }
 );
 
