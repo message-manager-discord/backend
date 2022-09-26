@@ -80,7 +80,8 @@ class RedisCache {
       key,
       value: JSON.stringify(redirectPath),
     });
-    await this._setExpiry({ key, expiry: 60 * 60 * 24 });
+    // One hour expiry
+    await this._setExpiry({ key, expiry: 1000 * 60 * 60 });
   }
   async getState(state: string): Promise<StoredStateResponse | undefined> {
     const data = await this._get({ key: `state:${state}` });
