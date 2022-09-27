@@ -1,3 +1,7 @@
+/**
+ * Custom client for making requests to Discord's OAuth2 API
+ */
+
 import axios, { AxiosError, AxiosResponse } from "axios";
 import {
   RESTGetAPICurrentUserGuildsResult,
@@ -17,6 +21,8 @@ import {
 } from "./errors";
 import { UserRequestData } from "./plugins/authentication";
 
+// Two different responses to differentiate between a cache and uncached response
+// This is because they need to be handled differently
 interface CachedResponse {
   cached: true;
   data: unknown;
@@ -30,6 +36,9 @@ class DiscordOauthRequests {
   constructor(instance: FastifyInstance) {
     this._instance = instance;
   }
+
+  // _makeRequest has two type overloads
+  // This one is for when the response can from the cache (so could be either uncached or cached)
   private async _makeRequest({
     path,
     method,
@@ -48,6 +57,7 @@ class DiscordOauthRequests {
     userId: Snowflake;
   }): Promise<UncachedResponse | CachedResponse>;
 
+  // This overload if for then the response cannot be from the cache (cacheExpiry is undefined)
   private async _makeRequest({
     path,
     method,
@@ -66,6 +76,7 @@ class DiscordOauthRequests {
     userId?: undefined;
   }): Promise<UncachedResponse>;
 
+  // Function to make all requests through - this is to allow for caching
   private async _makeRequest({
     path,
     method,
@@ -84,9 +95,9 @@ class DiscordOauthRequests {
     cacheExpiry?: number;
     userId?: Snowflake;
   }): Promise<UncachedResponse | CachedResponse> {
+    // If the cacheExpiry is defined and the request if from user, then the response can be cached
+    // Otherwise it cannot not
     if (cacheExpiry !== undefined && userId !== undefined) {
-      // TODO: Should cacheExpiry be checked / used
-      // Requests without a token are not cached
       const cachedResponse = (await this._instance.redisCache.getOauthCache(
         path,
         userId

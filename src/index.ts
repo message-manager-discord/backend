@@ -140,7 +140,7 @@ instance.listen(
   instance.envVars.PORT,
   instance.envVars.HOST,
   function (err, address) {
-    // Seems to by typed incorrectly
+    // This seems to by typed incorrectly
     // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
     if (err) {
       console.error(err);

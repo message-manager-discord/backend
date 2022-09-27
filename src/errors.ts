@@ -1,3 +1,11 @@
+/**
+ * This is the custom error handling, currently just used for interactions
+ * Each error "code" represents a different exact kind of error, and is used in tracking to track errors
+ * These codes are tracked through metrics
+ * Different error code groups have different handling logic, some throw and track to sentry (ie unexpected errors)
+ * and some just send a response back to the user (ie permission errors)
+ */
+
 import { APIMessageComponent } from "discord-api-types/v9";
 
 enum InteractionOrRequestFinalStatus {
