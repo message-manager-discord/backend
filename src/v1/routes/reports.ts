@@ -693,3 +693,4 @@ export default reportPlugin;
 // Add ratelimiting
 // Make it so that actioning someone actually does something in the api (with minimal impact on performance)
 // Investigate email
+// Add limits to sutff like reaons and messages
