@@ -1,5 +1,5 @@
 // Permission constants - for internal bot permissions
-// Uses bigint bitflags
+// Uses number bitflags
 
 const InternalPermissions = Object.freeze({
   NONE: 0,
