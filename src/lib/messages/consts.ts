@@ -1,3 +1,4 @@
+// Required permission constants - in the form of arrays of bitfields
 import { DiscordPermissions } from "../../consts";
 
 const requiredPermissionsEdit = [DiscordPermissions.VIEW_CHANNEL];

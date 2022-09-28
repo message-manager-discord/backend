@@ -1,4 +1,4 @@
-// github.com/segment-boneyard/is-isodate/blob/master/index.js
+// taken directly from github.com/segment-boneyard/is-isodate/blob/master/index.js
 
 /**
  * ISO date matcher.

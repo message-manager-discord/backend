@@ -1,3 +1,4 @@
+// Edit messages that have been sent through the bot previously
 import { DiscordAPIError, RawFile } from "@discordjs/rest";
 import { EmbedField, Message, MessageEmbed, Prisma } from "@prisma/client";
 import {
@@ -35,6 +36,7 @@ import {
   missingUserDiscordPermissionMessage,
 } from "./utils";
 
+// Options for edit functions
 interface CheckEditPossibleOptions {
   channelId: Snowflake;
   messageId: Snowflake;
@@ -45,6 +47,8 @@ interface CheckEditPossibleOptions {
 const missingAccessMessage =
   "You do not have access to the bot permission for editing messages via the bot on this guild. Please contact an administrator.";
 
+// This function checks permissions required to edit a message
+// Separate from the edit function, so it can be used for checks before editing
 const checkEditPossible = async ({
   channelId,
   instance,
@@ -59,6 +63,7 @@ const checkEditPossible = async ({
       | null;
   }
 > => {
+  // Check if the user has required discord permissions to edit messages
   const userHasRequiredDiscordPermissions = await session.hasDiscordPermissions(
     requiredPermissionsEdit,
     channelId
@@ -74,7 +79,7 @@ const checkEditPossible = async ({
       )
     );
   }
-
+  // Check if the bot has required discord permissions to edit messages
   const botHasRequiredDiscordPermissions =
     await session.botHasDiscordPermissions(requiredPermissionsEdit, channelId);
 
@@ -90,6 +95,7 @@ const checkEditPossible = async ({
     );
   }
 
+  // Check if the message exists
   const databaseMessage = await instance.prisma.message.findFirst({
     where: { id: BigInt(messageId) },
     include: {
@@ -102,12 +108,14 @@ const checkEditPossible = async ({
     orderBy: { editedAt: "desc" },
   });
   if (!checkDatabaseMessage(databaseMessage)) {
+    // This function should throw if the message is not found in the database
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.GENERIC_UNEXPECTED_FAILURE,
       "Message check returned falsy like value when it should only return true"
     );
   }
 
+  // Check if the user has access to edit the message
   if (
     !(
       await session.hasBotPermissions(
@@ -129,6 +137,7 @@ interface EditMessageOptions extends CheckEditPossibleOptions {
   embed?: StoredEmbed;
 }
 
+// Edit a message that has been sent through the bot previously
 async function editMessage({
   content,
   channelId,
@@ -137,6 +146,7 @@ async function editMessage({
   session,
   embed,
 }: EditMessageOptions) {
+  // Check if the user has required permissions to edit messages
   await checkEditPossible({ channelId, instance, messageId, session });
   try {
     // Check if embed exceeds limits
@@ -147,6 +157,7 @@ async function editMessage({
       );
     }
     if (embed !== undefined) {
+      // Check if the embed meets limits
       const exceedsLimits = checkEmbedMeetsLimits(embed);
       if (exceedsLimits) {
         throw new LimitHit(
@@ -167,12 +178,14 @@ async function editMessage({
     if (embed) {
       embeds.push(createSendableEmbedFromStoredEmbed(embed));
     }
+    // Edit the message
     const response = (await instance.restClient.patch(
       Routes.channelMessage(channelId, messageId),
       {
         body: { content: content, embeds },
       }
     )) as RESTPatchAPIChannelMessageResult;
+    // Find previous edit - to display changes in a log
     const messageBefore = await instance.prisma.message.findFirst({
       where: { id: BigInt(messageId) },
       orderBy: { editedAt: "desc" },
@@ -184,7 +197,10 @@ async function editMessage({
         },
       },
     });
+    // Use data returned by the API to store in the database
+    // this is because discord sometimes changes formatting
     const sentEmbed = createStoredEmbedFromAPIMessage(response);
+    // setup the embed storing database query
     let embedQuery:
       | Prisma.MessageEmbedCreateNestedOneWithoutMessageInput
       | undefined = undefined;
@@ -225,7 +241,8 @@ async function editMessage({
       };
     }
 
-    // Since message will contain message history too
+    // Create a new message instance - this means that there will be more than one message entry per message
+    // for the message history of changes
     await instance.prisma.message.create({
       data: {
         id: BigInt(messageId),
@@ -287,6 +304,7 @@ async function editMessage({
         });
       }
     }
+    // Generate and send log embed
     const logEmbed: APIEmbed = {
       color: embedPink,
       title: "Message Edited",
@@ -316,6 +334,8 @@ async function editMessage({
       ],
       timestamp: new Date().toISOString(),
     };
+    // If embed (before or after) exists, send a file alongside the log message
+    // with a JSON representation of the embed(s)
     let embedBefore: StoredEmbed | undefined = undefined;
     if (messageBefore?.embed !== null && messageBefore?.embed !== undefined) {
       let footer: APIEmbedFooter | undefined = undefined;
@@ -387,6 +407,7 @@ async function editMessage({
       files: files,
     });
   } catch (error) {
+    // Catch errors that might be thrown by the API call
     if (error instanceof DiscordAPIError) {
       if (error.code === 404) {
         throw new UnexpectedFailure(

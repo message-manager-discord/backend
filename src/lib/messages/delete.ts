@@ -1,3 +1,4 @@
+// Delete a message that was sent by the bot
 import { DiscordAPIError, RawFile } from "@discordjs/rest";
 import { EmbedField, Message, MessageEmbed } from "@prisma/client";
 import {
@@ -26,6 +27,7 @@ import {
   missingUserDiscordPermissionMessage,
 } from "./utils";
 
+// Options interface for function
 interface DeleteOptions {
   channelId: Snowflake;
   messageId: Snowflake;
@@ -36,9 +38,7 @@ interface DeleteOptions {
 const missingAccessMessage =
   "You do not have access to the bot permission for deleting messages via the bot on this guild. Please contact an administrator.";
 
-// Map array of bigints to array of strings, when the string is not undefined
-// Using the function getDiscordPermissionByValue to turn the bigint into a string | undefined
-
+// Check permissions and message state before deleting
 const checkDeletePossible = async ({
   channelId,
   instance,
@@ -53,6 +53,7 @@ const checkDeletePossible = async ({
       | null;
   }
 > => {
+  // Check if the user has the discord permission to delete messages
   const userHasViewChannel = await session.hasDiscordPermissions(
     requiredPermissionsDelete,
     channelId
@@ -67,6 +68,7 @@ const checkDeletePossible = async ({
       )
     );
   }
+  // Check if the bot has the discord permission to delete messages
   const botHasViewChannel = await session.botHasDiscordPermissions(
     requiredPermissionsDelete,
     channelId
@@ -80,6 +82,7 @@ const checkDeletePossible = async ({
       )
     );
   }
+  // Check if the message is in database and it is valid
   const databaseMessage = await instance.prisma.message.findFirst({
     where: { id: BigInt(messageId) },
     orderBy: { editedAt: "desc" }, // Needs to be ordered, as this is returned
@@ -98,6 +101,7 @@ const checkDeletePossible = async ({
     );
   }
 
+  // Check if the user has the internal permission to delete messages
   const userHasDeleteMessagesBotPermission = await session.hasBotPermissions(
     InternalPermissions.DELETE_MESSAGES,
     channelId
@@ -112,17 +116,21 @@ const checkDeletePossible = async ({
   return databaseMessage;
 };
 
+// Delete a message that was sent by the bot
 async function deleteMessage({
   channelId,
   instance,
   messageId,
   session,
 }: DeleteOptions) {
+  // Check if the user has the discord permission to delete messages
   await checkDeletePossible({ channelId, instance, messageId, session });
   try {
+    // Delete the message through the API
     await instance.restClient.delete(
       Routes.channelMessage(channelId, messageId)
     );
+    // Get message before - this is for logging
     const messageBefore = await instance.prisma.message.findFirst({
       where: { id: BigInt(messageId) },
 
@@ -136,12 +144,13 @@ async function deleteMessage({
       },
     });
     if (!messageBefore) {
+      // Shouldn't happen - as should have been checked in checkDeletePossible
       throw new UnexpectedFailure(
         InteractionOrRequestFinalStatus.MESSAGE_NOT_FOUND_IN_DATABASE_AFTER_CHECKS_DONE,
         "MESSAGE_NOT_FOUND_IN_DATABASE_AFTER_CHECKS_DONE"
       );
     }
-    // this is also a create, as messages will form a message history
+    // This is also a create call, as messages entries will form a message history
     await instance.prisma.message.create({
       data: {
         id: BigInt(messageId),
@@ -175,6 +184,7 @@ async function deleteMessage({
         },
       },
     });
+    // Generate deleted log message
     const logEmbed: APIEmbed = {
       color: embedPink,
       title: "Message Deleted",
@@ -193,6 +203,7 @@ async function deleteMessage({
       ],
       timestamp: new Date().toISOString(),
     };
+    // Generate embed representation if embed was present before
     let embedBefore: StoredEmbed | undefined = undefined;
     if (messageBefore?.embed !== null && messageBefore?.embed !== undefined) {
       let footer: APIEmbedFooter | undefined = undefined;
@@ -229,6 +240,7 @@ async function deleteMessage({
       };
     }
 
+    // Generate log embed file - if embed should be in file
     const files: RawFile[] = [];
     if (embedBefore !== undefined) {
       files.push({
@@ -244,6 +256,7 @@ async function deleteMessage({
       files: files,
     });
   } catch (error) {
+    // Catch errors that may be thrown by the API
     if (error instanceof DiscordAPIError) {
       if (error.code === 404) {
         throw new UnexpectedFailure(

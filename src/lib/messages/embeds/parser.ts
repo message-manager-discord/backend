@@ -1,3 +1,4 @@
+// Functions to change between formats accepted by discord's API and internal representations
 import { APIEmbed, APIMessage } from "discord-api-types/v9";
 
 import {
@@ -6,6 +7,7 @@ import {
 } from "../../../errors";
 import { StoredEmbed } from "./types";
 
+// Create an internal representation "stored embed" from a discord API message
 const createStoredEmbedFromAPIMessage = (
   message: APIMessage
 ): StoredEmbed | null => {
@@ -32,6 +34,7 @@ const createStoredEmbedFromAPIMessage = (
   };
 };
 
+// Create a discord API embed from an internal representation "stored embed"
 const createSendableEmbedFromStoredEmbed = (embed: StoredEmbed): APIEmbed => {
   const sendableEmbed: APIEmbed = {
     title: embed.title,

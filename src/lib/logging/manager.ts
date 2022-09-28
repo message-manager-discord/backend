@@ -1,3 +1,5 @@
+// Functions for logging managing / sending for sending log messages through
+// discord webhooks
 import { DiscordAPIError, RawFile } from "@discordjs/rest";
 import { Snowflake } from "discord-api-types/globals";
 import { APIEmbed, APIMessage, RESTJSONErrorCodes } from "discord-api-types/v9";
@@ -20,6 +22,7 @@ export default class LoggingManager {
     this._webhookManager = webhookManager;
     this._instance = instance;
   }
+  // Get's the channel that has been set for logging on a specific guild (bot setting)
   async getGuildLoggingChannel(guildId: Snowflake): Promise<Snowflake | null> {
     const guild = await this._instance.prisma.guild.findUnique({
       where: { id: BigInt(guildId) },
@@ -29,6 +32,7 @@ export default class LoggingManager {
     }
     return guild.logChannelId.toString();
   }
+  // Check if the user has the required permissions to set the logging channel
   private async _loggingPermissionChecks(session: GuildSession): Promise<true> {
     if (
       !checkDiscordPermissionValue(
@@ -50,6 +54,7 @@ export default class LoggingManager {
     return true;
   }
 
+  // Set the logging channel for a guild (bot setting)
   public async setGuildLoggingChannel(
     channelId: Snowflake,
     session: GuildSession
@@ -58,6 +63,7 @@ export default class LoggingManager {
     await this._webhookManager.getWebhook(channelId, session.guildId);
     // This will either change nothing (if a webhook is already set) or create a new webhook and store it
     // It is before the guild config is updated, incase the bot is missing the required permissions
+    // so config will stay the same if the action fails
     const beforeChannelId = await this.getGuildLoggingChannel(session.guildId);
     await this._instance.prisma.guild.upsert({
       where: { id: BigInt(session.guildId) },
@@ -66,6 +72,7 @@ export default class LoggingManager {
     });
     return beforeChannelId;
   }
+  // Remove the logging channel for a guild (bot setting)
   public async removeGuildLoggingChannel(
     session: GuildSession
   ): Promise<Snowflake | null> {
@@ -78,6 +85,7 @@ export default class LoggingManager {
     return beforeChannelId;
     // Webhook data is not touched here, as webhooks can be used for different functions (in the future)
   }
+  // Send a message to the logging channel for a guild
   public async sendLogMessage({
     guildId,
     ignoreErrors,
@@ -96,11 +104,12 @@ export default class LoggingManager {
   }): Promise<APIMessage | void> {
     // Logs can be "passed" if the channel isn't set, or if the webhook doesn't exist and the bot cannot create a new webhook
     // This means that this function can be called without checking if the log channel is set
-    // It's because the logging function is an extra
+    // It's because the logging function is an extra and therefore it only matters if it sends if the channel is set
     const channelId = await this.getGuildLoggingChannel(guildId);
     if (channelId === null) {
       return;
     }
+    // Data to send to discord - including the avatar and username
     const data = {
       content: message,
       embeds,
@@ -109,26 +118,26 @@ export default class LoggingManager {
     };
 
     try {
+      // Try and send a webhook message
       return await this._webhookManager.sendWebhookMessage(
-        // TODO: ADD AWAIT
         channelId,
         guildId,
         data,
         files
       );
-      // eslint-disable-next-line no-empty
     } catch (error) {
+      // Catch some discord errors
       if (
         error instanceof DiscordAPIError &&
         error.code === RESTJSONErrorCodes.UnknownChannel
       ) {
-        // remove channel
+        // Remove channel
         // This threw on the attempt to add / create a webhook on the channel
         // This is because the channel doesn't exist anymore
         await this.removeGuildLoggingChannel(session);
         return;
       }
-
+      // Sometimes we don't want errors to be ignored - but most of the time we do
       if (!(ignoreErrors ?? false)) {
         throw error;
       }
