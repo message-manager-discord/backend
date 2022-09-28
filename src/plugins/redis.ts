@@ -34,6 +34,7 @@ class RedisCache {
     );
     return data;
   }
+  // A base JSON.GET command - most commands use JSON.xxx
   private async _get({
     key,
     path = ".",
@@ -49,6 +50,7 @@ class RedisCache {
     }
     return await this._sendCommand("JSON.GET", args);
   }
+  // A base JSON.SET command - most commands use JSON.xxx
   private _set({
     key,
     path = ".",
@@ -61,6 +63,7 @@ class RedisCache {
     return this._sendCommand("JSON.SET", [key, path, value]) as Promise<void>;
   }
 
+  // A base JSON.DEL command - most commands use JSON.xxx
   private _delete({
     key,
     path = ".",
@@ -70,6 +73,8 @@ class RedisCache {
   }): Promise<number> {
     return this._sendCommand("JSON.DEL", [key, path]) as Promise<number>;
   }
+
+  // Sets expiry in milliseconds - useful when expiry cannot be set in the original command
   private _setExpiry({
     key,
     expiry,

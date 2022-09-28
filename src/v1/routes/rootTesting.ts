@@ -1,4 +1,5 @@
 /* eslint-disable */
+// Just a testing file
 import { FastifyInstance } from "fastify";
 
 const rootPlugin = async (instance: FastifyInstance) => {

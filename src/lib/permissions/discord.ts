@@ -1,9 +1,12 @@
+// Checking and getting discord permissions for both users and the bot
+
 import { Snowflake } from "discord-api-types/globals";
 import { Guild } from "redis-discord-cache";
 
 import { DiscordPermissionResult } from "./types";
 import { checkDiscordPermissionValue, tryAndHandleGuildErrors } from "./utils";
 
+// Fetches the user's permissions for a channel / guild from the gateway cache
 const getUserDiscordPermission = ({
   userId,
   userRoles,
@@ -30,6 +33,7 @@ const getUserDiscordPermission = ({
   });
 };
 
+// Checks if the user has the required permissions - and returns the permissions not present
 const checkUserDiscordPermission = ({
   userId,
   userRoles,
@@ -50,6 +54,7 @@ const checkUserDiscordPermission = ({
       channelId,
       guild,
     });
+    // required permissions can either be a bigint or an array of bigints - if it is an array they must be individual permissions
     if (typeof requiredPermissions === "bigint") {
       if (checkDiscordPermissionValue(permission, requiredPermissions)) {
         return {
@@ -89,6 +94,7 @@ const checkUserDiscordPermission = ({
   });
 };
 
+// Fetches the bot's permissions for a channel / guild from the gateway cache
 const getBotDiscordPermission = ({
   guild,
   channelId,
@@ -107,6 +113,7 @@ const getBotDiscordPermission = ({
   });
 };
 
+// Checks if the bot has the required permissions - and returns the permissions not present
 const checkBotDiscordPermission = ({
   guild,
   channelId,
@@ -121,6 +128,7 @@ const checkBotDiscordPermission = ({
       guild,
       channelId,
     });
+    // required permissions can either be a bigint or an array of bigints - if it is an array they must be individual permissions
     if (typeof requiredPermissions === "bigint") {
       if (checkDiscordPermissionValue(permissions, requiredPermissions)) {
         return {

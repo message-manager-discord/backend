@@ -1,3 +1,9 @@
+/**
+ * Handles creating and deleting webhooks and the relevant database cache
+ * As webhooks may be deleted by other means (not by the bot) and this must be handled
+ * For example if a deleted webhook is detected (404), it will be deleted from the database, and an attempt to recreate it will be made
+ */
+
 import { DiscordAPIError, RawFile } from "@discordjs/rest";
 import { Snowflake } from "discord-api-types/globals";
 import {
@@ -22,13 +28,12 @@ interface MinimalWebhook {
   token: string;
 }
 
-// Should also check if detrius handles webhook ratelimiting.
-
 export default class WebhookManager {
   private _instance: FastifyInstance;
   constructor(instance: FastifyInstance) {
     this._instance = instance;
   }
+  // Update the webhook in the database
   private async _updateStoredWebhook(
     channelId: Snowflake,
     guildId: Snowflake,
@@ -55,6 +60,7 @@ export default class WebhookManager {
       },
     });
   }
+  // Delete the webhook from the database
   private _removeStoredWebhook(
     channelId: Snowflake,
     guildId: Snowflake
@@ -79,6 +85,7 @@ export default class WebhookManager {
     });
   }
 
+  // Fetch an existing webhook owned by the bot
   private async _getWebhookFromDiscord(
     channelId: Snowflake,
     guildId: Snowflake
@@ -106,6 +113,7 @@ export default class WebhookManager {
       (webhook) => webhook.application_id === process.env.DISCORD_CLIENT_ID
     );
     // Get the existing webhook id from the database. Just incase the webhook still exists, but the token has been lost
+    // This is because the same webhook should be used if possible so messages can be edited
     const storedChannel = await this._instance.prisma.channel.findUnique({
       where: {
         id: BigInt(channelId),
@@ -142,11 +150,12 @@ export default class WebhookManager {
         id: firstWebhook.id,
       };
     }
-    // If here this means that there are no webhooks that match the application id, and the token is null
+    // If here this means that there are no webhooks that match the application id, and where there token is not null
     // Therefore we need to create a new webhook
 
     return await this._createWebhook(channelId, guildId);
   }
+  // Create a webhook owned by the bot
   private async _createWebhook(
     channelId: Snowflake,
     guildId: Snowflake
@@ -176,7 +185,7 @@ export default class WebhookManager {
       }
       throw error;
     }
-    // This shouldn't happen, but just in case
+    // This shouldn't happen, but just in case - if it does happen an alert will be sent and this code can be changed
     if (webhook.token === undefined) {
       throw new UnexpectedFailure(
         InteractionOrRequestFinalStatus.CREATE_WEBHOOK_RESULT_MISSING_TOKEN,
@@ -193,12 +202,14 @@ export default class WebhookManager {
       id: webhook.id,
     };
   }
+
+  // Public function to get webhook - with logic to find webhooks
+  // This function will return the webhook first from the database, then fetch from discord, then create a webhook
+  // This is designed with the intention to keep the same webhook being used for the same channel for as long as possible
   public async getWebhook(
     channelId: Snowflake,
     guildId: Snowflake
   ): Promise<MinimalWebhook> {
-    // This function will return the webhook first from the database, then fetch from discord, then create a webhook
-    // This is designed with the intention to keep the same webhook being used for the same channel for as long as possible
     const storedChannel = await this._instance.prisma.channel.findUnique({
       where: { id: BigInt(channelId) },
     });
@@ -214,6 +225,7 @@ export default class WebhookManager {
       id: storedChannel.webhookId.toString(),
     };
   }
+  // Send a message via a webhook on the channel
   public async sendWebhookMessage(
     channelId: Snowflake,
     guildId: Snowflake,

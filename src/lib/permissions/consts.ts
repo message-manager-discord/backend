@@ -1,3 +1,6 @@
+// Permission constants - for internal bot permissions
+// Uses bigint bitflags
+
 const InternalPermissions = Object.freeze({
   NONE: 0,
   VIEW_MESSAGES: 1 << 0,
@@ -8,12 +11,13 @@ const InternalPermissions = Object.freeze({
   MANAGE_CONFIG: 1 << 5,
 });
 
+// Representations of permissions to be used in the bot - mainly to display info about permissions
 interface InternalPermission {
   name: string;
   readableName: string;
   value: number;
   description: string;
-  channelOverrideAllowed: boolean;
+  channelOverrideAllowed: boolean; // If the permission can be set as a channel override
 }
 
 const UsableInternalPermissions: readonly InternalPermission[] = Object.freeze([
@@ -64,16 +68,18 @@ const UsableInternalPermissions: readonly InternalPermission[] = Object.freeze([
   },
 ]);
 
+// Array of all permissions that are valid
 const UsableInternalPermissionValues = Object.freeze(
   UsableInternalPermissions.map((permission) => permission.value)
 );
 
-// Combine using bitwise or (=|)
+// Combine all permissions using bitwise or (=|) (bitflag has all permissions set)
 const AllInternalPermissions = Object.values(InternalPermissions).reduce(
   (permissions: number, permission: number) => permissions | permission,
   InternalPermissions.NONE
 );
 
+// Map of permission names to values - to be used to lookup from either way
 const _permissionsByName: { [name: string]: number } = {};
 const _permissionsByValue: { [value: number]: string } = {};
 // Find the names and values of all the permissions from Permissions
@@ -104,6 +110,7 @@ const parseInternalPermissionValuesToStringNames = (
   return parsed.filter((permission) => permission !== undefined) as string[];
 };
 
+// Parse a bitfield value for all the permissions it has
 const getAllPermissionsInValue = (permission: number): number[] => {
   const permissions: number[] = [];
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -115,6 +122,7 @@ const getAllPermissionsInValue = (permission: number): number[] => {
   return permissions;
 };
 
+// Same as above but then gets names
 const getAllPermissionsAsNameInValue = (permission: number): string[] => {
   return parseInternalPermissionValuesToStringNames(
     getAllPermissionsInValue(permission)

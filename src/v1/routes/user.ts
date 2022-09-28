@@ -1,3 +1,7 @@
+/**
+ * Routes to access various user data and edit some user data
+ */
+
 import { Static, Type } from "@sinclair/typebox";
 import httpErrors from "http-errors";
 const { Forbidden, NotFound, BadRequest } = httpErrors;
@@ -6,6 +10,7 @@ import { FastifyInstance } from "fastify";
 
 import { DiscordPermissions } from "../../consts";
 import { UserRequestData } from "../../plugins/authentication";
+import { errors401to404ResponseSchema } from "../types";
 const rootPath = "/users";
 
 const UserParams = Type.Object({
@@ -26,11 +31,13 @@ type GetUserGuildsQuerystringType = Static<typeof GetUserGuildsQuerystring>;
 
 // eslint-disable-next-line @typescript-eslint/require-await
 const userPlugin = async (instance: FastifyInstance) => {
+  // Authorization is handled by the authentication plugin - this will throw FORBIDDEN if the user is not authorized
   instance.addHook(
     "preHandler",
     instance.auth([instance.requireAuthentication])
   );
 
+  // Get a user - only staff members may provide an id other than @me
   instance.get<{ Params: UserParamsType }>(
     `${rootPath}/:id`,
     {
@@ -44,24 +51,12 @@ const userPlugin = async (instance: FastifyInstance) => {
             description: "OK",
             $ref: "models.user#",
           },
-          401: {
-            description: "Unauthorized",
-            $ref: "responses.unauthorized#",
-          },
-          403: {
-            description:
-              "Forbidden - Missing staff privileges to access other users",
-            $ref: "responses.forbidden#",
-          },
-          404: {
-            description: "Not Found - User needs to log in",
-            $ref: "responses.notfound#",
-          },
+          ...errors401to404ResponseSchema,
         },
       },
     },
     async (request) => {
-      // Can be disabled as these routes are under authentication, and therefore will have a user
+      // Request.user must be present since the require authentication plugin is used
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const requestUser = request.user!;
       const userId = request.params.id;
@@ -80,6 +75,7 @@ const userPlugin = async (instance: FastifyInstance) => {
         const userStored = await instance.prisma.user.findUnique({
           where: { id: BigInt(userId) },
         });
+        // oauthToken is also required for the user to be considered valid - if it is not present the user cannot be fetched
         if (!userStored || userStored.oauthToken === null) {
           throw new NotFound("User not found");
         }
@@ -90,6 +86,10 @@ const userPlugin = async (instance: FastifyInstance) => {
         };
       }
 
+      // User data returned is more than what is stored - as data that may change
+      // ie usernames / avatars are returned and must be fetched again
+      // However as discordOauthRequests is cached this route being hit often will not cause a ratelimit issue
+      // TODO: check what happens when token i sinvalid
       const userInfo = await instance.discordOauthRequests.fetchUser(user);
 
       return {
@@ -102,6 +102,7 @@ const userPlugin = async (instance: FastifyInstance) => {
       };
     }
   );
+  // Edit a user - only staff members may do this. The only thing that can be edited is the staff field
   instance.patch<{
     Params: UserParamsType;
     Body: PatchUserBodyType;
@@ -116,18 +117,7 @@ const userPlugin = async (instance: FastifyInstance) => {
         params: UserParams,
         response: {
           204: { description: "No Content - Successful update", type: "null" },
-          401: {
-            description: "Unauthorized",
-            $ref: "responses.unauthorized#",
-          },
-          403: {
-            description: "Forbidden - Missing staff privileges",
-            $ref: "responses.forbidden#",
-          },
-          404: {
-            description: "Not Found - User needs to log in",
-            $ref: "responses.notfound#",
-          },
+          ...errors401to404ResponseSchema,
         },
       },
     },
@@ -157,6 +147,7 @@ const userPlugin = async (instance: FastifyInstance) => {
       return reply.send(204);
     }
   );
+  // Get a user's guilds
   instance.get<{
     Params: UserParamsType;
     Querystring: GetUserGuildsQuerystringType;
@@ -188,10 +179,7 @@ const userPlugin = async (instance: FastifyInstance) => {
               },
             },
           },
-          401: {
-            description: "Unauthorized",
-            $ref: "responses.unauthorized#",
-          },
+          ...errors401to404ResponseSchema,
         },
       },
     },
@@ -206,6 +194,7 @@ const userPlugin = async (instance: FastifyInstance) => {
           await (
             await instance.redisGuildManager.getGuild(guild.id)
           ).name; // Test if the guild is in cache, if it's not the getter will throw
+          // TODO doesn't respect connected
           filteredGuilds.push({
             id: guild.id,
             name: guild.name,

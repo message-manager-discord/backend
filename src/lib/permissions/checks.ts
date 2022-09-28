@@ -1,5 +1,8 @@
 import { GuildSession } from "../session";
 
+// Wrapper around gateway logic for comparing role positions
+// Role positions are important as users must have a higher role than another user to be able
+// to perform certain actions on them
 const checkIfRoleIsBelowUsersHighestRole = async ({
   session,
   roleId,
