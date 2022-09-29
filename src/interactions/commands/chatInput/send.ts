@@ -1,3 +1,4 @@
+// Chat input send command
 import {
   APIApplicationCommandInteractionDataBooleanOption,
   APIApplicationCommandInteractionDataChannelOption,
@@ -57,6 +58,7 @@ export default async function handleSendCommand(
       "Channel not found in resolved data"
     );
   }
+  // Content only means a message generation flow will not be started and the content modal displayed immediately
   const contentOnly: boolean =
     (
       interaction.data.options?.find(
@@ -73,6 +75,7 @@ export default async function handleSendCommand(
     channel.type === ChannelType.GuildPrivateThread ||
     channel.type === ChannelType.GuildPublicThread
   ) {
+    // Get thread data for message checks
     threadData = {
       parentId: channel.parent_id,
       locked: channel.thread_metadata?.locked,
@@ -80,13 +83,17 @@ export default async function handleSendCommand(
     };
   }
 
+  // Check if the message can be sent - used as the message isn't sent at this step but shouldn't proceed
+  // if permissions are not there
   await checkSendMessagePossible({
     channelId,
     instance,
     thread: threadData,
     session,
   });
+
   if (contentOnly) {
+    // return modal
     return createModal({
       title: `Sending a message to #${
         channel.name.length > 23
@@ -107,6 +114,7 @@ export default async function handleSendCommand(
       ],
     });
   }
+  // start message generation flow
   const messageGenerationKey = createMessageCacheKey(interaction.id, channelId);
   await saveMessageToCache({ key: messageGenerationKey, data: {}, instance }); // Otherwise it'll return null when fetching and throw an error.
   const embedData = createInitialMessageGenerationEmbed(

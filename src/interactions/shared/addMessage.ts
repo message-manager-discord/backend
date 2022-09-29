@@ -1,3 +1,6 @@
+// Shared logic for addMessage (migration) command. Shared as it is currently used by both a context menu command
+// and a chat input command. This is because there are currently some mobile devices that do not support
+// context menu commands
 import { Prisma } from "@prisma/client";
 import {
   APIApplicationCommandGuildInteraction,
@@ -17,6 +20,7 @@ import { GuildSession } from "../../lib/session";
 import { addTipToEmbed } from "../../lib/tips";
 import { InteractionReturnData } from "../types";
 
+// Function to add a message
 const addMessageLogic = async ({
   message,
   instance,
@@ -30,6 +34,10 @@ const addMessageLogic = async ({
     | APIMessageApplicationCommandGuildInteraction;
   session: GuildSession;
 }): Promise<InteractionReturnData> => {
+  // Check if the message is valid for migrating
+  // First check the date, the data it's checking is the date at which the system was changed
+  // This is as any messages after do not need to be migrated
+  // And it prevents non-custom messages (i.e. success messages) from being migrated
   if (
     new Date(message.timestamp) > new Date(instance.envVars.NO_MIGRATION_AFTER)
   ) {
@@ -38,18 +46,21 @@ const addMessageLogic = async ({
       "Only messages sent before the migration date can be migrated. Any messages sent after the migration date should already be in the database. See `/info message-migration` for more information."
     );
   }
+  // Author must be the bot
   if (message.author.id !== instance.envVars.DISCORD_CLIENT_ID) {
     throw new ExpectedFailure(
       InteractionOrRequestFinalStatus.MESSAGE_AUTHOR_NOT_BOT_AUTHOR,
       "That message was not sent via the bot."
     );
   }
+  // Message type must be a normal message - and not from an interaction
   if (message.type !== MessageType.Default || message.interaction) {
     throw new ExpectedFailure(
       InteractionOrRequestFinalStatus.MIGRATION_ATTEMPTED_ON_NON_STANDARD_MESSAGE,
       "Message must be a normal message (not an interaction response, system message, etc) to be able to be added!"
     );
   }
+  // Message must not have been migrated already
   if (
     await instance.prisma.message.findFirst({
       where: { id: BigInt(message.id) },
@@ -69,11 +80,13 @@ const addMessageLogic = async ({
   }
   const embed: APIEmbed | undefined = message.embeds[0];
 
+  // Check if the user attempting to migrate the message has the correct permissions
   await checkSendMessagePossible({
     channelId: message.channel_id,
     instance,
     session,
   });
+  // Generate embed creation query (database)
   let embedQuery:
     | Prisma.MessageEmbedCreateNestedOneWithoutMessageInput
     | undefined = undefined;
@@ -114,7 +127,6 @@ const addMessageLogic = async ({
     };
   }
 
-  // User should be able to send messages in the channel to add the message
   // Add the message to the database
   await instance.prisma.message.create({
     data: {

@@ -1,3 +1,6 @@
+# This action deploys and publishes a docker image to the github docker registry.
+# So that the image doesn't have to be built on deploy on the server.
+
 name: Create and publish a Docker image
 
 on:

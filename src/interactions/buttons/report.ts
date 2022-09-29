@@ -1,6 +1,7 @@
 /* eslint-disable */
 // Disable all checks
 // Remove this when reports are accepted again
+// Reports are not currently accepted but the starting infrastructure is in place
 import prismaClient from "@prisma/client";
 const { ReportStatus } = prismaClient;
 import {
@@ -26,6 +27,10 @@ export default async function handleReportButton(
   instance: FastifyInstance
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
+  // return this isn't happening right now message
+  // This is temporary until reports are accepted again
+  // This is better than removing the option as it is a call to action for the user
+  // to join the support server and report it directly
   return {
     type: InteractionResponseType.ChannelMessageWithSource,
     data: {

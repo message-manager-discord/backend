@@ -1,3 +1,4 @@
+// Information message
 import {
   APIApplicationCommandAutocompleteInteraction,
   APIApplicationCommandAutocompleteResponse,
@@ -79,11 +80,15 @@ const createInfoEmbed = async (
     },
   };
 };
+
+// Tags are the concept of different info responses
+// Like a FAQ documentation for quick reference
+// Some tags are more than just a description (i.e. the info info one (above function))
 interface Tag {
   url?: string;
   description: string;
   title: string;
-  extraTags: string[];
+  extraTags: string[]; // to provide to the search process
 }
 
 interface TagWithName extends Tag {
@@ -156,6 +161,7 @@ const infoTags: Record<string, Tag> = {
   },
 };
 
+// When more than just a static text interface is required
 interface NonTextTag {
   createEmbed: (instance: FastifyInstance) => Promise<APIEmbed>;
   extraTags: string[];
@@ -174,7 +180,7 @@ const textTags = Object.keys(infoTags);
 
 const nonTextTagsNames = Object.keys(nonTextTags);
 
-const allTags: (TagWithName | NonTextTagWithName)[] = [];
+const allTags: (TagWithName | NonTextTagWithName)[] = []; // Collate all tags (happens on load of file)
 for (const tagName in infoTags) {
   if (Object.prototype.hasOwnProperty.call(infoTags, tagName)) {
     const tag = infoTags[tagName];
@@ -204,6 +210,7 @@ const createEmbedFromTag = (tag: Tag): APIEmbed => {
   };
 };
 
+// Generate interaction response
 const channelMessageResponseWithEmbed = (
   embed: APIEmbed
 ): APIInteractionResponseChannelMessageWithSource => ({
@@ -219,6 +226,7 @@ export default async function handleInfoCommand(
   session: GuildSession | NonGuildSession,
   instance: FastifyInstance
 ): Promise<InteractionReturnData> {
+  // Handle the info command with tag set
   const interaction = internalInteraction.interaction;
   const tagName: string | undefined = (
     interaction.data.options?.find(
@@ -243,6 +251,10 @@ export default async function handleInfoCommand(
   }
 }
 
+// The tag option is an autocomplete option
+// This means that when the user is typing discord will send us autocomplete interactions
+// for the user to view
+// This uses a search engine type thing (Fuse) to search the tags
 // eslint-disable-next-line @typescript-eslint/require-await
 async function handleInfoAutocomplete(
   internalInteraction: InternalInteractionType<APIApplicationCommandAutocompleteInteraction>,
@@ -271,7 +283,7 @@ async function handleInfoAutocomplete(
         { name: "extraTags", weight: 0.3 }, // Name matches should show up higher
       ],
     });
-    const tags = tagsSearch.search(tagFilling, { limit: 25 });
+    const tags = tagsSearch.search(tagFilling, { limit: 25 }); // search tags with current input
 
     return {
       type: InteractionResponseType.ApplicationCommandAutocompleteResult,
@@ -283,7 +295,7 @@ async function handleInfoAutocomplete(
       },
     };
   } else {
-    const tags = allTags.sort((a, b) => a.name.localeCompare(b.name));
+    const tags = allTags.sort((a, b) => a.name.localeCompare(b.name)); // return tags in alphabetical order
     return {
       type: InteractionResponseType.ApplicationCommandAutocompleteResult,
       data: {

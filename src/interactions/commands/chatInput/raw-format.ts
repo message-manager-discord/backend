@@ -1,3 +1,5 @@
+// Responds with the "raw" format for certain discord object, as the modals do not contain
+// a WYSIWYG editor
 import {
   APIApplicationCommandInteractionDataChannelOption,
   APIApplicationCommandInteractionDataRoleOption,
@@ -31,6 +33,7 @@ export default async function handleRawFormatCommand(
       "Missing subcommand"
     );
   }
+  // Subcommands - so sent them off to different handlers
   switch (subcommand.name) {
     case "user":
       return handleRawFormatUserSubcommand(internalInteraction, subcommand);

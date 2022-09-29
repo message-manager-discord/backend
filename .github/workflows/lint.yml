@@ -1,3 +1,5 @@
+# Auto run lint on push
+
 name: Lint
 on: push
 jobs:

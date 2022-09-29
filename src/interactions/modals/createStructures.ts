@@ -1,3 +1,4 @@
+// Utility functions for creating modals
 import {
   APIModalInteractionResponse,
   APITextInputComponent,
@@ -6,6 +7,7 @@ import {
   TextInputStyle,
 } from "discord-api-types/v9";
 
+// Create a modal with the correct types (for discord)
 const createModal = ({
   title,
   custom_id,
@@ -39,6 +41,7 @@ interface CreateTextInputOptions {
   required?: boolean;
 }
 
+// For creating a text input object - discord type
 const createTextInputWithRow = ({
   placeholder,
   value,

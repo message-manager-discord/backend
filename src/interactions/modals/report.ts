@@ -1,3 +1,5 @@
+// Currently not implemented - the modal is not generated
+// Code kept for future use
 import prismaClient from "@prisma/client";
 const { ReportStatus } = prismaClient;
 import {

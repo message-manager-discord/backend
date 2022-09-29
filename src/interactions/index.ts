@@ -62,7 +62,6 @@ import {
   createInternalInteraction,
   InternalInteractionType,
 } from "./interaction";
-import handleModalEdit from "./modals/edit";
 import handleModalMessageGeneration from "./modals/message-generation";
 import handleModalReport from "./modals/report";
 import handleModalSend from "./modals/send";
@@ -399,22 +398,7 @@ class InteractionHandler {
           ),
           this._client
         );
-      case "edit": // Modal for editing a message through the bot
-        // Guild only
-        if (interaction.guild_id === undefined) {
-          internalInteraction.responded = true;
-          throw new ExpectedFailure(
-            InteractionOrRequestFinalStatus.DM_INTERACTION_RECEIVED_WHEN_SHOULD_BE_GUILD_ONLY,
-            ":exclamation: This modal is only available in guilds"
-          );
-        }
-        return await handleModalEdit(
-          internalInteraction as InternalInteractionType<APIModalSubmitGuildInteraction>,
-          this._client.sessionManager.createSessionFromInteraction(
-            interaction as APIGuildInteraction
-          ),
-          this._client
-        );
+
       case "report": // Modal for reporting a message through the bot
         // Guild only
         if (interaction.guild_id === undefined) {
