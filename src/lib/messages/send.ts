@@ -1,3 +1,4 @@
+// Send messages through the bot
 import { DiscordAPIError, RawFile } from "@discordjs/rest";
 import { Prisma } from "@prisma/client";
 import {
@@ -36,9 +37,11 @@ import {
   missingUserDiscordPermissionMessage,
 } from "./utils";
 
+// Message for missing internal permissions
 const missingAccessMessage =
   "You do not have access to the bot permission for sending messages via the bot on this guild. Please contact an administrator.";
 
+// Options interface for functions
 interface ThreadOptionObject {
   parentId?: string | null;
   locked?: boolean;
@@ -61,6 +64,7 @@ interface SendMessageOptions extends CheckSendMessageOptions {
   embed?: StoredEmbed;
 }
 
+// Checks if the user & the bot have the required permissions to send a message
 async function checkSendMessagePossible({
   channelId,
   thread,
@@ -84,6 +88,7 @@ async function checkSendMessagePossible({
       )
     );
   }
+  // Check if the bot has the correct permissions
   const botHasRequiredDiscordPermissions =
     await session.botHasDiscordPermissions(
       // If the target channel is a thread, also required the SEND_MESSAGES_IN_THREADS permission
@@ -102,6 +107,7 @@ async function checkSendMessagePossible({
     );
   }
 
+  // Check if the user has the correct internal permissions
   if (
     !(
       await session.hasBotPermissions(
@@ -119,6 +125,7 @@ async function checkSendMessagePossible({
   return true;
 }
 
+// send a message
 async function sendMessage({
   content,
   embed,
@@ -130,6 +137,7 @@ async function sendMessage({
   session,
 }: SendMessageOptions): Promise<APIMessage> {
   await checkSendMessagePossible({
+    // Check required permissions
     channelId,
 
     instance,
@@ -144,7 +152,7 @@ async function sendMessage({
       "No content or embeds have been set, this is required to send a message"
     );
   }
-  // Check if embed exceeds limits
+  // Check if embed exceeds limits (limits set by discord)
   if (embed !== undefined) {
     const exceedsLimits = checkEmbedMeetsLimits(embed);
     if (exceedsLimits) {
@@ -154,6 +162,7 @@ async function sendMessage({
       );
     }
     // Also check if title and / or description is set on the embed
+    // Also a discord restriction
     if (embed.title === undefined && embed.description === undefined) {
       throw new ExpectedFailure(
         InteractionOrRequestFinalStatus.EMBED_REQUIRES_TITLE_OR_DESCRIPTION,
@@ -163,24 +172,29 @@ async function sendMessage({
   }
   const embeds: APIEmbed[] = [];
   if (embed) {
+    // Parse an embed into the form discord expects
     embeds.push(createSendableEmbedFromStoredEmbed(embed));
   }
   try {
+    // Send the message to discord
     const messageResult = (await instance.restClient.post(
       Routes.channelMessages(channelId),
       {
         body: { content, embeds },
       }
     )) as RESTPostAPIChannelMessageResult;
+    // Save message to database
     const sentEmbed = createStoredEmbedFromAPIMessage(messageResult);
+    // Query is the query to provide to the database create method for the embed
     let embedQuery:
       | Prisma.MessageEmbedCreateNestedOneWithoutMessageInput
       | undefined = undefined;
+
     if (sentEmbed !== null) {
       let fieldQuery:
         | Prisma.EmbedFieldCreateNestedManyWithoutEmbedInput
         | undefined;
-
+      // Generate query for fields
       if (sentEmbed.fields && sentEmbed.fields.length > 0) {
         fieldQuery = {
           create: sentEmbed.fields.map((field) => ({
@@ -194,7 +208,7 @@ async function sendMessage({
       if (sentEmbed.timestamp !== undefined) {
         timestamp = new Date(sentEmbed.timestamp);
       }
-
+      // Generate overall embed query
       embedQuery = {
         create: {
           title: sentEmbed.title,
@@ -213,6 +227,7 @@ async function sendMessage({
       };
     }
 
+    // Create the message in the database
     await instance.prisma.message.create({
       data: {
         id: BigInt(messageResult.id),
@@ -246,6 +261,7 @@ async function sendMessage({
         embed: embedQuery,
       },
     });
+    // generate log embed - if embeds then attach JSON representation of the embeds in a json file
     const logEmbed: APIEmbed = {
       color: embedPink,
       title: "Message Sent",
@@ -280,6 +296,7 @@ async function sendMessage({
     });
     return messageResult;
   } catch (error) {
+    // Catch discord api errors in sending the message
     if (error instanceof DiscordAPIError) {
       if (error.code === 404) {
         throw new UnexpectedFailure(

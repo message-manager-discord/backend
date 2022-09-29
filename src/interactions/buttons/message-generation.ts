@@ -1,3 +1,4 @@
+// Handle message generation buttons - usually returning a modal from them
 import {
   APIEmbed,
   APIInteractionResponse,
@@ -64,7 +65,7 @@ export default async function handleMessageGenerationButton(
   const channelId = splitMessageCacheKey(messageGenerationKey).channelId;
   let returnData: CreateMessageGenerationEmbedResult;
   switch (messageGenerationType) {
-    case "content":
+    case "content": // Editing the message content
       return createModal({
         title: "Edit Content",
         custom_id: interaction.data.custom_id, // This is the same
@@ -80,7 +81,7 @@ export default async function handleMessageGenerationButton(
         ],
       });
 
-    case "embed":
+    case "embed": // 2nd level flow for embed
       returnData = createEmbedMessageGenerationEmbed(
         messageGenerationKey,
         currentStatus
@@ -93,7 +94,7 @@ export default async function handleMessageGenerationButton(
           flags: MessageFlags.Ephemeral,
         },
       };
-    case "embed-metadata":
+    case "embed-metadata": // Editing embed metadata
       return createModal({
         title: "Edit Embed Metadata",
         custom_id: interaction.data.custom_id, // This is the same
@@ -137,7 +138,7 @@ export default async function handleMessageGenerationButton(
           }),
         ],
       });
-    case "embed-footer":
+    case "embed-footer": // Editing embed footer
       return createModal({
         title: "Edit Embed Footer",
         custom_id: interaction.data.custom_id, // This is the same
@@ -162,7 +163,7 @@ export default async function handleMessageGenerationButton(
           }),
         ],
       });
-    case "embed-content":
+    case "embed-content": // Editing embed content
       return createModal({
         title: "Edit Embed Content",
         custom_id: interaction.data.custom_id, // This is the same
@@ -187,7 +188,7 @@ export default async function handleMessageGenerationButton(
           }),
         ],
       });
-    case "embed-add-field":
+    case "embed-add-field": // Adding a field to the embed
       // Check if there are 25+ fields - if so cannot add any more
 
       if ((currentStatus.embed?.fields?.length ?? 0) >= 25) {
@@ -227,7 +228,7 @@ export default async function handleMessageGenerationButton(
           }),
         ],
       });
-    case "embed-author":
+    case "embed-author": // Editing embed author
       return createModal({
         title: "Edit Embed Author",
         custom_id: interaction.data.custom_id, // This is the same
@@ -262,7 +263,7 @@ export default async function handleMessageGenerationButton(
         ],
       });
 
-    case "embed-back":
+    case "embed-back": // Going back from the 2nd level embed flow to the first level
       returnData = createInitialMessageGenerationEmbed(
         messageGenerationKey,
         currentStatus,
@@ -277,7 +278,7 @@ export default async function handleMessageGenerationButton(
         },
       };
 
-    case "send":
+    case "send": // Sending the message
       return await handleSend({
         channelId,
         currentStatus,
@@ -287,7 +288,7 @@ export default async function handleMessageGenerationButton(
         messageGenerationKey,
       });
 
-    case "edit":
+    case "edit": // Editing the message
       return await handleEdit({
         channelId,
         currentStatus,
@@ -297,7 +298,8 @@ export default async function handleMessageGenerationButton(
         messageGenerationKey,
       });
 
-    case "select-fields":
+    case "select-fields": // Select menu for selecting fields to edit (it's under this as
+      // all components for message generation have the same custom_id identifier) for simplicity
       return await handleMessageGenerationSelect(
         internalInteraction,
         session,

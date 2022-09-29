@@ -1,3 +1,5 @@
+// Shared logic for permissions config embed generation
+// In separate file as it's used in multiple places
 import { Snowflake } from "discord-api-types/globals";
 import {
   APIActionRowComponent,
@@ -15,6 +17,7 @@ import { PermissionAllowAndDenyData } from "../../lib/permissions/types";
 import { checkInternalPermissionValue } from "../../lib/permissions/utils";
 import { addTipToEmbed } from "../../lib/tips";
 
+// Options interfaces
 interface CreatePermissionsEmbedOptions {
   targetType: string;
   targetId: Snowflake;
@@ -31,10 +34,11 @@ interface CreatePermissionsEmbedResult {
 }
 
 /*
-  Custom Id Format:
-  <name: manage-permissions-select>:<action: allow | deny>:<targetType: role | user>:<targetId: snowflake>:<channelId: snowflake | null>:<hasAdminPermissions: true | false>
+  Custom Id Format for manage permissions selects:
+  <name: 'manage-permissions-select'>:<action: allow | deny>:<targetType: 'role' | 'user'>:<targetId: snowflake>:<channelId: snowflake | 'null'>:<hasAdminPermissions: 'true' | 'false'>
 */
 
+// Generate a permissions embed for editing permissions
 const createPermissionsEmbed = async ({
   targetType,
   targetId,
@@ -48,9 +52,9 @@ const createPermissionsEmbed = async ({
   // or when the permissions are updated
 
   if (targetType === "role" && channelId === null) {
-    // Different behavior as does not have an explicit deny
+    // Different behavior for role without channel as does not have an explicit deny
 
-    const options: APISelectMenuOption[] = [];
+    const options: APISelectMenuOption[] = []; // Array of potential options
     const currentPermissions =
       await instance.permissionManager.getRolePermissions({
         roleId: targetId,
@@ -65,10 +69,10 @@ const createPermissionsEmbed = async ({
           currentPermissions,
           internalPermission.value
         ),
-      });
+      }); // Add option to array - each valid permission, and if it's currently set (default)
     }
     const title = "Managing permissions";
-    // Make a map of permission names to the state ("allow", "deny")
+    // Make a map of permission names to the state ("allow", "deny") - used for visual representation of current state
     const permissionMap: { [key: string]: string } = {};
     for (const option of options) {
       permissionMap[option.label] = option.default ?? false ? "allow" : "deny";
@@ -81,10 +85,12 @@ const createPermissionsEmbed = async ({
         : "Permissions have been updated - but you can keep managing them\n\n") +
       Object.entries(permissionMap)
         .map(([permission, state]): string => {
-          return `${state === "allow" ? "✅" : "❌"} ${permission}`;
+          return `${state === "allow" ? "✅" : "❌"} ${permission}`; // Display what each permission is currently
         })
         .join("\n");
+
     return {
+      // Return embed + components
       embed: addTipToEmbed({ title, description, color: embedPink }),
       components: [
         {
@@ -103,8 +109,10 @@ const createPermissionsEmbed = async ({
       ],
     };
   } else {
+    // Channel role/user or guild user permissions editing
     let currentPermissions: PermissionAllowAndDenyData;
     let description: string;
+    // Generate start message (what's being edited)
     if (targetType === "role" && channelId !== null) {
       description = `Current permissions for role <@&${targetId}> on channel <#${channelId}>`;
       currentPermissions =
@@ -126,10 +134,13 @@ const createPermissionsEmbed = async ({
         guildId: guildId,
       });
     }
+
     if (!first) {
+      // If not first time, add updated message
       description +=
         "\nPermissions have been updated - but you can keep managing them";
     }
+    // Make a map of permission names to the state ("allow", "deny", "inherit") - used for visual representation of current state
     const permissionMap: { [key: string]: "allow" | "inherit" | "deny" } = {};
     const allowOptions: APISelectMenuOption[] = [];
     const denyOptions: APISelectMenuOption[] = [];
@@ -174,13 +185,14 @@ const createPermissionsEmbed = async ({
             state === "allow" ? "✅" : state === "deny" ? "❌" : "➡️"
           } ${permission}`;
         })
-        .join("\n");
+        .join("\n"); // Add current state of each permission to description
 
     // Add note about admin permissions
     if (hasAdminPermission) {
       description +=
         "\n\nNote: The target has the discord `ADMINISTRATOR` permission. Any user with this permission will bypass bot permission checks (all will be allowed)";
     }
+    // return embed and components
     return {
       embed: addTipToEmbed({
         title: "Managing permissions",
@@ -254,4 +266,3 @@ const createPermissionsEmbed = async ({
   }
 };
 export default createPermissionsEmbed;
-//TODO Investigate issue with indent on moile

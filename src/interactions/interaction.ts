@@ -1,3 +1,5 @@
+// Object for internal representation of interactions
+// Adds responded and deferred fields to assist with error handling
 interface InternalInteractionType<Interaction> {
   responded: boolean;
   deferred: boolean;

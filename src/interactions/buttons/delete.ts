@@ -1,3 +1,4 @@
+// Button to delete a message - will response with a confirmation as this is a destructive action
 import {
   APIEmbed,
   APIMessageComponentGuildInteraction,
@@ -32,12 +33,14 @@ export default async function handleDeleteButton(
       "No message id on delete button"
     );
   }
+  // Check if message can be deleted
   const databaseMessage = await checkDeletePossible({
     session,
     channelId: interaction.channel_id,
     instance,
     messageId,
   });
+  // Get content from database message (and trim it down to maxLength to avoid overflowing the confirmation embed)
   const content = databaseMessage.content;
   const maxLength = 150;
   const hasEmbed = databaseMessage.embed !== null;
@@ -69,6 +72,7 @@ export default async function handleDeleteButton(
         {
           type: ComponentType.ActionRow,
           components: [
+            // Button to proceed or cancel
             {
               type: ComponentType.Button,
               label: "Confirm",

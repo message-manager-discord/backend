@@ -1,3 +1,4 @@
+// Handle confirmation of the deletion of a message at the confirmation stage
 import {
   APIActionRowComponent,
   APIInteractionResponseUpdateMessage,
@@ -33,6 +34,7 @@ export default async function handleConfirmDeleteButton(
       "No message id on delete button"
     );
   }
+  // Edit the embed of the confirmation message in the response
   const embed = interaction.message.embeds[0];
   embed.color = successGreen;
   embed.title = "Message Deleted";
@@ -41,13 +43,16 @@ export default async function handleConfirmDeleteButton(
     : [];
 
   components.forEach((component) => {
+    // Disable all components as the message is now deleted
     component.disabled = true;
   });
   const otherComponent: APIActionRowComponent<APIMessageActionRowComponent> = {
+    // Replace existing components with new components
     type: ComponentType.ActionRow,
     components: components,
   };
   await deleteMessage({
+    // Actually delete the message
     session,
     channelId: interaction.channel_id,
     instance,

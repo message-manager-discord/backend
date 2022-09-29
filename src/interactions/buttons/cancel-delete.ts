@@ -1,3 +1,4 @@
+// Cancel deleting a message at the confirmation stage
 import {
   APIActionRowComponent,
   APIInteractionResponseUpdateMessage,
@@ -23,9 +24,8 @@ export default async function handleCancelDeleteButton(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   instance: FastifyInstance
 ): Promise<APIInteractionResponseUpdateMessage> {
-  // Not deferred as no logic is 'heavy'
   const interaction = internalInteraction.interaction;
-
+  // Edit original confirmation message to show that the message was not deleted
   const embed = interaction.message.embeds[0];
   embed.color = failureRed;
   embed.title = "Message Deletion Cancelled";
@@ -34,6 +34,7 @@ export default async function handleCancelDeleteButton(
     : [];
 
   components.forEach((component) => {
+    // Disable all components so that the user can't delete the message from this confirmation
     component.disabled = true;
   });
   const otherComponent: APIActionRowComponent<APIMessageActionRowComponent> = {

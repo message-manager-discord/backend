@@ -1,4 +1,5 @@
 // This manages the currently editing messages stored in cache
+// For message editing flows
 
 import { Snowflake } from "discord-api-types/globals";
 import { FastifyInstance } from "fastify";
@@ -11,6 +12,7 @@ import {
 import { checkEmbedMeetsLimits } from "./embeds/checks";
 import { StoredEmbed } from "./embeds/types";
 
+// Generate message cache key - a function to ensure the key is always the same format
 const createMessageCacheKey = (
   interactionId: Snowflake,
   channelId: Snowflake
@@ -18,6 +20,7 @@ const createMessageCacheKey = (
   return `${interactionId}-${channelId}`; // use - to separate to avoid collisions with custom_id
 };
 
+// Get the info from the key
 const splitMessageCacheKey = (
   key: string
 ): {
@@ -31,6 +34,7 @@ const splitMessageCacheKey = (
   };
 };
 
+// Type for the data stored in the cache
 interface MessageSavedInCache {
   content?: string;
   embed?: StoredEmbed;

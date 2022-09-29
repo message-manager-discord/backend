@@ -1,3 +1,5 @@
+// Handle message generation select menu - this is for embed field editing
+// Returns a modal with the field's current values
 import {
   APIMessageComponentGuildInteraction,
   APIMessageSelectMenuInteractionData,
@@ -15,12 +17,10 @@ import {
   createModal,
   createTextInputWithRow,
 } from "../modals/createStructures";
-import {
-  generateMessageGenerationCustomId,
-  MessageGenerationButtonTypes,
-} from "../shared/message-generation";
+import { generateMessageGenerationCustomId } from "../shared/message-generation";
 import { InteractionReturnData } from "../types";
 
+// Function to handle the message generation select menu
 export default async function handleMessageGenerationSelect(
   internalInteraction: InternalInteractionType<APIMessageComponentGuildInteraction>,
   session: GuildSession,
@@ -28,35 +28,33 @@ export default async function handleMessageGenerationSelect(
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   const customIdData = interaction.data.custom_id.split(":");
-  const messageGenerationKey = customIdData[1] as string | undefined;
-  const messageGenerationType = customIdData[2] as
-    | MessageGenerationButtonTypes
-    | undefined;
-  if (
-    messageGenerationKey === undefined ||
-    messageGenerationType === undefined
-  ) {
+  const messageGenerationKey = customIdData[1] as string | undefined; // The message generation cache key
+
+  if (messageGenerationKey === undefined) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.COMPONENT_CUSTOM_ID_MALFORMED,
       "No message key on message generation button"
     );
   }
+  // Get current state of the edit
   const currentStatus = await getMessageFromCache({
     key: messageGenerationKey,
     instance,
   });
+  // Get which field is being edited
   const index = parseInt(
     (interaction.data as APIMessageSelectMenuInteractionData).values[0]
   );
   const currentField = currentStatus.embed?.fields?.[index];
-  console.log(index);
 
+  // Shouldn't happen - but for type safety
   if (currentField === undefined) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.FIELD_SELECT_OUT_OF_INDEX,
       "Fields out of index"
     );
   }
+  // return generated modal with text inputs for each embed field - with the current values
   return createModal({
     title: "Edit Field",
     custom_id: generateMessageGenerationCustomId(

@@ -1,3 +1,5 @@
+// Chat input command for getting actions for a message (same as ../message/actions.ts) but with message fetching logic (as it's not
+// returned by the api) for chat input commands
 import { DiscordAPIError } from "@discordjs/rest";
 import {
   APIApplicationCommandInteractionDataStringOption,
@@ -57,6 +59,7 @@ export default async function handleActionsCommand(
       Routes.channelMessage(interaction.channel_id, messageId)
     )) as RESTGetAPIChannelMessageResult;
     return await actionsLogic({
+      // Execute actions logic
       instance,
       interaction,
       message,

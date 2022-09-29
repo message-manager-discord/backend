@@ -1,3 +1,5 @@
+// Registering the permissions manager to the instance
+
 import { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
 

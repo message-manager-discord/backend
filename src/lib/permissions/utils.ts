@@ -1,3 +1,5 @@
+// Utility functions for permissions
+
 import { Snowflake } from "discord-api-types/globals";
 import { Guild } from "redis-discord-cache";
 import {
@@ -15,6 +17,7 @@ import {
 import { GuildSession } from "../session";
 import { InternalPermissions } from "./consts";
 
+// Compare bigint's to see if the permission is present
 const checkDiscordPermissionValue = (
   existingPermission: bigint,
   permission: bigint
@@ -22,11 +25,13 @@ const checkDiscordPermissionValue = (
   const adminPerm =
     (existingPermission & DiscordPermissions.ADMINISTRATOR) ===
     DiscordPermissions.ADMINISTRATOR;
+  // Admin perms override all other perms
   const otherPerm = (existingPermission & permission) === permission;
 
   return adminPerm || otherPerm;
 };
 
+// Same as above, but for internal (admin checks must be done elsewhere)
 const checkInternalPermissionValue = (
   existingPermission: number,
   permission: number
@@ -34,6 +39,8 @@ const checkInternalPermissionValue = (
   return (existingPermission & permission) === permission;
 };
 
+// Try to run a guild function - and handle all the errors that may happen.
+// This is for guild functions on the gateway cache
 const tryAndHandleGuildErrors = async <T>(
   func: () => Promise<T>
 ): Promise<T> => {
@@ -61,6 +68,7 @@ const tryAndHandleGuildErrors = async <T>(
   }
 };
 
+// Check role positions to see if a user can manage permissions for that role
 async function checkIfUserCanManageRolePermissions({
   guild,
   roleId,

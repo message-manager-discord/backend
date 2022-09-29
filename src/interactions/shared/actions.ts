@@ -1,3 +1,6 @@
+// Shared logic for actions command. Shared as it is currently used by both a context menu command
+// and a chat input command. This is because there are currently some mobile devices that do not support
+// context menu commands
 import {
   APIButtonComponent,
   APIChatInputApplicationCommandGuildInteraction,
@@ -16,6 +19,7 @@ import { GuildSession } from "../../lib/session";
 import { addTipToEmbed } from "../../lib/tips";
 import { InteractionReturnData } from "../types";
 
+// Function to get the actions for a message
 const actionsLogic = async ({
   instance,
   message,
@@ -37,6 +41,7 @@ const actionsLogic = async ({
     session,
   });
 
+  // Add buttons for each action that can be taken by the user
   const components: APIButtonComponent[] = [];
   if (possibleActions.edit) {
     components.push({
@@ -54,6 +59,7 @@ const actionsLogic = async ({
       style: ButtonStyle.Danger,
     });
   }
+  // All users should be able to report a message
   components.push({
     type: ComponentType.Button,
     custom_id: `report:${message.id}`,

@@ -1,3 +1,5 @@
+// Chat input command for migrating a message (same as ../message/addMessage.ts) but with message fetching logic (as it's not
+// returned by the api) for chat input commands
 import { DiscordAPIError } from "@discordjs/rest";
 import {
   APIApplicationCommandInteractionDataStringOption,
@@ -56,6 +58,7 @@ export default async function handleAddMessageCommand(
       Routes.channelMessage(interaction.channel_id, messageId)
     )) as RESTGetAPIChannelMessageResult;
     return await addMessageLogic({
+      // Execute add message logic
       instance,
       interaction,
       message,

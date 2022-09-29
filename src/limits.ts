@@ -1,3 +1,6 @@
+// These are limits on features, which are accessed by imports
+// They're here so they can be easily changed
+
 export default {
   // premium feature limits
   MAX_ROLE_PERMISSIONS: 7,

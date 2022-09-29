@@ -1,3 +1,4 @@
+// Handle all message generation modal interactions
 import {
   APIInteractionResponse,
   APIModalSubmitGuildInteraction,
@@ -37,7 +38,7 @@ export default async function handleModalMessageGeneration(
     | undefined;
   const messageGenerationType = interaction.data.custom_id.split(":")[2] as
     | MessageGenerationButtonTypes
-    | undefined;
+    | undefined; // Type used to determine which modal this is
   if (
     messageGenerationKey === undefined ||
     messageGenerationType === undefined
@@ -51,7 +52,7 @@ export default async function handleModalMessageGeneration(
     key: messageGenerationKey,
     instance,
   });
-
+  // Call other functions depending on the type of modal
   switch (messageGenerationType) {
     case "content":
       return await handleContent({
@@ -115,6 +116,7 @@ export default async function handleModalMessageGeneration(
   }
 }
 
+// Handle editing content on message generation flow
 const handleContent = async ({
   interaction,
   currentStatus,
@@ -128,21 +130,24 @@ const handleContent = async ({
 }): Promise<APIInteractionResponse> => {
   const content = interaction.data.components?.find(
     (component) => component.components[0].custom_id === "content"
-  )?.components[0].value;
+  )?.components[0].value; // find content
 
   if (interaction.channel_id === undefined) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.GENERIC_UNEXPECTED_FAILURE,
       "Missing channel_id on modal submit"
-    ); // Not sure why this might happen
+    ); // Not sure why this might happen (discord typing says it could, but docs do not indicate why)
+    // Hasn't thrown in tests yet
+    // Will change if it happens
   }
-  currentStatus.content = content;
+  currentStatus.content = content; // Update content in cache
   await saveMessageToCache({
     key: messageGenerationKey,
     instance,
     data: currentStatus,
   });
 
+  // Update representation by regenerating the embed
   const responseData = createInitialMessageGenerationEmbed(
     messageGenerationKey,
     currentStatus,
@@ -159,6 +164,7 @@ const handleContent = async ({
   };
 };
 
+// Handle editing embed metadata on message generation flow
 const handleEmbedMetadata = async ({
   interaction,
   currentStatus,
@@ -170,6 +176,7 @@ const handleEmbedMetadata = async ({
   messageGenerationKey: string;
   instance: FastifyInstance;
 }): Promise<APIInteractionResponse> => {
+  // Get the different fields
   const color = interaction.data.components?.find(
     (component) => component.components[0].custom_id === "color"
   )?.components[0].value;
@@ -208,7 +215,7 @@ const handleEmbedMetadata = async ({
       },
     };
   }
-  // If color is set check if it a valid integer color
+  // If color is set check if it a valid integer color then set color - if not set remove
   if (color !== undefined && color !== "") {
     if (isNaN(Number(color))) {
       throw new ExpectedFailure(
@@ -220,7 +227,7 @@ const handleEmbedMetadata = async ({
   } else {
     currentStatus.embed.color = undefined;
   }
-  // If timestamp is set check if it a valid ISO8601 timestamp
+  // If timestamp is set check if it a valid ISO8601 timestamp then set timestamp - if not set remove
   if (timestamp !== undefined && timestamp !== "") {
     if (!isIsoDate(timestamp)) {
       throw new ExpectedFailure(
@@ -232,7 +239,7 @@ const handleEmbedMetadata = async ({
   } else {
     currentStatus.embed.timestamp = undefined;
   }
-  // If url is set check if it a valid URL
+  // If url is set check if it a valid URL then set url - if not set remove
   if (url !== undefined && url !== "") {
     if (!/^(http|https):\/\/[^ "]+$/.test(url)) {
       throw new ExpectedFailure(
@@ -244,7 +251,7 @@ const handleEmbedMetadata = async ({
   } else {
     currentStatus.embed.url = undefined;
   }
-  // If thumbnailUrl is set check if it a valid URL
+  // If thumbnailUrl is set check if it a valid URL then set - if not set remove
   if (thumbnailUrl !== undefined && thumbnailUrl !== "") {
     if (!/^(http|https):\/\/[^ "]+$/.test(thumbnailUrl)) {
       throw new ExpectedFailure(
@@ -265,6 +272,7 @@ const handleEmbedMetadata = async ({
     data: currentStatus,
   });
 
+  // Update representation by regenerating the embed
   const returnData = createEmbedMessageGenerationEmbed(
     messageGenerationKey,
     currentStatus
@@ -279,6 +287,7 @@ const handleEmbedMetadata = async ({
   };
 };
 
+// Handle editing embed footer on message generation flow
 const handleEmbedFooter = async ({
   interaction,
   currentStatus,
@@ -290,6 +299,7 @@ const handleEmbedFooter = async ({
   messageGenerationKey: string;
   instance: FastifyInstance;
 }): Promise<APIInteractionResponse> => {
+  // Get the different fields
   const text = interaction.data.components?.find(
     (component) => component.components[0].custom_id === "text"
   )?.components[0].value;
@@ -303,12 +313,11 @@ const handleEmbedFooter = async ({
       currentStatus.embed?.footer?.text !== "") ||
     (currentStatus.embed?.footer?.icon_url !== undefined &&
       currentStatus.embed?.footer?.icon_url !== "")
-    // Only "edit" the embed if new values will be set, or they already have been set
+    // Only "edit" the embed if new values will be set, or they already have been set (either setting or removing)
   ) {
     if (currentStatus.embed === undefined) {
       currentStatus.embed = {};
     }
-    console.log("a");
     if (
       (text === undefined || text === "") &&
       iconUrl !== undefined &&
@@ -323,15 +332,14 @@ const handleEmbedFooter = async ({
     if (text === undefined || text === "") {
       // Icon url must also be undefined due to above check
       currentStatus.embed.footer = undefined;
-      console.log("b");
     } else {
       if (currentStatus.embed.footer === undefined) {
-        currentStatus.embed.footer = { text };
+        currentStatus.embed.footer = { text }; // If footer undefined set text and footer
       } else {
         currentStatus.embed.footer.text = text;
       }
-      console.log("c");
 
+      // Validate and set icon url - don't need to remove as would be removed by check before
       if (iconUrl !== undefined && iconUrl !== "") {
         // Validate iconurl is a valid url
         if (!/^(http|https):\/\/[^ "]+$/.test(iconUrl)) {
@@ -343,14 +351,14 @@ const handleEmbedFooter = async ({
         currentStatus.embed.footer.icon_url = iconUrl;
       }
     }
-    console.log("d");
-    console.log(currentStatus.embed.footer);
+    // Update the message in the cache
     await saveMessageToCache({
       key: messageGenerationKey,
       instance,
       data: currentStatus,
     });
   }
+  // Update representation by regenerating the embed
   const returnData = createEmbedMessageGenerationEmbed(
     messageGenerationKey,
     currentStatus
@@ -365,6 +373,7 @@ const handleEmbedFooter = async ({
   };
 };
 
+// Handle editing embed content on message generation flow
 const handleEmbedContent = async ({
   interaction,
   currentStatus,
@@ -376,6 +385,7 @@ const handleEmbedContent = async ({
   messageGenerationKey: string;
   instance: FastifyInstance;
 }): Promise<APIInteractionResponse> => {
+  // Get the different fields
   const title = interaction.data.components?.find(
     (component) => component.components[0].custom_id === "title"
   )?.components[0].value;
@@ -390,25 +400,31 @@ const handleEmbedContent = async ({
     (currentStatus.embed?.description !== undefined &&
       currentStatus.embed?.description !== "")
   ) {
+    // Only "edit" the embed if new values will be set, or they already have been set (either setting or removing)
     if (currentStatus.embed === undefined) {
+      // ensure embed is defined
       currentStatus.embed = {};
     }
     if (title !== undefined && title !== "") {
+      // If title is set set it - if not remove
       currentStatus.embed.title = title;
     } else {
       currentStatus.embed.title = undefined;
     }
     if (description !== undefined && description !== "") {
+      // If description is set set it - if not remove
       currentStatus.embed.description = description;
     } else {
       currentStatus.embed.description = undefined;
     }
+    // Update the message in the cache
     await saveMessageToCache({
       key: messageGenerationKey,
       instance,
       data: currentStatus,
     });
   }
+  // Update representation by regenerating the embed
   const returnData = createEmbedMessageGenerationEmbed(
     messageGenerationKey,
     currentStatus
@@ -424,6 +440,7 @@ const handleEmbedContent = async ({
 };
 
 const parseTrueLikeValues = (value: string | undefined): boolean => {
+  // As there is currently no input for booleans for modals
   // 'true' 't' 'y' 'yes' 'on' '1' - true
   // 'false' 'f' 'n' 'no' 'off' '0' and any other value - false
   // Case insensitive
@@ -441,6 +458,7 @@ const parseTrueLikeValues = (value: string | undefined): boolean => {
   );
 };
 
+// Handle editing embed add field on message generation flow
 const handleEmbedAddField = async ({
   interaction,
   currentStatus,
@@ -452,6 +470,7 @@ const handleEmbedAddField = async ({
   messageGenerationKey: string;
   instance: FastifyInstance;
 }): Promise<APIInteractionResponse> => {
+  // Get the different fields
   const fieldName = interaction.data.components?.find(
     (component) => component.components[0].custom_id === "name"
   )?.components[0].value;
@@ -477,9 +496,11 @@ const handleEmbedAddField = async ({
   }
 
   if (currentStatus.embed === undefined) {
+    // Ensure embed is defined
     currentStatus.embed = {};
   }
   if (currentStatus.embed.fields === undefined) {
+    // Ensure fields is defined
     currentStatus.embed.fields = [];
   }
 
@@ -495,6 +516,7 @@ const handleEmbedAddField = async ({
     data: currentStatus,
   });
 
+  // Update representation by regenerating the embed
   const returnData = createEmbedMessageGenerationEmbed(
     messageGenerationKey,
     currentStatus
@@ -509,6 +531,8 @@ const handleEmbedAddField = async ({
   };
 };
 
+// Handle editing embed edit field on message generation flow
+// Different from above as field will already exist
 const handleEditEmbedField = async ({
   interaction,
   currentStatus,
@@ -520,6 +544,7 @@ const handleEditEmbedField = async ({
   messageGenerationKey: string;
   instance: FastifyInstance;
 }): Promise<APIInteractionResponse> => {
+  // Get the different fields
   const fieldName = interaction.data.components?.find(
     (component) => component.components[0].custom_id === "name"
   )?.components[0].value;
@@ -531,7 +556,7 @@ const handleEditEmbedField = async ({
       (component) => component.components[0].custom_id === "inline"
     )?.components[0].value
   );
-  const fieldIndex = Number(interaction.data.custom_id.split(":")[3]);
+  const fieldIndex = Number(interaction.data.custom_id.split(":")[3]); // Index in the current list - used identify which field
 
   if (
     (fieldName === undefined || fieldName === "") &&
@@ -555,12 +580,14 @@ const handleEditEmbedField = async ({
         "Field name and value both must be set. To remove the field make sure both are empty."
       );
     }
+    // ensure embed and fields is defined
     if (currentStatus.embed === undefined) {
       currentStatus.embed = {};
     }
     if (currentStatus.embed.fields === undefined) {
       currentStatus.embed.fields = [];
     }
+    // add field if field doesn't exist yet (shouldn't happen but just in case)
     if (currentStatus.embed.fields[fieldIndex] === undefined) {
       currentStatus.embed.fields.push({
         name: fieldName,
@@ -568,6 +595,7 @@ const handleEditEmbedField = async ({
         inline,
       });
     } else {
+      // otherwise update the field
       currentStatus.embed.fields[fieldIndex] = {
         name: fieldName,
         value: fieldValue,
@@ -581,6 +609,7 @@ const handleEditEmbedField = async ({
     instance,
     data: currentStatus,
   });
+  // Update representation by regenerating the embed
   const returnData = createEmbedMessageGenerationEmbed(
     messageGenerationKey,
     currentStatus
@@ -595,6 +624,7 @@ const handleEditEmbedField = async ({
   };
 };
 
+// Handle editing embed edit author on message generation flow
 const handleEmbedAuthor = async ({
   interaction,
   currentStatus,
@@ -603,12 +633,13 @@ const handleEmbedAuthor = async ({
 }: {
   interaction: APIModalSubmitGuildInteraction;
   currentStatus: MessageSavedInCache;
-
   messageGenerationKey: string;
   instance: FastifyInstance;
 }): Promise<APIInteractionResponse> => {
   // Handle author name, url, and icon url
   // Author name **must be set** if any values are set
+
+  // Get the different fields
   const authorName = interaction.data.components?.find(
     (component) => component.components[0].custom_id === "name"
   )?.components[0].value;
@@ -633,11 +664,12 @@ const handleEmbedAuthor = async ({
           InteractionOrRequestFinalStatus.EMBED_EDITING_MISSING_REQUIRED_VALUE,
           "Author name must be set for any other author value to be set. Either set an author name, or remove the author url or author icon url."
         );
-      }
+      } // clear author if name is not set
       if (currentStatus.embed !== undefined) {
         currentStatus.embed.author = undefined;
       }
     } else {
+      // otherwise, update the author
       if (currentStatus.embed === undefined) {
         currentStatus.embed = {};
       }
@@ -648,17 +680,20 @@ const handleEmbedAuthor = async ({
       }
 
       if (authorUrl !== undefined && authorUrl !== "") {
-        // Validate authorurl is a valid url
+        // Validate authorurl is a valid url - then set otherwise clear
         if (!/^(http|https):\/\/[^ "]+$/.test(authorUrl)) {
           throw new ExpectedFailure(
             InteractionOrRequestFinalStatus.EMBED_VALUE_EDITING_MALFORMED,
             "Author URL is not a valid URL"
           );
         }
+
         currentStatus.embed.author.url = authorUrl;
+      } else {
+        currentStatus.embed.author.url = undefined;
       }
       if (authorIconUrl !== undefined && authorIconUrl !== "") {
-        // Validate authoriconurl is a valid url
+        // Validate authoriconurl is a valid url - then set otherwise clear
         if (!/^(http|https):\/\/[^ "]+$/.test(authorIconUrl)) {
           throw new ExpectedFailure(
             InteractionOrRequestFinalStatus.EMBED_VALUE_EDITING_MALFORMED,
@@ -666,6 +701,8 @@ const handleEmbedAuthor = async ({
           );
         }
         currentStatus.embed.author.icon_url = authorIconUrl;
+      } else {
+        currentStatus.embed.author.icon_url = undefined;
       }
     }
     await saveMessageToCache({
@@ -674,6 +711,7 @@ const handleEmbedAuthor = async ({
       data: currentStatus,
     });
   }
+  // Update representation by regenerating the embed
   const returnData = createEmbedMessageGenerationEmbed(
     messageGenerationKey,
     currentStatus

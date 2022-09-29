@@ -1,3 +1,7 @@
+/**
+ * Index file for v1 - contains necessary setup for the api
+ */
+
 import { FastifyInstance } from "fastify";
 import fastifySwagger from "fastify-swagger";
 
@@ -6,6 +10,8 @@ import userPlugin from "./routes/user";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 const versionOnePlugin = async (instance: FastifyInstance) => {
+  // Schema is shared 'types' for the api to validate from, for both the request and response
+  // Also is used for the swagger documentation
   instance.addSchema({
     $id: "responses.unauthorized",
     type: "object",
@@ -57,6 +63,7 @@ const versionOnePlugin = async (instance: FastifyInstance) => {
     },
   });
 
+  // Swagger is an automatic documentation generator using OpenAPI
   // eslint-disable-next-line @typescript-eslint/no-floating-promises
   instance.register(fastifySwagger, {
     routePrefix: "/docs",
@@ -93,8 +100,10 @@ const versionOnePlugin = async (instance: FastifyInstance) => {
     exposeRoute: true,
   });
 
+  // Test routes
   // eslint-disable-next-line @typescript-eslint/no-floating-promises
   instance.register(rootPlugin);
+  // User routes
   // eslint-disable-next-line @typescript-eslint/no-floating-promises
   instance.register(userPlugin);
 };

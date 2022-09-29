@@ -1,3 +1,4 @@
+// File with all tips
 import { Tip } from ".";
 
 const allTips: Tip[] = [
