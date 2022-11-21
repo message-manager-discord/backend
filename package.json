@@ -28,7 +28,7 @@
     "axios": "^0.26.0",
     "discord-interactions": "^2.4.1",
     "env-schema": "^4.0.0",
-    "fastify": "^3.22.0",
+    "fastify": "^3.29.4",
     "fastify-auth": "^1.1.0",
     "fastify-cookie": "^5.4.0",
     "fastify-cors": "^6.0.2",
