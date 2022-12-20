@@ -3,6 +3,7 @@ import fastifySwagger from "@fastify/swagger";
 import { FastifyInstance } from "fastify";
 import Redis from "ioredis";
 
+import internalPlugin from "./routes/internal";
 import reportPlugin from "./routes/reports";
 import rootPlugin from "./routes/rootTesting";
 import userPlugin from "./routes/user";
@@ -129,6 +130,7 @@ const versionOnePlugin = async (instance: FastifyInstance) => {
   await instance.register(rootPlugin);
   await instance.register(userPlugin);
   await instance.register(reportPlugin);
+  await instance.register(internalPlugin);
 };
 
 export default versionOnePlugin;

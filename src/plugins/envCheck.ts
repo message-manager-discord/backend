@@ -24,6 +24,7 @@ const schemaForEnv = {
     "NO_MIGRATION_AFTER",
     "SENTRY_DSN",
     "API_ADMIN_IDS",
+    "INTERNAL_TOKEN",
   ],
   properties: {
     UUID_NAMESPACE: {
@@ -84,6 +85,9 @@ const schemaForEnv = {
     API_ADMIN_IDS: {
       type: "string",
     },
+    INTERNAL_TOKEN: {
+      type: "string",
+    },
   },
 };
 
@@ -107,6 +111,7 @@ interface EnvVars {
   NO_MIGRATION_AFTER: number;
   SENTRY_DSN: string;
   API_ADMIN_IDS: string;
+  INTERNAL_TOKEN: string;
 }
 
 declare module "fastify" {

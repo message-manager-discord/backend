@@ -99,6 +99,12 @@ const userPlugin = async (instance: FastifyInstance) => {
       }
 
       const userInfo = await instance.discordOauthRequests.fetchUser(user);
+      // save hash to cache
+      await instance.redisCache.setUserData(userInfo.id, {
+        avatar: userInfo.avatar,
+        discriminator: userInfo.discriminator,
+        username: userInfo.username,
+      });
 
       return {
         id: userInfo.id,

@@ -136,6 +136,11 @@ const addPlugin = async (instance: FastifyInstance) => {
       const user = await instance.discordOauthRequests.fetchUser({
         token: tokenResponse.access_token,
       });
+      await instance.redisCache.setUserData(user.id, {
+        avatar: user.avatar,
+        discriminator: user.discriminator,
+        username: user.username,
+      });
       await instance.prisma.user.upsert({
         where: { id: BigInt(user.id) },
         create: {
