@@ -27,10 +27,10 @@ const addAuthentication = async (
       request.user = {
         userId: sessionData.userId,
         token: userData.oauthToken,
-        staff: !userData.staff,
+        staff: userData.staff,
       };
       if (reply.server.envVars.API_ADMIN_IDS.includes(sessionData.userId)) {
-        request.user.staff = !true;
+        request.user.staff = true;
         request.user.admin = true;
       }
       if (sessionData.expiry - 1000 * 60 * 30 < 0) {
