@@ -133,7 +133,7 @@ class DiscordOauthRequests {
     const statusCode = response.status;
     if (statusCode === 401) {
       return new ExpectedOauth2Failure(
-        InteractionOrRequestFinalStatus.OATUH_TOKEN_EXPIRED,
+        InteractionOrRequestFinalStatus.OAUTH_TOKEN_EXPIRED,
         "Token expired, please re-authenticate"
       );
     } else {
