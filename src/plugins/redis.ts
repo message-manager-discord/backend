@@ -170,7 +170,7 @@ class RedisCache {
       `${guildId}:migrationCmdRegistered`,
       "true",
       "EX",
-      "60*60",
+      60 * 60,
     ]); // 1 hour
   }
   async getGuildMigrationCommandRegistered(
@@ -180,6 +180,36 @@ class RedisCache {
       `${guildId}:migrationCmdRegistered`,
     ])) as string | undefined | null;
     return registered === "true";
+  }
+
+  // User avatar hashes - store for a long time as they are used by many - but also don't keep them forever
+  async setUserData(
+    userId: Snowflake,
+    data: { avatar: string | null; username: string; discriminator: string }
+  ): Promise<void> {
+    await this._sendCommand("SET", [
+      `user:${userId}:data`,
+      JSON.stringify(data),
+      "EX",
+      60 * 60 * 24 * 7 * 3,
+    ]); // 3 weeks
+  }
+  async getUserData(userId: Snowflake): Promise<{
+    avatar: string | null;
+    username: string;
+    discriminator: string;
+  } | null> {
+    const data = (await this._sendCommand("GET", [
+      `user:${userId}:data`,
+    ])) as string;
+    if (data === "null") {
+      return null;
+    }
+    return JSON.parse(data) as {
+      avatar: string | null;
+      username: string;
+      discriminator: string;
+    } | null;
   }
 }
 
