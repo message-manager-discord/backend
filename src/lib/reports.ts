@@ -273,7 +273,7 @@ const getReports = async ({
       assignedStaffId: assignedFilter,
 
       ...(guildId !== undefined && { guildId: BigInt(guildId) }),
-      ...(filterByUser !== undefined && { userId: BigInt(filterByUser) }),
+      ...(filterByUser !== undefined && { reportingUserId: BigInt(filterByUser) }),
     },
     orderBy: {
       createdAt: "desc",

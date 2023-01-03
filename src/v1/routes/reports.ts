@@ -34,7 +34,6 @@ const GetReportsQuerystring = Type.Object({
   guild: Type.Optional(Type.String()),
   limit: Type.Optional(Type.Number({ minimum: 1, maximum: 100 })),
   skip: Type.Optional(Type.Number()),
-  staff_view: Type.Optional(Type.Boolean()),
 });
 type GetReportGuildsQuerystringType = Static<typeof GetReportsQuerystring>;
 
@@ -172,19 +171,14 @@ const reportPlugin = async (instance: FastifyInstance) => {
       },
     },
     async (request) => {
-      const { status, assigned_to, guild, limit, skip, staff_view } =
-        request.query;
+      const { status, assigned_to, guild, limit, skip } = request.query;
 
       // Can be disabled as these routes are under authentication, and therefore will have a user
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const user = request.user!;
 
-      // Check if staff_view is valid
-      if (staff_view === true && !user.staff) {
-        throw new Forbidden("Only staff may request the staff view");
-      }
       let filterByUser: string | undefined;
-      if (staff_view === false) {
+      if (!user.staff) {
         filterByUser = user.userId;
       }
 
