@@ -37,7 +37,7 @@ const internalPlugin = async (instance: FastifyInstance) => {
             properties: {
               // avatar can be string or null
               username: { type: "string" },
-              discriminator: { type: "string" },
+              discriminator: { type: ["string", "null"] },
               avatar: { type: ["string", "null"] },
             },
           },
@@ -60,13 +60,13 @@ const internalPlugin = async (instance: FastifyInstance) => {
           return {
             avatar: instance.envVars.AVATAR_URL,
             username: instance.envVars.DEFAULT_STAFF_PROFILE_NAME,
-            discriminator: "0000",
+            discriminator: null
           };
         } else {
           return {
             username: profile.name,
             avatar: profile.avatar ?? instance.envVars.AVATAR_URL,
-            discriminator: "0000",
+            discriminator: null
           };
         }
       }
