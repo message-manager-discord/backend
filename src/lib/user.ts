@@ -52,12 +52,18 @@ const getUserData = async (
   }
   // Store hash in cache
   await instance.redisCache.setUserData(user.id, {
-    avatar: user.avatar,
+    avatar:
+      user.avatar !== null
+        ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`
+        : null,
     username: user.username,
     discriminator: user.discriminator,
   });
   return {
-    avatar: user.avatar,
+    avatar:
+      user.avatar !== null
+        ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`
+        : null,
     username: user.username,
     discriminator: user.discriminator,
   };

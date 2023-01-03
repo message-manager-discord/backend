@@ -137,7 +137,10 @@ const addPlugin = async (instance: FastifyInstance) => {
         token: tokenResponse.access_token,
       });
       await instance.redisCache.setUserData(user.id, {
-        avatar: user.avatar,
+        avatar:
+          user.avatar !== null
+            ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`
+            : null,
         discriminator: user.discriminator,
         username: user.username,
       });

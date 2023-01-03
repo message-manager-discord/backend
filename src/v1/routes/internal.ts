@@ -49,9 +49,28 @@ const internalPlugin = async (instance: FastifyInstance) => {
       },
     },
     async (request) => {
-      const r = await getUserData(request.params.id, instance);
-      console.log(r);
-      return r;
+      if (request.params.id.length < 17) {
+        // Internal profile - return that instead
+        const profile = await instance.prisma.staffProfile.findUnique({
+          where: {
+            id: BigInt(request.params.id),
+          },
+        });
+        if (profile === null) {
+          return {
+            avatar: instance.envVars.AVATAR_URL,
+            username: instance.envVars.DEFAULT_STAFF_PROFILE_NAME,
+            discriminator: "0000",
+          };
+        } else {
+          return {
+            username: profile.name,
+            avatar: profile.avatar ?? instance.envVars.AVATAR_URL,
+            discriminator: "0000",
+          };
+        }
+      }
+      return await getUserData(request.params.id, instance);
     }
   );
 };

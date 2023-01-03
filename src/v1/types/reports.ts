@@ -41,6 +41,13 @@ const ReportMessageModel = Type.Object(
     author_id: Type.String({ examples: ["123456789012345678"] }),
     created_at: Type.String({ examples: ["2021-01-01T00:00:00.000Z"] }),
     staff_only: Type.Optional(Type.Boolean({ examples: [false] })),
+    staff_id: Type.Optional(
+      Type.String({
+        examples: ["123456789012345678"],
+        description:
+          "The ID of the user who sent the message, if the message was sent by staff (anonymous). (only sent when requesting user is staff)",
+      })
+    ),
   },
   { $id: "models.reportMessage" }
 );
@@ -101,11 +108,14 @@ const ReportModel = Type.Object(
       id: Type.String({ examples: ["123456789012345678"] }),
       content: Type.Optional(Type.String({ examples: ["Hello world"] })),
       embed: Type.Optional(EmbedModel),
-      author_id: Type.String({ examples: ["123456789012345678"] }),
+      author_id: Type.Optional(
+        Type.String({ examples: ["123456789012345678"] })
+      ), // Staff Only
       created_at: Type.String({ examples: ["2021-01-01T00:00:00.000Z"] }),
-      edit_count: Type.Number({ examples: [0] }),
+      edit_count: Type.Optional(Type.Number({ examples: [0] })), // Staff Only
     }),
     other_reports_on_same_message: Type.Optional(Type.Array(Type.String())), // Staff Only
+    staff_view: Type.Boolean(), // True if staff only values are set
   },
   { $id: "models.report" }
 );
@@ -124,6 +134,12 @@ const ReportListingModel = Type.Object(
           Type.String({ examples: ["123456789012345678"] })
         ),
         guild_id: Type.String({ examples: ["123456789012345678"] }),
+        guild_data: Type.Object({
+          icon: Type.Optional(
+            Type.String({ examples: ["b09d7fd2ec0f27e29d000f4fd62d8ea5"] })
+          ),
+          name: Type.Optional(Type.String({ examples: ["Example"] })),
+        }),
         created_at: Type.String({ examples: ["2021-01-01T00:00:00.000Z"] }),
         updated_at: Type.String({ examples: ["2021-01-01T00:00:00.000Z"] }),
 

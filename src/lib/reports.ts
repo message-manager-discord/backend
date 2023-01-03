@@ -91,6 +91,7 @@ const createReportFromData = async (
   // guild_data.banned
   // other_reports_on_same_message
   // if messages.staff_only - exclude
+  // edit_count
 
   let extraGuildData: {
     icon?: string;
@@ -134,11 +135,13 @@ const createReportFromData = async (
     }
   }
 
-  const editCount = await instance.prisma.message.count({
-    where: {
-      id: report.reportedMessageId,
-    },
-  });
+  const editCount = staff
+    ? await instance.prisma.message.count({
+        where: {
+          id: report.reportedMessageId,
+        },
+      })
+    : undefined;
 
   const action: Action | undefined =
     report.action === null
@@ -165,7 +168,9 @@ const createReportFromData = async (
             report.reportedMessageSnapshot.embed
           )
         : undefined,
-    author_id: report.reportedMessageSnapshot.editedBy.toString(),
+    author_id: staff
+      ? report.reportedMessageSnapshot.editedBy.toString()
+      : undefined,
     created_at: report.reportedMessageSnapshot.editedAt.toISOString(),
     edit_count: editCount,
   };
@@ -175,6 +180,19 @@ const createReportFromData = async (
         report.id.toString()
       )
     : undefined;
+  let assignedStaffId = report.assignedStaffId?.toString();
+  if (!staff && assignedStaffId !== undefined) {
+    // Replace assigned staff id with staff's profile id
+    const userData = await instance.prisma.user.findUnique({
+      where: {
+        id: BigInt(assignedStaffId),
+      },
+      include: {
+        staffProfile: true,
+      },
+    });
+    assignedStaffId = userData?.staffProfile?.id.toString() ?? "0";
+  }
   return {
     id: report.id.toString(),
     title: report.title,
@@ -182,7 +200,7 @@ const createReportFromData = async (
     reason: report.reason,
     action,
     reporting_user_id: report.reportingUserId.toString(),
-    assigned_staff_id: report.assignedStaffId?.toString(),
+    assigned_staff_id: assignedStaffId,
     guild_id: report.guildId.toString(),
     guild_data: extraGuildData,
     reported_message: reportedMessage,
@@ -191,17 +209,20 @@ const createReportFromData = async (
     updated_at: report.updatedAt.toISOString(),
     messages: report.ReportMessages.filter(
       (message) => !message.staffOnly || staff
-    ).map((message) => createReportMessageFromData(message)),
+    ).map((message) => createReportMessageFromData(message, staff)),
+    staff_view: staff,
   };
 };
 
 const createReportMessageFromData = (
-  message: ReportMessage
+  message: ReportMessage,
+  staff: boolean
 ): ReportMessageModelType => {
   return {
     id: message.id.toString(),
     content: message.content,
     author_id: message.authorId.toString(),
+    staff_id: staff ? message.staffId?.toString() : undefined,
     created_at: message.createdAt.toISOString(),
     staff_only: message.staffOnly,
   };
@@ -265,6 +286,9 @@ const getReports = async ({
       ReportMessages: true,
     },
   });
+  const extraGuildData = await instance.redisGuildManager.getGuildIconsAndNames(
+    reports.map((report) => report.guildId.toString())
+  );
 
   return {
     reports: reports.map((report) => {
@@ -276,6 +300,9 @@ const getReports = async ({
           (message) => !message.staffOnly
         ).length;
       }
+      // get data from extradata by guild id key
+      const guildData = extraGuildData[report.guildId.toString()];
+
       return {
         id: report.id.toString(),
         title: report.title,
@@ -283,6 +310,10 @@ const getReports = async ({
         reporting_user_id: report.reportingUserId.toString(),
         assigned_staff_id: report.assignedStaffId?.toString(),
         guild_id: report.guildId.toString(),
+        guild_data: {
+          icon: guildData?.icon ?? undefined,
+          name: guildData?.name ?? undefined,
+        },
         created_at: report.createdAt.toString(),
         updated_at: report.updatedAt.toString(),
         message_count: messageCount,
@@ -321,6 +352,13 @@ const createReport = async ({
     messageId,
     instance
   );
+  // check limits
+  if (title.length >= 35) {
+    throw new BadRequest("Title must not be longer than 35 characters");
+  }
+  if (reason.length >= 2000) {
+    throw new BadRequest("Reason not be more than 2000 characters");
+  }
   if (message === false) {
     throw new Forbidden(
       "message specified cannot be reported or does not exist"
@@ -383,6 +421,16 @@ const createReport = async ({
         },
       },
       ReportMessages: true,
+    },
+  });
+  await createReportMessage({
+    instance,
+    reportId: report.id.toString(),
+    content: `Hi there!\nWe've received your report, and we'll take a look and get back to you as soon as possible.`,
+    staffOnly: false,
+    user: {
+      userId: "0",
+      staff: true,
     },
   });
   // TODO: Send email
@@ -466,7 +514,7 @@ const getReportMessage = async ({
   if (message.staffOnly && !user.staff) {
     throw new Forbidden("you do not have permission to view this report");
   }
-  return createReportMessageFromData(message);
+  return createReportMessageFromData(message, user.staff);
 };
 
 const createReportMessage = async ({
@@ -520,17 +568,33 @@ const createReportMessage = async ({
   if (["invalid", "actioned", "spam"].includes(report.status)) {
     throw new Forbidden("this report is already closed");
   }
+  if (staffOnly && !user.staff) {
+    throw new Forbidden("you do not have permission send a staff only message");
+  }
+  let authorId = BigInt(user.userId);
+  if (user.staff) {
+    // rewrite authorId
+    const userData = await instance.prisma.user.findUnique({
+      where: {
+        id: authorId,
+      },
+      include: {
+        staffProfile: true,
+      },
+    });
+    authorId = userData?.staffProfile?.id ?? 0n;
+  }
   const message = await instance.prisma.reportMessage.create({
     data: {
       content,
       staffOnly,
       reportId: BigInt(reportId),
-      authorId: BigInt(user.userId),
-      fromStaff: user.staff,
+      authorId: authorId,
+      staffId: user.staff ? BigInt(user.userId) : undefined,
     },
     include: { report: true },
   });
-  return createReportMessageFromData(message);
+  return createReportMessageFromData(message, user.staff);
 };
 
 const assignReport = async ({

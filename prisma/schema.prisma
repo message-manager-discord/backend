@@ -78,12 +78,22 @@ model EmbedField {
 }
 
 model User {
-  id                   BigInt    @id
+  id                   BigInt        @id
   oauthToken           String? /// @encrypted
   oauthTokenExpiration DateTime?
   refreshToken         String? /// @encrypted
-  staff                Boolean   @default(false)
+  staff                Boolean       @default(false)
+  staffProfile         StaffProfile?
   userBans             UserBan[]
+}
+
+model StaffProfile {
+  // This is what is used instead of the staff's identity to prevent leaking of their identity.
+  id      BigInt  @id @default(autoincrement())
+  staffId BigInt? @unique
+  staff   User?   @relation(fields: [staffId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  name    String /// @encrypted
+  avatar  String? /// @encrypted
 }
 
 enum ReportStatus {
@@ -172,7 +182,7 @@ model ReportMessage {
   // Communication between the user and staff - doesn't include the inital report
   id        BigInt   @id @default(autoincrement())
   authorId  BigInt
-  fromStaff Boolean // If the author of the message was staff
+  staffId   BigInt? // If the author of the message was staff
   staffOnly Boolean // If the message is only visible to staff
   content   String /// @encrypted
   createdAt DateTime @default(now())
