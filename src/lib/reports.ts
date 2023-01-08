@@ -273,7 +273,9 @@ const getReports = async ({
       assignedStaffId: assignedFilter,
 
       ...(guildId !== undefined && { guildId: BigInt(guildId) }),
-      ...(filterByUser !== undefined && { reportingUserId: BigInt(filterByUser) }),
+      ...(filterByUser !== undefined && {
+        reportingUserId: BigInt(filterByUser),
+      }),
     },
     orderBy: {
       createdAt: "desc",
@@ -557,6 +559,10 @@ const createReportMessage = async ({
       ReportMessages: true,
     },
   });
+  // validate content 
+  if (content.length < 1) {
+    throw new BadRequest("Content must not be empty")
+  }
   if (report === null) {
     throw new NotFound("report not found");
   }
@@ -842,7 +848,7 @@ const closeReport = async ({
   instance: FastifyInstance;
   user: UserRequestData;
   reportId: string;
-  staffReportReason: string;
+  staffReportReason?: string;
   messageToReportingUser: string;
   closeStatus: ReportCloseStatusEnum;
 }) => {
@@ -881,7 +887,7 @@ const closeReport = async ({
     },
   });
 
-  if (staffReportReason !== undefined) {
+  if (staffReportReason !== undefined && staffReportReason.length > 0) {
     await createReportMessage({
       instance,
       reportId,

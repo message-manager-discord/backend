@@ -82,7 +82,7 @@ type PUTAssignedUserBodyType = Static<typeof PUTAssignedUserBody>;
 const CloseReportBody = Type.Object({
   status: Type.Enum(ReportCloseStatusEnum),
   message_to_reporting_user: Type.String(),
-  staff_report_reason: Type.String(),
+  staff_report_reason: Type.Optional(Type.String()),
 });
 
 type CloseReportBodyType = Static<typeof CloseReportBody>;
