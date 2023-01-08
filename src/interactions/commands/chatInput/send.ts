@@ -89,7 +89,7 @@ export default async function handleSendCommand(
   if (contentOnly) {
     return createModal({
       title: `Sending a message to #${
-        channel.name.length > 23
+        channel.name && channel.name.length > 23
           ? `${channel.name.substring(0, 20)}...`
           : channel.name
       }`,

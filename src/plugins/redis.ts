@@ -10,12 +10,12 @@ type ArgType = Array<string | number>;
 class RedisCache {
   private _client: Redis;
   constructor(host: string, port: number) {
-    this._client = new RedisClient(port, host, undefined);
+    this._client = new RedisClient(port, host);
   }
 
   private async _sendCommand(command: string, args: ArgType): Promise<unknown> {
     //this.logger.debug(`Sending redis command: ${command} with args: ${args}`);
-    const data = (await this._client.send_command(command, ...args)) as unknown;
+    const data = (await this._client.call(command, ...args)) as unknown;
     //this.logger.debug(
     //  `Received data: ${data} from redis command: ${command} with args ${args}`
     //);

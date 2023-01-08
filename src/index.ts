@@ -1,10 +1,12 @@
+import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+
 import fastifyAuth from "@fastify/auth";
+import fastifyCookie, { FastifyCookieOptions } from "@fastify/cookie";
+import fastifyCors from "@fastify/cors";
 import { RewriteFrames } from "@sentry/integrations";
 import Sentry from "@sentry/node";
 import childProcess from "child_process";
 import fastify, { FastifyInstance } from "fastify";
-import fastifyCookie, { FastifyCookieOptions } from "fastify-cookie";
-import fastifyCors from "fastify-cors";
 import * as url from "url";
 
 import authRoutePlugin from "./authRoutes";
@@ -32,7 +34,7 @@ const instance: FastifyInstance = fastify({
   logger: {
     level: productionEnv ? "warn" : "info",
   },
-});
+}).withTypeProvider<TypeBoxTypeProvider>();
 
 await instance.register(envPlugin); // Load env variables
 
@@ -119,8 +121,10 @@ await instance.register(authRoutePlugin);
 await instance.register(versionOnePlugin, { prefix: "/v1" });
 
 instance.listen(
-  instance.envVars.PORT,
-  instance.envVars.HOST,
+  {
+    port: instance.envVars.PORT,
+    host: instance.envVars.HOST,
+  },
   function (err, address) {
     // Seems to by typed incorrectly
     // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
