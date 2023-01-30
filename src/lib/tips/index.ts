@@ -13,13 +13,14 @@ interface Tip {
 }
 
 function selectTip(): Tip | null {
-  const random = Math.random();
+  const random = Math.random(); // Security doesn't really matter for this Math.random() is fine
   if (random > allTipChance) {
     return null;
   }
   return allTips[Math.floor(Math.random() * allTips.length)];
 }
 
+// This function should be wrapped around all embeds that can have tips
 function addTipToEmbed(embed: APIEmbed): APIEmbed {
   const tip = selectTip();
   if (tip) {

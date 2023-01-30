@@ -1,3 +1,4 @@
+// Utility functions for message logic
 import { Guild } from "redis-discord-cache";
 import {
   ChannelNotFound,
@@ -12,6 +13,9 @@ import {
   UnexpectedFailure,
 } from "../../errors";
 
+// Get's a guild channel from the gateway cache - handles some errors that could occur
+// This is different from the function in permissions' utils.ts because this one
+// handles channel only errors
 const getGuildChannelHandleErrors = async ({
   channelId,
   guild,
@@ -53,6 +57,7 @@ const getGuildChannelHandleErrors = async ({
   return channel;
 };
 
+// Generate a message for missing permissions
 const missingDiscordPermissionMessage = (
   entity: string,
   permission: string | string[],
@@ -66,6 +71,7 @@ const missingDiscordPermissionMessage = (
     channelId !== null ? `in the channel <#${channelId}>` : ""
   }`;
 
+// Use above function to generate a message for missing permissions
 const missingUserDiscordPermissionMessage = (
   permission: string | string[],
   channelId: string | null

@@ -1,3 +1,4 @@
+// Edit button - start a message generation flow with the edit type from it
 import {
   APIMessageComponentGuildInteraction,
   InteractionResponseType,
@@ -35,21 +36,23 @@ export default async function handleEditButton(
       "No message id on edit button"
     );
   }
+  // Check permissions for editing
   const databaseMessage = await checkEditPossible({
     session,
     channelId: interaction.channel_id,
     instance,
     messageId,
   });
-
+  // Create stored embed from the message (from the database message as the message is not included in the interaction)
   let embed: StoredEmbed | undefined = undefined;
   if (databaseMessage?.embed !== null && databaseMessage?.embed !== undefined) {
     embed = createStoredEmbedFromDataBaseEmbed(databaseMessage.embed);
   }
 
+  // Add to cache with key
   const messageGenerationKey = createMessageCacheKey(
     interaction.id,
-    interaction.channel_id // TODO: Check if this is ok
+    interaction.channel_id
   );
   const cacheData: MessageSavedInCache = {
     content: databaseMessage.content ?? undefined,
@@ -61,6 +64,7 @@ export default async function handleEditButton(
     data: cacheData,
     instance,
   });
+  // Generate embed for message generation
   const embedData = createInitialMessageGenerationEmbed(
     messageGenerationKey,
     cacheData,

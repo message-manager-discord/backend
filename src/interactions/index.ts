@@ -1,3 +1,6 @@
+// Entry point and handler for interactions
+// This is where interactions are received and then are sent out to the correct functions and handlers
+
 import Sentry from "@sentry/node";
 import {
   APIApplicationCommandAutocompleteGuildInteraction,
@@ -59,7 +62,6 @@ import {
   createInternalInteraction,
   InternalInteractionType,
 } from "./interaction";
-import handleModalEdit from "./modals/edit";
 import handleModalMessageGeneration from "./modals/message-generation";
 import handleModalReport from "./modals/report";
 import handleModalSend from "./modals/send";
@@ -70,9 +72,12 @@ import {
   isInteractionReturnDataDeferred,
 } from "./types";
 
+// Interaction handler class
 class InteractionHandler {
   private readonly _client: FastifyInstance;
   private readonly _publicKey: string;
+  // _commands and _messageCommands are a way to register commands without building them into the handler
+  // unfortunately it's not worth it for the other types of interactions
   private _commands: {
     [name: string]: {
       handler: (
@@ -108,8 +113,9 @@ class InteractionHandler {
   } = {};
   constructor(client: FastifyInstance, publicKey: string) {
     this._client = client;
-    this._publicKey = publicKey;
+    this._publicKey = publicKey; // Public key is the public key from discord to verify interactions are valid
   }
+  // Register a command
   addCommand(
     name: string,
     handler: (
@@ -127,6 +133,7 @@ class InteractionHandler {
       autocompleteHandler,
     };
   }
+  // Register a command that is only available in guilds (for type guarding it's different from above)
   addGuildOnlyCommand(
     name: string,
     handler: (
@@ -152,6 +159,7 @@ class InteractionHandler {
       guildOnly: true,
     };
   }
+  // Register a message command
   addMessageCommand(
     name: string,
     handler: (
@@ -164,6 +172,7 @@ class InteractionHandler {
       handler,
     };
   }
+  // Register a message command that is only available in guilds (for type guarding it's different from above)
   addGuildOnlyMessageCommand(
     name: string,
     handler: (
@@ -182,6 +191,8 @@ class InteractionHandler {
     };
   }
 
+  // Verify the interaction is valid and signed correctly
+  // to protect against attacks
   verify(request: FastifyRequest) {
     const signature = request.headers["x-signature-ed25519"];
     const timestamp = request.headers["x-signature-timestamp"];
@@ -195,10 +206,14 @@ class InteractionHandler {
     return verifyKey(request.rawBody, signature, timestamp, this._publicKey);
   }
 
+  // Handle an interaction - this is the main function that is called
+  // Send it out to handlers for different types of interactions
   async handleInteraction(
     internalInteraction: InternalInteractionType<APIInteraction>
   ): Promise<InteractionReturnData> {
     const interaction = internalInteraction.interaction;
+    // Send the interaction to the correct handler depending on type
+    // Throw errors if the interaction type is unknown as discord may add new types
     switch (interaction.type) {
       case InteractionType.Ping:
         return { type: InteractionResponseType.Pong };
@@ -239,11 +254,13 @@ class InteractionHandler {
         );
     }
   }
+  // Handle a message command interaction
   handleMessageCommands(
     internalInteraction: InternalInteractionType<APIMessageApplicationCommandInteraction>
   ): Promise<InteractionReturnData> {
     const interaction = internalInteraction.interaction;
     const name = interaction.data.name.toLowerCase();
+    // Find if the message command is registered - if it is then send it to it's handler
     if (this._messageCommands[name] !== undefined) {
       this._client.metrics.commandsUsed.inc({
         command: name,
@@ -257,6 +274,7 @@ class InteractionHandler {
           ":exclamation: This command is only available in guilds"
         );
       }
+      // create session to pass to handler
       let session: GuildSession | NonGuildSession;
       if (interaction.guild_id !== undefined) {
         session = this._client.sessionManager.createSessionFromInteraction(
@@ -267,6 +285,7 @@ class InteractionHandler {
           interaction as APIDMInteraction
         );
       }
+      // Execute the handler
       const data = this._messageCommands[name].handler(
         internalInteraction,
         session,
@@ -281,11 +300,13 @@ class InteractionHandler {
       `No handler for command \`${interaction.data.name}\``
     );
   }
+  // Handle a chat input command interaction
   handleCommands(
     internalInteraction: InternalInteractionType<APIChatInputApplicationCommandInteraction>
   ): Promise<InteractionReturnData> {
     const interaction = internalInteraction.interaction;
 
+    // Find if the command is registered - if it is then send it to it's handler
     if (this._commands[interaction.data.name] !== undefined) {
       this._client.metrics.commandsUsed.inc({ command: interaction.data.name });
       if (
@@ -297,6 +318,7 @@ class InteractionHandler {
           ":exclamation: This command is only available in guilds"
         );
       }
+      // create session to pass to handler
       let session: GuildSession | NonGuildSession;
       if (interaction.guild_id !== undefined) {
         session = this._client.sessionManager.createSessionFromInteraction(
@@ -321,14 +343,17 @@ class InteractionHandler {
       `No handler for command \`${interaction.data.name}\``
     );
   }
+  // Handle autocomplete interactions
   async handleAutocomplete(
     internalInteraction: InternalInteractionType<APIApplicationCommandAutocompleteInteraction>
   ): Promise<APIApplicationCommandAutocompleteResponse> {
     const interaction = internalInteraction.interaction;
+    // As autocomplete interactions are only on chat input commands, we can find the command by name
+
     const command = this._commands[interaction.data.name];
 
     if (command !== undefined && command.autocompleteHandler) {
-      // todo: metrics
+      // If the command has an autocomplete handler
       if ((command.guildOnly ?? false) && interaction.guild_id === undefined) {
         throw new ExpectedFailure(
           InteractionOrRequestFinalStatus.DM_INTERACTION_RECEIVED_WHEN_SHOULD_BE_GUILD_ONLY,
@@ -348,13 +373,16 @@ class InteractionHandler {
       `No handler for command \`${interaction.data.name}\``
     );
   }
+  // Handle modal submit interactions
   async handleModalSubmit(
     internalInteraction: InternalInteractionType<APIModalSubmitInteraction>
   ): Promise<InteractionReturnData> {
     const interaction = internalInteraction.interaction;
+    // Convention (custom convention) is that the first part of the custom_id
+    // when split by ":" is the idenfitier of the modal
     const id = interaction.data.custom_id.split(":")[0];
     switch (id) {
-      case "send":
+      case "send": // Modal for sending a message through the bot
         // Guild only
         if (interaction.guild_id === undefined) {
           internalInteraction.responded = true;
@@ -370,23 +398,8 @@ class InteractionHandler {
           ),
           this._client
         );
-      case "edit":
-        // Guild only
-        if (interaction.guild_id === undefined) {
-          internalInteraction.responded = true;
-          throw new ExpectedFailure(
-            InteractionOrRequestFinalStatus.DM_INTERACTION_RECEIVED_WHEN_SHOULD_BE_GUILD_ONLY,
-            ":exclamation: This modal is only available in guilds"
-          );
-        }
-        return await handleModalEdit(
-          internalInteraction as InternalInteractionType<APIModalSubmitGuildInteraction>,
-          this._client.sessionManager.createSessionFromInteraction(
-            interaction as APIGuildInteraction
-          ),
-          this._client
-        );
-      case "report":
+
+      case "report": // Modal for reporting a message through the bot
         // Guild only
         if (interaction.guild_id === undefined) {
           internalInteraction.responded = true;
@@ -402,7 +415,7 @@ class InteractionHandler {
           ),
           this._client
         );
-      case "message-generation":
+      case "message-generation": // Modal for message generation
         // Guild only
         if (interaction.guild_id === undefined) {
           internalInteraction.responded = true;
@@ -422,18 +435,22 @@ class InteractionHandler {
         break;
     }
 
+    // Throw if not handled
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.MODAL_CUSTOM_ID_NOT_FOUND,
       `No handler for modal with custom_id: \`${interaction.data.custom_id}\``
     );
   }
+  // Handle a message component interaction
   async handleComponent(
     internalInteraction: InternalInteractionType<APIMessageComponentInteraction>
   ): Promise<InteractionReturnData> {
     const interaction = internalInteraction.interaction;
     const name = interaction.data.custom_id.split(":")[0];
-    switch (name) {
-      case "edit":
+    switch (
+      name // Components by name
+    ) {
+      case "edit": // Button to start the edit process
         // Guild only
         if (interaction.guild_id === undefined) {
           internalInteraction.responded = true;
@@ -449,7 +466,7 @@ class InteractionHandler {
           ),
           this._client
         );
-      case "delete":
+      case "delete": // Button to start the delete process
         // Guild only
         if (interaction.guild_id === undefined) {
           internalInteraction.responded = true;
@@ -466,7 +483,7 @@ class InteractionHandler {
           this._client
         );
 
-      case "confirm-delete":
+      case "confirm-delete": // Button to confirm the delete process
         // Guild only
         if (interaction.guild_id === undefined) {
           internalInteraction.responded = true;
@@ -483,7 +500,7 @@ class InteractionHandler {
           this._client
         );
 
-      case "cancel-delete":
+      case "cancel-delete": // Button to cancel the delete process
         // Guild only
         if (interaction.guild_id === undefined) {
           internalInteraction.responded = true;
@@ -500,7 +517,7 @@ class InteractionHandler {
           this._client
         );
 
-      case "report":
+      case "report": // Button to start the report process
         // Guild only
         if (interaction.guild_id === undefined) {
           internalInteraction.responded = true;
@@ -517,7 +534,7 @@ class InteractionHandler {
           this._client
         );
 
-      case "manage-permissions-select":
+      case "manage-permissions-select": // Select menu to manage permissions
         // Guild only
         if (interaction.guild_id === undefined) {
           internalInteraction.responded = true;
@@ -534,7 +551,7 @@ class InteractionHandler {
           this._client
         );
 
-      case "message-generation":
+      case "message-generation": // Buttons around the message generation process
         // Guild only
         if (interaction.guild_id === undefined) {
           internalInteraction.responded = true;
@@ -562,7 +579,9 @@ class InteractionHandler {
   }
 }
 
+// Interactions plugin - the route to which interactions are sent to
 const interactionsPlugin = async (instance: FastifyInstance) => {
+  // Create interaction handler
   const handler = new InteractionHandler(
     instance,
     instance.envVars.DISCORD_INTERACTIONS_PUBLIC_KEY
@@ -584,6 +603,7 @@ const interactionsPlugin = async (instance: FastifyInstance) => {
     handleAddMessageMessageCommand
   );
 
+  // Register raw body plugin - this is required for interaction verification (as the rawbody is used for signing)
   await instance.register(FastifyRawBody, {
     field: "rawBody", // change the default request.rawBody property name
     global: false, // add the rawBody to every request. **Default true**
@@ -592,12 +612,15 @@ const interactionsPlugin = async (instance: FastifyInstance) => {
     routes: [], // array of routes, **`global`** will be ignored, wildcard routes not supported
   });
 
+  // Register the interaction route
   instance.post<{ Body: APIInteraction }>(
     `/interactions`,
     {
+      // Enable rawBody plugin
       config: {
         rawBody: true,
       },
+      // Verify the interaction first
       // eslint-disable-next-line @typescript-eslint/no-misused-promises
       preHandler: async (request, reply) => {
         if (!handler.verify(request)) {
@@ -607,18 +630,23 @@ const interactionsPlugin = async (instance: FastifyInstance) => {
     },
 
     async (request, reply) => {
+      // Create interaction interaction representation from request
       const internalInteraction = createInternalInteraction<APIInteraction>(
         request.body
       );
 
       try {
+        // Try to execute the interaction handler
         const returnData = await handler.handleInteraction(internalInteraction);
         if (isInteractionReturnDataDeferred(returnData)) {
           // This handles deferred interactions. The idea is that anything that does database calls or heavy stuff should be deferred.
           await reply.send(returnData.returnData);
           internalInteraction.deferred = true;
-          const afterDeferData = await returnData.callback();
+          // Set after response is sent so that if the sending fails it doesn't get set to true
+          const afterDeferData = await returnData.callback(); // Execute the defer callback
           if (isFormDataReturnData(afterDeferData)) {
+            // If it's form data need to send headers and body
+            // Patch interaction response (this is how defers are responded to)
             await axios.request({
               method: "PATCH",
               url: `${discordAPIBaseURL}/webhooks/${instance.envVars.DISCORD_CLIENT_ID}/${internalInteraction.interaction.token}/messages/@original`,
@@ -626,18 +654,21 @@ const interactionsPlugin = async (instance: FastifyInstance) => {
               headers: afterDeferData.headers,
             });
           } else {
+            // Patch interaction response (this is how defers are responded to)
             await axios.request({
               method: "PATCH",
               url: `${discordAPIBaseURL}/webhooks/${instance.envVars.DISCORD_CLIENT_ID}/${internalInteraction.interaction.token}/messages/@original`,
               data: afterDeferData,
             });
           }
+          // Increment the deferred interactions counter
           instance.metrics.interactionsReceived.inc({
             type: internalInteraction.interaction.type,
             status: InteractionOrRequestFinalStatus.SUCCESS,
             deferred: true.toString(),
           });
         } else {
+          // Increment the interactions counter
           instance.metrics.interactionsReceived.inc({
             type: internalInteraction.interaction.type,
             status: InteractionOrRequestFinalStatus.SUCCESS,
@@ -650,9 +681,13 @@ const interactionsPlugin = async (instance: FastifyInstance) => {
           }
         }
       } catch (error) {
+        // To generate the response with errorMessage and components
+        // So that different types of errors can be handled differently
         let errorMessage: string;
         let components: APIMessageComponent[] = [];
         if (error instanceof CustomError) {
+          // Custom errors
+          // Increment the interactions counter with the error status code
           instance.metrics.interactionsReceived.inc({
             type: internalInteraction.interaction.type,
             status: error.status,
@@ -667,9 +702,11 @@ const interactionsPlugin = async (instance: FastifyInstance) => {
               `\nError code: \`${error.status}\`` +
               "\n*PS: This shouldn't happen*";
             components = error.components;
+            // As this error is unexpected log it to sentry and the logger
             Sentry.captureException(error);
             instance.log.error(error);
           } else if (error instanceof Outage) {
+            // Outage errors - also logged to sentry and the logger
             errorMessage =
               `:exclamation: There is currently an outage! Please check https://status--message.anothercat.me for updates - or join the support server` +
               `\nOutage error: ${error.message}` +
@@ -678,11 +715,12 @@ const interactionsPlugin = async (instance: FastifyInstance) => {
             Sentry.captureException(error);
             instance.log.error(error);
           } else {
-            // Expected errors
+            // Expected errors - not sent to sentry or logged
             errorMessage = `:exclamation: ${error.message}`;
             components = error.components;
           }
         } else if (error instanceof ShardInactive) {
+          // Also a type of outage - but from the gateway library - so not from a custom error
           errorMessage =
             `:exclamation: There is currently an outage! Please check <https://status--message.anothercat.me> for updates - or join the support server` +
             // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
@@ -693,19 +731,23 @@ const interactionsPlugin = async (instance: FastifyInstance) => {
             status: InteractionOrRequestFinalStatus.GATEWAY_CACHE_SHARD_OUTAGE,
             deferred: internalInteraction.deferred.toString(),
           });
+          // Also log to sentry and the logger
           Sentry.captureException(error);
           instance.log.error(error);
         } else {
+          // Unhandled error, usually indicates a bug
+          // Try and generate an error message
           const message =
             (error as Error | undefined) !== undefined &&
             !!(error as Error).message
               ? (error as Error).message
               : "";
-
+          // Increment counter as it hasn't been yet
           instance.metrics.interactionsReceived.inc({
             type: internalInteraction.interaction.type,
             status: InteractionOrRequestFinalStatus.GENERIC_UNEXPECTED_FAILURE,
           });
+          // Log to sentry and the logger
           Sentry.captureException(error);
           instance.log.error(error);
           errorMessage =
@@ -716,9 +758,10 @@ const interactionsPlugin = async (instance: FastifyInstance) => {
             "\n*PS: This shouldn't happen, and if it does, congratulations you've managed to find something unexpected*";
         }
         if (!internalInteraction.deferred) {
+          // If not deferred need to just send a response
           if (internalInteraction.interaction.message !== undefined) {
             const message = internalInteraction.interaction.message;
-            // Update message components with the original components
+            // If there's a message - update the message components with the original components
             // This is to prevent the changing of default values in selects when an error occurs
             void (async () => {
               // wait 1/4 of a second so that the interaction has been "responded" to before the follow up is sent
@@ -743,6 +786,7 @@ const interactionsPlugin = async (instance: FastifyInstance) => {
               },
             };
           }
+          // If there's no message - just send the error message as a response
           return {
             type: InteractionResponseType.ChannelMessageWithSource,
             data: {
@@ -752,6 +796,7 @@ const interactionsPlugin = async (instance: FastifyInstance) => {
             },
           };
         } else {
+          // If deferred - edit the original message
           await axios.request({
             method: "PATCH",
             url: `${discordAPIBaseURL}/webhooks/${instance.envVars.DISCORD_CLIENT_ID}/${internalInteraction.interaction.token}/messages/@original`,
@@ -759,7 +804,6 @@ const interactionsPlugin = async (instance: FastifyInstance) => {
           });
         }
       }
-      //TODO Handle deferred responses
     }
   );
 };

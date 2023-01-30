@@ -1,3 +1,4 @@
+// Register a context menu migration command to a specific guild
 import { Snowflake } from "discord-api-types/globals";
 import {
   RESTGetAPIApplicationGuildCommandsResult,
@@ -14,6 +15,7 @@ async function registerAddCommand(
     Routes.applicationGuildCommands(instance.envVars.DISCORD_CLIENT_ID, guildId)
   )) as RESTGetAPIApplicationGuildCommandsResult;
   // For each command in required commands, ensure that it is already registered
+  // as it's better to check and not do anything in this case
   let shouldRegister = false;
   for (const command of toSetCommands) {
     if (
@@ -26,6 +28,7 @@ async function registerAddCommand(
     }
   }
   if (shouldRegister) {
+    // Register the command
     await instance.restClient.put(
       Routes.applicationGuildCommands(
         instance.envVars.DISCORD_CLIENT_ID,

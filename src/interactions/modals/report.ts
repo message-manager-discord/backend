@@ -1,3 +1,5 @@
+// Currently not implemented - the modal is not generated
+// Code kept for future use
 import {
   APIModalSubmitGuildInteraction,
   InteractionResponseType,

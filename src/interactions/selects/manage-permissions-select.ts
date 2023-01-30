@@ -1,3 +1,4 @@
+// Handle select menu for editing permissions
 import { Snowflake } from "discord-api-types/globals";
 import {
   APIMessageComponentGuildInteraction,
@@ -14,6 +15,7 @@ import { InternalInteractionType } from "../interaction";
 import createPermissionsEmbed from "../shared/permissions-config";
 import { InteractionReturnData } from "../types";
 
+// Function to handle the permissions editing select menu
 export default async function handleManagePermissionsSelect(
   internalInteraction: InternalInteractionType<APIMessageComponentGuildInteraction>,
   session: GuildSession,
@@ -21,17 +23,17 @@ export default async function handleManagePermissionsSelect(
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   const customIdData = interaction.data.custom_id.split(":");
-  const action = customIdData[1] as "allow" | "deny" | "null";
-  const targetType = customIdData[2] as "role" | "user";
+  const action = customIdData[1] as "allow" | "deny" | "null"; // The action being performed
+  const targetType = customIdData[2] as "role" | "user"; // The target type
   const targetId = customIdData[3];
-  const channelId = JSON.parse(customIdData[4]) as Snowflake | null;
-  const hasAdminPermission = JSON.parse(customIdData[5]) as boolean;
+  const channelId = JSON.parse(customIdData[4]) as Snowflake | null; // The channel id
+  const hasAdminPermission = JSON.parse(customIdData[5]) as boolean; // Whether the user has admin permission
 
   // No permission checks are required here as they are either checked when the /config ... command is ran
   // or when the permissions are updated
   // This interaction **will** cause permissions to be updated
 
-  // Make the changes that were made just now
+  // Make the changes
   const values = (interaction.data as APIMessageSelectMenuInteractionData)
     .values;
   if (action === "null") {
@@ -69,6 +71,7 @@ export default async function handleManagePermissionsSelect(
   // There will be two selects, one for deny permissions and one for allow
   // If the select that was sent is the deny select, then deny values that were added, and "reset" values that were removed
   // If the select that was sent is the allow select, then allow values that were added, and "reset" values that were removed
+  // Only one select may be sent at a time (discord side)
   else if (action === "deny") {
     const permissionsToDeny: number[] = [];
     const permissionsToReset: number[] = [];
@@ -76,7 +79,7 @@ export default async function handleManagePermissionsSelect(
       (component) =>
         component.components[0].type === ComponentType.StringSelect &&
         component.components[0].custom_id === interaction.data.custom_id
-    )?.components[0] as APIStringSelectComponent;
+    )?.components[0] as APIStringSelectComponent; // Find select menu data in interaction data
     const options = selectMenu.options;
     for (const option of options) {
       const included = values.includes(option.value);
@@ -90,6 +93,7 @@ export default async function handleManagePermissionsSelect(
         if (value !== undefined) permissionsToDeny.push(value);
       }
     }
+    // Update permissions
     if (targetType === "role" && channelId !== null) {
       await instance.permissionManager.setChannelRolePermissions({
         channelId,
@@ -108,7 +112,7 @@ export default async function handleManagePermissionsSelect(
         permissionsToReset,
         permissionsToDeny,
         session,
-        channelId: channelId !== null ? channelId : undefined,
+        channelId: channelId !== null ? channelId : undefined, // Handles both channel user and guild user perms with this field
 
         messageId: interaction.message.id,
       });
@@ -153,13 +157,13 @@ export default async function handleManagePermissionsSelect(
         permissionsToReset: permissionsToReset,
         permissionsToDeny: [],
         session,
-        channelId: channelId !== null ? channelId : undefined,
+        channelId: channelId !== null ? channelId : undefined, // Handles both channel user and guild user perms with this field
 
         messageId: interaction.message.id,
       });
     }
   }
-
+  // Embed to return in update interaction - uses updated data from database
   const permissionReturnData = await createPermissionsEmbed({
     targetType,
     targetId,
@@ -169,7 +173,7 @@ export default async function handleManagePermissionsSelect(
     first: false,
     hasAdminPermission,
   });
-  // register interaction with permission interaction cache
+  // register interaction with permission interaction cache - to extend lifetime of update system
   instance.permissionManager.interactionCacheManager.registerInteraction({
     targetId,
     targetType,

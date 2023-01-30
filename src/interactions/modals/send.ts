@@ -1,3 +1,4 @@
+// Modal after send - from the chat input command
 import {
   APIEmbed,
   APIModalSubmitGuildInteraction,
@@ -16,7 +17,7 @@ import { GuildSession } from "../../lib/session";
 import { addTipToEmbed } from "../../lib/tips";
 import { InternalInteractionType } from "../interaction";
 import { InteractionReturnData } from "../types";
-// Guild only
+// This modal is guild only (check in interaction handler)
 export default async function handleModalSend(
   internalInteraction: InternalInteractionType<APIModalSubmitGuildInteraction>,
   session: GuildSession,
@@ -24,7 +25,7 @@ export default async function handleModalSend(
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   const channelId: string | undefined =
-    interaction.data.custom_id.split(":")[1];
+    interaction.data.custom_id.split(":")[1]; // Get channel id from custom_id
 
   if (!channelId) {
     throw new UnexpectedFailure(
@@ -33,6 +34,7 @@ export default async function handleModalSend(
     );
   }
 
+  // Find content component
   const content = interaction.data.components?.find(
     (component) => component.components[0].custom_id === "content"
   )?.components[0].value;
@@ -44,6 +46,7 @@ export default async function handleModalSend(
     );
   }
 
+  // Send message via bot
   const message = await sendMessage({
     channelId,
     content,
@@ -53,6 +56,7 @@ export default async function handleModalSend(
 
   const messageLink = `https://discord.com/channels/${interaction.guild_id}/${channelId}/${message.id}`;
 
+  // Return embed
   const embed: APIEmbed = {
     color: embedPink,
     title: "Message Sent",

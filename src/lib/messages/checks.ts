@@ -1,3 +1,4 @@
+// Various checks for message actions
 import { Message } from "@prisma/client";
 import { APIMessage, Snowflake } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
@@ -8,6 +9,7 @@ import { InternalPermissions } from "../permissions/consts";
 import { GuildSession } from "../session";
 import { requiredPermissionsEdit } from "./consts";
 
+// Some options for functions
 interface GetMessageActionsPossibleOptions {
   message: APIMessage;
   instance: FastifyInstance;
@@ -21,6 +23,7 @@ interface GetMessageActionsPossibleResult {
   delete: boolean;
 }
 
+// Check if the message exists, and if it does not, present the migration options to the user
 async function checkIfMessageExistsAndHandleAdding({
   instance,
   session,
@@ -33,10 +36,13 @@ async function checkIfMessageExistsAndHandleAdding({
   databaseMessage: Message | null;
 }) {
   // Check if the message is not null, and if it is not, then add an add message context menu (if it doesn't already exist)
+  // if the guild and message meets the requirements for migration
   if (!databaseMessage) {
     const guild = await instance.prisma.guild.findUnique({
       where: { id: BigInt(session.guildId) },
     });
+
+    // Check if guild eligible for migration
     if (
       (guild?.beforeMigration ?? false) &&
       message.author.id === instance.envVars.DISCORD_CLIENT_ID
@@ -64,6 +70,7 @@ async function checkIfMessageExistsAndHandleAdding({
         );
       }
     }
+    // If migration not eligible - or message not sent by bot, throw error
     throw new ExpectedFailure(
       InteractionOrRequestFinalStatus.MESSAGE_NOT_FOUND_IN_DATABASE,
       "That message was not sent via the bot!"
@@ -89,6 +96,7 @@ const checkDatabaseMessage = (message: Message | null): message is Message => {
   return true;
 };
 
+// Gets the possible actions for a message - for that user
 async function getMessageActionsPossible({
   message,
   instance,
@@ -99,9 +107,10 @@ async function getMessageActionsPossible({
 
   const databaseMessage = await instance.prisma.message.findFirst({
     where: { id: BigInt(message.id) },
-    // Don't need to worry about ordering as all we want to do is check that this message has been sent by the bot before
+    orderBy: { id: "desc" },
   });
 
+  // Check if it exists and is valid (ie by the bot)
   await checkIfMessageExistsAndHandleAdding({
     instance,
     session,
@@ -109,6 +118,9 @@ async function getMessageActionsPossible({
     databaseMessage,
   });
 
+  // None of these below functions will throw - they'll just be used to display different options to the user
+
+  // Check bot and user discord permissions
   const botHasViewChannel = (
     await session.botHasDiscordPermissions(
       requiredPermissionsEdit,
@@ -123,13 +135,13 @@ async function getMessageActionsPossible({
   ).allPresent;
   const botAndUserHaveViewChannel = botHasViewChannel && userHasViewChannel;
 
+  // Check user internal permissions
   const hasEdit = (
     await session.hasBotPermissions(
       InternalPermissions.EDIT_MESSAGES,
       message.channel_id
     )
   ).allPresent;
-
   const hasDelete = (
     await session.hasBotPermissions(
       InternalPermissions.DELETE_MESSAGES,
@@ -137,6 +149,7 @@ async function getMessageActionsPossible({
     )
   ).allPresent;
 
+  // Return the possible actions
   return {
     edit: hasEdit && botAndUserHaveViewChannel,
     delete: hasDelete && botAndUserHaveViewChannel,

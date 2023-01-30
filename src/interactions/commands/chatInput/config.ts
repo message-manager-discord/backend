@@ -1,3 +1,4 @@
+// Config top level command - contains subcommands for permissions and logging channels
 import axios from "axios";
 import { Snowflake } from "discord-api-types/globals";
 import {
@@ -34,6 +35,7 @@ import { InternalInteractionType } from "../../interaction";
 import createPermissionsEmbed from "../../shared/permissions-config";
 import { InteractionReturnData } from "../../types";
 
+// Handle top level command
 export default async function handleConfigCommand(
   internalInteraction: InternalInteractionType<APIChatInputApplicationCommandGuildInteraction>,
   session: GuildSession,
@@ -50,6 +52,7 @@ export default async function handleConfigCommand(
       "Missing subcommand"
     );
   }
+  // Send to different handlers for subcommands
   switch (subcommand.name) {
     case "permissions":
       return await handlePermissionsSubcommand(
@@ -75,6 +78,7 @@ export default async function handleConfigCommand(
   }
 }
 
+// Permissions 1st level subcommand
 async function handlePermissionsSubcommand(
   internalInteraction: InternalInteractionType<APIChatInputApplicationCommandGuildInteraction>,
   subcommandGroup: APIApplicationCommandInteractionDataSubcommandGroupOption,
@@ -92,6 +96,7 @@ async function handlePermissionsSubcommand(
   )?.value;
   const channel = interaction.data.resolved?.channels?.[channelId]; // Channel is found here because it is found for all subcommands
 
+  // Send to different handlers for 2nd level subcommand (for example /config permissions list)
   switch (subcommand.name) {
     case "list":
       return await handlePermissionsListSubcommand({
@@ -127,6 +132,7 @@ async function handlePermissionsSubcommand(
   }
 }
 
+// Returns a list of all entities with permissions set
 async function handlePermissionsListSubcommand({
   instance,
   channel,
@@ -156,6 +162,8 @@ async function handlePermissionsListSubcommand({
         session.guildId
       );
   }
+  // Create description with two separate parts for roles and users
+  // The actual permissions of each cannot be displayed here as there is not enough space
   description +=
     `\n**Roles**: ${
       entitiesWithPermissions.roles.length > 0
@@ -199,6 +207,7 @@ async function handlePermissionsListSubcommand({
   };
 }
 
+// For specific entities - viewing and editing their individual permissions
 async function handlePermissionsManageSubcommand({
   internalInteraction,
   instance,
@@ -231,6 +240,7 @@ async function handlePermissionsManageSubcommand({
   const resolvedData = interaction.data.resolved;
   let targetType: "role" | "user";
   let targetPermissions: Snowflake | undefined;
+  // find target in data
 
   if (resolvedData?.roles && resolvedData.roles[targetId] !== undefined) {
     targetType = "role";
@@ -288,8 +298,7 @@ async function handlePermissionsManageSubcommand({
     }
   }
 
-  // Not deferred as no logic is 'heavy'
-
+  // For adding a tip about admin permission overriding all internal permissions
   const hasAdminPermission =
     targetPermissions !== undefined &&
     checkDiscordPermissionValue(
@@ -297,6 +306,7 @@ async function handlePermissionsManageSubcommand({
       DiscordPermissions.ADMINISTRATOR
     );
 
+  // create embed representation for permissions viewing / editing
   const permissionReturnData = await createPermissionsEmbed({
     targetType,
     targetId,
@@ -308,7 +318,7 @@ async function handlePermissionsManageSubcommand({
   });
 
   // Void function that waits a bit then fetches the original interaction message
-  // To get it's id
+  // To get it's message id for updating the message
   void (async () => {
     // Ensure the interaction was responded to (it's a bit overkill but it doesn't really matter too much)
     await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -329,6 +339,7 @@ async function handlePermissionsManageSubcommand({
       ).id,
     });
   })();
+  // return response
   return {
     type: InteractionResponseType.ChannelMessageWithSource,
     data: {
@@ -339,6 +350,7 @@ async function handlePermissionsManageSubcommand({
   };
 }
 
+// Quickstart is for setting quick defaults for roles (for users who don't want to get too involved in the permissions system)
 async function handlePermissionsQuickstartSubcommand({
   internalInteraction,
   instance,
@@ -353,6 +365,7 @@ async function handlePermissionsQuickstartSubcommand({
   session: GuildSession;
 }): Promise<APIInteractionResponseChannelMessageWithSource> {
   const interaction = internalInteraction.interaction;
+  // Get target data
   const targetId: string | undefined = (
     subcommand.options?.find(
       (option) =>
@@ -398,6 +411,7 @@ async function handlePermissionsQuickstartSubcommand({
       "Target not found in resolved data"
     );
   }
+
   const preset: "message-access" | "management-access" | undefined = (
     subcommand.options?.find(
       (option) =>
@@ -413,6 +427,8 @@ async function handlePermissionsQuickstartSubcommand({
     );
   }
 
+  // Message-access preset will allow the permissions for all message management actions
+  // I.E. view, edit, send, delete
   let permissions: number[] = [];
   if (preset === "message-access") {
     permissions = [
@@ -422,6 +438,8 @@ async function handlePermissionsQuickstartSubcommand({
       InternalPermissions.DELETE_MESSAGES,
     ];
   }
+  // Management access preset will allow permissions for management of the bot
+  // I.E. access to permissions and config
   if (preset === "management-access") {
     permissions = [
       ...permissions,
@@ -430,6 +448,7 @@ async function handlePermissionsQuickstartSubcommand({
     ];
   }
 
+  // Set the permissions
   if (targetType === "role" && channel === undefined) {
     await instance.permissionManager.setRolePermissions({
       roleId: targetId,
@@ -496,6 +515,7 @@ async function handlePermissionsQuickstartSubcommand({
   };
 }
 
+// 1st level subcommand for logging channels
 async function handleLoggingChannelSubcommandGroup(
   internalInteraction: InternalInteractionType<APIChatInputApplicationCommandGuildInteraction>,
   subcommandGroup: APIApplicationCommandInteractionDataSubcommandGroupOption,
@@ -503,7 +523,7 @@ async function handleLoggingChannelSubcommandGroup(
   session: GuildSession
 ): Promise<InteractionReturnData> {
   const subcommand = subcommandGroup.options[0];
-
+  // 2nd level subcommands for logging channels
   switch (subcommand.name) {
     case "set":
       return await handleLoggingChannelSetSubcommand({
@@ -534,6 +554,7 @@ async function handleLoggingChannelSubcommandGroup(
   }
 }
 
+// 2nd level subcommand for setting logging channels
 async function handleLoggingChannelSetSubcommand({
   internalInteraction,
   subcommand,
@@ -546,7 +567,7 @@ async function handleLoggingChannelSetSubcommand({
   session: GuildSession;
 }): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
-
+  // find target channel
   const channelId = (
     subcommand.options?.find(
       (option) =>
@@ -568,6 +589,7 @@ async function handleLoggingChannelSetSubcommand({
 
   let description: string;
   let title: string;
+  // Different changes
   if (previousChannelId === channelId) {
     description = `Logging channel not changed`;
     title = "Logging channel not changed";
@@ -581,6 +603,7 @@ async function handleLoggingChannelSetSubcommand({
     description = `Logging channel not changed`;
     title = "Logging channel not changed";
   }
+  // Generate embed and log embed
   const embed: APIEmbed = {
     title,
     color: embedPink,
@@ -613,6 +636,7 @@ async function handleLoggingChannelSetSubcommand({
   };
 }
 
+// 2nd level subcommand for removing logging channels
 async function handleLoggingChannelRemoveSubcommand({
   internalInteraction,
   instance,
@@ -624,6 +648,8 @@ async function handleLoggingChannelRemoveSubcommand({
 }): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
 
+  // No target as there is only one logging channel per guild
+
   // Webhook permissions are not checked here for the bot, since they are checked before setting the logging channel
   // This allows the logging channel to be set to a channel the bot has already created a webhook in, even if it does not currently have
   // the required permissions to create a webhook
@@ -632,6 +658,7 @@ async function handleLoggingChannelRemoveSubcommand({
 
   let description: string;
   let title: string;
+  // Different changes
   if (previousChannelId === null) {
     description = `Logging channel not changed`;
     title = "Logging channel not changed";
@@ -639,6 +666,8 @@ async function handleLoggingChannelRemoveSubcommand({
     description = `Logging channel <#${previousChannelId}> removed`;
     title = "Logging channel removed";
   }
+
+  // Generate embed and log embed
   const embed: APIEmbed = {
     title,
     color: embedPink,
@@ -655,7 +684,7 @@ async function handleLoggingChannelRemoveSubcommand({
   if (previousChannelId !== null) {
     // Should not send a log if not changed
 
-    // Sending log to previous channel
+    // Sending log to previous channel (webhook isn't deleted)
     await instance.webhookManager.sendWebhookMessage(
       previousChannelId,
       interaction.guild_id,
@@ -675,6 +704,7 @@ async function handleLoggingChannelRemoveSubcommand({
     },
   };
 }
+// Just get the current channel - no change
 async function handleLoggingChannelGetSubcommand({
   internalInteraction,
   instance,
@@ -683,6 +713,7 @@ async function handleLoggingChannelGetSubcommand({
   instance: FastifyInstance;
 }): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
+  // No target as there is only one logging channel per guild
 
   const logChannelId = await instance.loggingManager.getGuildLoggingChannel(
     interaction.guild_id

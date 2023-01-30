@@ -1,3 +1,5 @@
+// Shared logic for generating message generation embeds
+// As this logic is used in multiple places, it is abstracted out
 import { Snowflake } from "discord-api-types/globals";
 import {
   APIActionRowComponent,
@@ -27,7 +29,9 @@ type MessageGenerationButtonTypes =
   | "embed-add-field"
   | "embed-author"
   | "embed-back"
-  | "edit-embed-field";
+  | "edit-embed-field"; // Potential types of buttons that can be used in the message generation flow
+
+// Message generation key - so that the key is always the same format
 const generateMessageGenerationCustomId = (
   messageGenerationKey: string,
   type: MessageGenerationButtonTypes,
@@ -38,20 +42,23 @@ const generateMessageGenerationCustomId = (
   }`;
 };
 
+// Return interface
 interface CreateMessageGenerationEmbedResult {
   embed: APIEmbed;
   components: APIActionRowComponent<APIMessageActionRowComponent>[];
 }
+// This will create an embed for the first screen - for editing either the content or the embed
+// Also has a finish button (either send or edit)
 const createInitialMessageGenerationEmbed = (
   messageGenerationKey: string,
   currentStatus: MessageSavedInCache,
   guildId: Snowflake
 ): CreateMessageGenerationEmbedResult => {
-  const type = currentStatus.messageId === undefined ? "send" : "edit";
-  const channelId = splitMessageCacheKey(messageGenerationKey).channelId;
+  const type = currentStatus.messageId === undefined ? "send" : "edit"; // Determine if we are sending or editing
+  const channelId = splitMessageCacheKey(messageGenerationKey).channelId; // Get channel id from cache key
   const messageLink = `https://discord.com/channels/${guildId}/${channelId}/${
     currentStatus.messageId ?? ""
-  }`;
+  }`; // generate message link
   return {
     embed: addTipToEmbed({
       title: `Message Generation Flow - ${
@@ -116,11 +123,14 @@ const createInitialMessageGenerationEmbed = (
   };
 };
 
+// Second screen - for editing / adding an embed to a message
 const createEmbedMessageGenerationEmbed = (
   messageGenerationKey: string,
   currentStatus: MessageSavedInCache
 ): CreateMessageGenerationEmbedResult => {
   let selectMenu: APIActionRowComponent<APISelectMenuComponent>;
+
+  // Select menu for selecting which field to edit
   if (
     currentStatus.embed?.fields?.length !== undefined &&
     currentStatus.embed.fields.length > 0
@@ -148,6 +158,7 @@ const createEmbedMessageGenerationEmbed = (
       ],
     };
   } else {
+    // If no fields to edit display a placeholder option and disable the select menu
     selectMenu = {
       type: ComponentType.ActionRow,
       components: [
@@ -181,6 +192,7 @@ const createEmbedMessageGenerationEmbed = (
       color: embedPink,
     }),
     components: [
+      // Each button will trigger a different modal and then call this function again
       {
         type: ComponentType.ActionRow,
         components: [

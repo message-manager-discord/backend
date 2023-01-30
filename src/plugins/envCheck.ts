@@ -2,6 +2,9 @@ import envSchema from "env-schema";
 import { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
 
+// Code for loading, validating, and typing environmental variables
+
+// Schema for validation
 const schemaForEnv = {
   type: "object",
   required: [
@@ -95,6 +98,7 @@ const schemaForEnv = {
   },
 };
 
+// Interface for typing
 interface EnvVars {
   UUID_NAMESPACE: string;
   COOKIE_SECRET: string;
@@ -119,6 +123,7 @@ interface EnvVars {
   DEFAULT_STAFF_PROFILE_NAME: string;
 }
 
+// Extending fastify with the added object - for typing
 declare module "fastify" {
   interface FastifyInstance {
     envVars: EnvVars;
@@ -126,6 +131,7 @@ declare module "fastify" {
 }
 // eslint-disable-next-line @typescript-eslint/require-await
 const envPlugin = fp(async (instance: FastifyInstance) => {
+  // This loads, validates, and decorates instance with environmental variables from .env
   const envVars = envSchema<EnvVars>({ schema: schemaForEnv, dotenv: true });
   instance.decorate("envVars", envVars);
 });

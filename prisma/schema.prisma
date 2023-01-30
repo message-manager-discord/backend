@@ -1,3 +1,4 @@
+// Database schema for postgresql database
 generator client {
   provider = "prisma-client-js"
 }

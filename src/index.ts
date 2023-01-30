@@ -1,7 +1,13 @@
+/**
+ * Entry point file
+ * Includes setup of core plugins for the HTTP server
+ */
+
 import fastifyAuth from "@fastify/auth";
 import fastifyCookie, { FastifyCookieOptions } from "@fastify/cookie";
 import fastifyCors from "@fastify/cors";
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+
 import { RewriteFrames } from "@sentry/integrations";
 import Sentry from "@sentry/node";
 import childProcess from "child_process";
@@ -22,11 +28,6 @@ import redisRestPlugin from "./plugins/redis";
 import sessionPlugin from "./plugins/session";
 import versionOnePlugin from "./v1";
 
-const gitRevision = childProcess
-  .execSync("git rev-parse HEAD")
-  .toString()
-  .trim();
-
 const productionEnv = process.env.PRODUCTION === "true";
 
 const instance: FastifyInstance = fastify({
@@ -35,13 +36,22 @@ const instance: FastifyInstance = fastify({
   },
 }).withTypeProvider<TypeBoxTypeProvider>();
 
-await instance.register(envPlugin); // Load env variables
+// This plugin loads environmental variables from .env, and registers a .envVars object to the fastify instance
+await instance.register(envPlugin);
 
-// Sentry is registered before all other plugins incase they throw errors
-// Sentry is not a plugin so all errors are captured
+/**
+ * Sentry is used to capture errors in production (https://sentry.io)
+ * Here it is initiated before most other plugins so it can catch those errors
+ * if the plugins throw errors in their creation
+ */
 
 const rootDir =
   url.fileURLToPath(new URL(".", import.meta.url)) || process.cwd();
+
+const gitRevision = childProcess
+  .execSync("git rev-parse HEAD")
+  .toString()
+  .trim();
 
 Sentry.init({
   dsn: instance.envVars.SENTRY_DSN,
@@ -55,18 +65,23 @@ Sentry.init({
   release: gitRevision,
 });
 
+// Handles errors thrown by requests that do not have their own error handlers
+// NOTE: Does not handle errors if an un-awaited promise is used in a request handling
 instance.setErrorHandler(async (error, request, reply) => {
   if (
     (error.statusCode !== undefined && error.statusCode < 500) ||
     error.validation !== undefined
   ) {
     return reply.send(error);
-  } // http-errors are thrown for 4xx errors, which should not be sent to sentry
+  }
+  // This is required to log errors with sentry
   Sentry.captureException(error);
   instance.log.error(error);
   if (error.statusCode !== undefined) {
+    // Status code already set, so can just be sent without any modification
     return reply.send(error);
-  } // If any errors were http-errors pretty much, they shouldn't be overwritten
+  }
+  // Likely to be a code bug - something not handled. Therefore 500
 
   return reply.status(500).send({
     statusCode: 500,
@@ -74,7 +89,9 @@ instance.setErrorHandler(async (error, request, reply) => {
     message: error.message,
   });
 });
-// These are plugins that are separate from versioning
+
+// Register plugins that are not affected by versioning (versioning as in /v1/ )
+// As they are functions, follow their definition for a deeper explanation
 await instance.register(prismaPlugin);
 await instance.register(discordRestPlugin, {
   discord: { token: instance.envVars.DISCORD_TOKEN },
@@ -92,9 +109,10 @@ await instance.register(discordRedisCachePlugin, {
   },
 });
 
+// Cookie plugin for logging in on the web
 await instance.register(fastifyCookie, {
   secret: instance.envVars.COOKIE_SECRET, // for cookies signature
-  parseOptions: {}, // options for parsing cookies
+  parseOptions: {},
 } as FastifyCookieOptions);
 await instance.register(fastifyCors, {
   origin: true,
@@ -103,6 +121,8 @@ await instance.register(fastifyCors, {
 });
 
 await instance.register(authPlugin);
+
+// Useful plugin for running auth
 await instance.register(fastifyAuth);
 
 await instance.register(metricsPlugin);
@@ -125,7 +145,7 @@ instance.listen(
     host: instance.envVars.HOST,
   },
   function (err, address) {
-    // Seems to by typed incorrectly
+    // This seems to by typed incorrectly
     // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
     if (err) {
       console.error(err);

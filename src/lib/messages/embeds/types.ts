@@ -1,3 +1,4 @@
+// Types for embed representations
 interface StoredField {
   name: string; // Max 256 characters
   value: string; // Max 1024 characters

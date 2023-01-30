@@ -1,3 +1,5 @@
+// Context menu command that returns a representation of the message
+// Can be used on any message
 import {
   APIEmbed,
   APIInteractionResponseChannelMessageWithSource,
@@ -40,16 +42,10 @@ export default async function handleFetchMessageCommand(
       "Message not found in resolved data"
     );
   }
-  console.log(JSON.stringify(message));
-  console.log(
-    message.content.length < 1 &&
-      message.embeds.length < 1 &&
-      !message.components
-  );
-  console.log(message.content.length < 1);
-  console.log(message.embeds.length < 1);
-  console.log((message.components?.length ?? 0) < 1);
 
+  // Generate formdata to respond with file
+  // JSON if more than just content on the message
+  // otherwise TXT
   const form = new FormData();
   let isJson = false;
   if (
@@ -57,6 +53,7 @@ export default async function handleFetchMessageCommand(
     message.embeds.length < 1 &&
     (message.components?.length ?? 0) < 1
   ) {
+    // Message doesn't have anything that we can return
     return {
       type: InteractionResponseType.ChannelMessageWithSource,
       data: {
@@ -68,6 +65,8 @@ export default async function handleFetchMessageCommand(
     message.embeds.length > 0 ||
     (message.components?.length ?? 0) < 1
   ) {
+    // Message has embeds or components in addition to possibly content
+    // JSON format
     interface FileData {
       content?: string;
       embeds?: APIEmbed[];
@@ -83,6 +82,7 @@ export default async function handleFetchMessageCommand(
     if (message.embeds.length > 0) {
       fileData.embeds = message.embeds;
     }
+    // Add file to formdata
     form.set(
       "files[0]",
       new Blob([JSON.stringify(fileData, undefined, 2)], {
@@ -92,6 +92,9 @@ export default async function handleFetchMessageCommand(
     );
     isJson = true;
   } else {
+    // Message has content and no embeds or components
+    // TXT format
+    // Add file to formdata
     form.set(
       "files[0]",
       new Blob([message.content], {
@@ -102,6 +105,7 @@ export default async function handleFetchMessageCommand(
     isJson = false;
   }
 
+  // Message to send with file
   const messageData: APIInteractionResponseChannelMessageWithSource = {
     type: InteractionResponseType.ChannelMessageWithSource,
     data: {
@@ -112,19 +116,22 @@ export default async function handleFetchMessageCommand(
         {
           id: "0",
           filename: `message.${isJson ? "json" : "txt"}`,
-          description: "A representation of the message",
+          description: "A representation of the message", // Accessible to screen readers
         },
       ],
       flags: MessageFlags.Ephemeral,
     },
   };
+  // Set message to send with file (payload_json)
   form.set(
     "payload_json",
     new Blob([JSON.stringify(messageData)], {
       type: "application/json",
     }),
-    "" // empty string for filename is required for discord to accept this as the payload (otherwise form-data adds a filename of "blob")
+    "" // empty string for filename is required for discord to accept this as the
+    // payload (otherwise form-data adds a filename of "blob" and discord doesn't recognize it as the payload)
   );
+  // Encode formdata to return
   const encoder = new FormDataEncoder(form);
 
   return {

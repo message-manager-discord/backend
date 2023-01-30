@@ -1,3 +1,7 @@
+// Caches an interaction's id and token - this is so the interaction can be updated from actions by other interactions
+// This is used in the permission's editing flow, so if other users are editing permissions at that time
+// there are no clashes
+
 import axios, { AxiosError, AxiosResponse } from "axios";
 import { Snowflake } from "discord-api-types/globals";
 import { APIEmbed } from "discord-api-types/v9";
@@ -33,9 +37,9 @@ class PermissionInteractionCache {
   }
 
   private _makePermissionId(
-    targetId: Snowflake,
-    channelId: Snowflake,
-    guildId: Snowflake
+    targetId: Snowflake, // The target of the permission editing - either a user or a role
+    channelId: Snowflake, // Channel id the permission is for - if it is for guild level, then it is "none"
+    guildId: Snowflake // The guild id the permission is for
   ): string {
     return `${targetId}-${channelId}-${guildId}`;
   }
@@ -44,6 +48,9 @@ class PermissionInteractionCache {
     return `${messageId}-${guildId}`;
   }
 
+  // As we can only keep updating an interaction for a limited time, we need to disable it after 10 mins
+  // This function should be cancelled if a new interaction for the same message is received (the 10min timeout is reset)
+  // as the new interaction can now be used - extending the time
   private async _removeInteractionFromCacheAndDisable({
     messageId,
     guildId,
@@ -51,12 +58,11 @@ class PermissionInteractionCache {
     messageId: Snowflake;
     guildId: Snowflake;
   }): Promise<void> {
-    // As we can only keep updating an interaction for a limited time, we need to disable it after 10 mins
-    // This function should be cancelled if a new interaction for the same message is received
     const messageCacheId = this._makeMessageId(messageId, guildId);
     const interactionCache = this._interactionCache[messageCacheId];
     if (interactionCache !== undefined) {
       delete this._interactionCache[messageCacheId];
+      // Disable the embed
       const embed: APIEmbed = addTipToEmbed({
         title: "Permissions Management Timeout",
         description:
@@ -81,7 +87,7 @@ class PermissionInteractionCache {
           } else if (
             ((error as AxiosError).response as AxiosResponse).status === 429
           ) {
-            // Ignore this
+            // Ignore this - shouldn't happen either but it's fine to drop
           } else {
             throw error;
           }
@@ -89,6 +95,9 @@ class PermissionInteractionCache {
     }
   }
 
+  /* This function should be called every time /config permissions manage is used
+  and whenever permissions are updated via select interaction
+  "old" interactions from the same message will be discarded as the message id is the same */
   public registerInteraction({
     targetId,
     targetType,
@@ -106,10 +115,6 @@ class PermissionInteractionCache {
     interactionId: Snowflake;
     interactionToken: string;
   }) {
-    // This function should be called every time /config permissions manage is used
-    // and whenever permissions are updated via select interaction
-    // "old" interactions from the same message will be discarded as the message id is the same
-
     const permissionId = this._makePermissionId(
       targetId,
       channelId ?? "none",
@@ -121,8 +126,8 @@ class PermissionInteractionCache {
       this._interactionCache[messageCacheId] !== undefined;
 
     if (messageWasInCacheBefore) {
-      // then cancel the timeout otherwise the interaction will be removed before it is needed to be
-      // receiving another interaction extends the time limit for that message
+      // Then cancel the timeout otherwise the interaction will be removed before it is needed to be removed
+      // Receiving another interaction extends the time limit for that message
       clearTimeout(this._interactionCache[messageCacheId].timeoutId);
     }
 
@@ -133,12 +138,14 @@ class PermissionInteractionCache {
         guildId,
       });
     }, 10 * 60 * 1000);
+    // Save the interaction data in cache
     this._interactionCache[messageCacheId] = {
       interactionId,
       interactionToken,
       timeoutId,
       createAt: new Date(),
     };
+    // One to Many relationship in cache - one permission flow can have multiple messages
     if (this._permissionsToMessageIdMapping[permissionId] === undefined) {
       this._permissionsToMessageIdMapping[permissionId] = {
         targetType,
@@ -157,6 +164,7 @@ class PermissionInteractionCache {
     }
   }
 
+  // Should be called for all updates to permissions
   public async triggerUpdates({
     targetId,
     channelId,
@@ -166,7 +174,7 @@ class PermissionInteractionCache {
     targetId: Snowflake;
     channelId: Snowflake | null;
     guildId: Snowflake;
-    triggerMessageId: Snowflake | null; // The message that caused the update. If set that message should be ignored
+    triggerMessageId: Snowflake | null; // The message that caused the update. If set that message should be ignored in the update
   }): Promise<void> {
     // This function is called every time a permission is updated
     const permissionId = this._makePermissionId(
@@ -188,7 +196,7 @@ class PermissionInteractionCache {
       });
       for (const messageCacheId of messageCacheIds.messageIds) {
         const interactionCache = this._interactionCache[messageCacheId];
-
+        // Check if the message is the one that triggered the update
         if (
           (triggerMessageId === null ||
             messageCacheId !==

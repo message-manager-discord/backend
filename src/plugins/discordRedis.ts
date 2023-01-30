@@ -1,3 +1,9 @@
+/**
+ * A separate cache from ./redis.ts, this access the Discord Gateway cache
+ * Uses the `redis-discord-cache` library which is also custom (https://github.com/message-manager-discord/redis-discord-cache)
+ * With a gateway cache instance also running, and must be connected to the same redis instance
+ */
+
 import { FastifyInstance, FastifyPluginOptions } from "fastify";
 import fp from "fastify-plugin";
 import { createRedisClient, GuildManager } from "redis-discord-cache";

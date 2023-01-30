@@ -1,3 +1,4 @@
+// Attaching session manager to instance
 import { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
 

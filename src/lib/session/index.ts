@@ -1,3 +1,8 @@
+/**
+ * Sessions are a concept used in interactions to share some commonly used logic between interaction handling
+ * This includes stuff like permission calculation
+ */
+
 import { RawFile } from "@discordjs/rest";
 import { Snowflake } from "discord-api-types/globals";
 import {
@@ -27,6 +32,7 @@ import {
   DiscordPermissionResult,
 } from "../permissions/types";
 
+// Session class - an instance is created for each interaction received
 class GuildSession {
   userId: Snowflake;
   userRoles: Snowflake[];
@@ -44,6 +50,7 @@ class GuildSession {
     userInteractionCalculatedChannelPermissions,
     instance,
   }: {
+    // All this data is provided by discord through the interaction (other than instance)
     userId: Snowflake;
     userRoles: Snowflake[];
     guildId: Snowflake;
@@ -61,6 +68,9 @@ class GuildSession {
     this._instance = instance;
   }
 
+  // Get the guild from the gateway cache
+  // If it's not there, throw an error, either means there's an outage or the bot is not in the guild
+  // The bot must be in the guild to carry out most actions
   private async _getCachedGuild(): Promise<Guild> {
     if (!this._cachedGuild) {
       const cachedGuild = await this._guildManager.getGuild(this.guildId);
@@ -88,10 +98,12 @@ class GuildSession {
     return this._cachedGuild;
   }
 
+  // Public version of _getCachedGuild - as getters cannot be an async function
   get cachedGuild(): Promise<Guild> {
     return this._getCachedGuild();
   }
 
+  // Calculate the permissions for the user in the channel in terms of bot permissions
   async hasBotPermissions(
     permissions: number | number[],
     channelId: Snowflake | undefined
@@ -104,6 +116,7 @@ class GuildSession {
       channelId
     );
   }
+  // Calculate the permissions for the user in the channel - discord permissions
   async hasDiscordPermissions(
     permissions: bigint | bigint[],
     channelId: Snowflake | undefined
@@ -116,6 +129,7 @@ class GuildSession {
       requiredPermissions: permissions,
     });
   }
+  // Check if the bot has the required permissions in the channel - discord permissions
   async botHasDiscordPermissions(
     permissions: bigint | bigint[],
     channelId: Snowflake | undefined
@@ -126,6 +140,8 @@ class GuildSession {
       requiredPermissions: permissions,
     });
   }
+
+  // Send a webhook logging message - uses logging manager to do this
 
   async sendLoggingMessage({
     logEmbeds,
@@ -147,25 +163,31 @@ class GuildSession {
   }
 }
 
+// Class for DM sessions - these aren't currently used other than for the info command
+// which requires no logic
 class NonGuildSession {}
 
+// Type guard for guild interactions
 const interactionIsFromGuild = (
   interaction: APIDMInteraction | APIGuildInteraction
 ): interaction is APIGuildInteraction => {
   return (interaction as APIGuildInteraction).guild_id !== undefined;
 };
 
+// Manager for sessions - only one instance of this is created
 export default class SessionManager {
   private _instance: FastifyInstance;
   constructor({ instance }: { instance: FastifyInstance }) {
     this._instance = instance;
   }
 
+  // Type overloads for the createSession function
   createSessionFromInteraction(interaction: APIGuildInteraction): GuildSession;
   createSessionFromInteraction(interaction: APIDMInteraction): NonGuildSession;
   createSessionFromInteraction(
     interaction: APIGuildInteraction | APIDMInteraction
   ): NonGuildSession | GuildSession {
+    // Only create a guild session if the interaction is from a guild
     if (interactionIsFromGuild(interaction)) {
       return new GuildSession({
         userId: interaction.member.user.id,

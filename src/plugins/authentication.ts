@@ -1,3 +1,9 @@
+/**
+ * This contains a function that adds a user object to the request
+ * It sends an Unauthorized error if not authenticated
+ * The function must be added in a pre-handler hook to run - this is so only routes that need authentication will require it
+ */
+
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import httpErrors from "http-errors";
 const { Unauthorized } = httpErrors;
@@ -19,6 +25,7 @@ const addAuthentication = async (
     token.replace("Bearer ", "")
   );
   if (sessionData) {
+    // Then get the user's data from the database - it is separate as sessions should expire but the user's data should not
     const userData = await request.server.prisma.user.findUnique({
       select: { oauthToken: true, staff: true },
       where: { id: BigInt(sessionData.userId) },

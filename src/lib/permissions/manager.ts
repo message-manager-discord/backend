@@ -1,3 +1,10 @@
+/**
+ * Permission manager
+ * Only for internal permissions - not for discord permissions
+ * It's suggested to use the vscode collapse block feature to more easily navigate this file
+ * Many functions seem very similar, but they are not. They act on different types of permissions and therefore must
+ * set different objects, so would be more complex to combine them
+ */
 import { Prisma, PrismaClient } from "@prisma/client";
 import { Snowflake } from "discord-api-types/globals";
 import { FastifyInstance } from "fastify";
@@ -40,6 +47,7 @@ class PermissionManager {
     this.interactionCacheManager = new PermissionInteractionCache(instance);
   }
 
+  // For comparing permissions after they've changed - used in logging and success messages
   private _getPermissionsDifference(
     before: number,
     after: number
@@ -50,6 +58,9 @@ class PermissionManager {
     return { added, removed };
   }
 
+  // Send a log message when a role's permissions are changed
+  // This is separate from the other log message function as roles have a different permission format
+  // With only one bitfield for allowing (see docs.md for a deeper explanation)
   private async _sendRoleLogMessage({
     newPermissions,
     oldPermissions,
@@ -72,7 +83,7 @@ class PermissionManager {
     const removed = getAllPermissionsAsNameInValue(difference.removed).filter(
       (value) => value !== "NONE"
     );
-
+    // Generate text for permissions
     let description = `The permissions for role <@&${roleId}> have been updated`;
     if (added.length > 0) {
       description += `\n✅ The following permissions have been allowed: \`${added.join(
@@ -98,6 +109,7 @@ class PermissionManager {
     await session.sendLoggingMessage({ logEmbeds: [embed] });
   }
 
+  // Send a log message for when a user's permissions change, role permissions (channel level) change, user permissions (channel level) change
   private async _sendAllowDenyLogMessage({
     allowBefore,
     allowAfter,
@@ -146,6 +158,8 @@ class PermissionManager {
         reset.push(perm);
       }
     }
+
+    // Now use the results from above to prepare a log message
     let description = `The permissions for ${targetType} ${
       targetType === "role" ? `<@&${targetId}>` : `<@${targetId}>`
     } have been updated`;
@@ -182,6 +196,7 @@ class PermissionManager {
     await session.sendLoggingMessage({ logEmbeds: [embed] });
   }
 
+  // Get the permissions for roles and users on a guild
   async getAllGuildPermissions(
     guildId: Snowflake
   ): Promise<GuildPermissionData | null> {
@@ -195,6 +210,7 @@ class PermissionManager {
     return guild.permissions as unknown as GuildPermissionData;
   }
 
+  // Get the permissions for a role on a guild
   async getAllChannelPermissions(
     channelId: Snowflake
   ): Promise<ChannelPermissionData | null> {
@@ -208,7 +224,8 @@ class PermissionManager {
     return channel.permissions as unknown as ChannelPermissionData;
   }
 
-  // Get all channels with a guild id that has a permission set to anything more than NONE
+  // Get all channels on a guild that has a permission set to anything more than NONE
+  // Used to display what channels have permissions set (in a tip like message)
   public async getChannelsWithPermissions(
     guildId: Snowflake
   ): Promise<Snowflake[]> {
@@ -241,7 +258,8 @@ class PermissionManager {
     return channels.map((channel) => channel.id.toString());
   }
 
-  // Get all users / roles with permissions set
+  // Get all users / roles with permissions set on a guild - used to display what users / roles have permissions set
+  // when listing permissions
   public async getEntitiesWithPermissions(
     guildId: Snowflake
   ): Promise<{ users: Snowflake[]; roles: Snowflake[] }> {
@@ -266,6 +284,7 @@ class PermissionManager {
   }
 
   // Get all users / roles with permissions set for a channel
+  // used to display what users / roles have permissions set when listing permissions
   public async getChannelEntitiesWithPermissions(
     channelId: Snowflake
   ): Promise<{ users: Snowflake[]; roles: Snowflake[] }> {
@@ -291,13 +310,14 @@ class PermissionManager {
     };
   }
 
-  // Calculate the guild permissions for a user
+  // Calculate the guild permissions for a user - takes into account both role permissions and user permissions
   private async _calculateGuildPermissions(
     userId: Snowflake,
     userRoles: Snowflake[],
     guildId: Snowflake
   ): Promise<number> {
     // This doesn't include a check for discord administrator permission, as that should only be done once (in the case of calculating channel permissions)
+    // This private function is also used for channel permissions
     // Then get the OR'd sum of the user's role permissions
     const guildPermissions = await this.getAllGuildPermissions(guildId);
     if (!guildPermissions) return InternalPermissions.NONE;
@@ -313,7 +333,7 @@ class PermissionManager {
       | PermissionAllowAndDenyData
       | undefined;
 
-    // The user's permissions are the role permissions, not including the deny permissions, and then the allow permissions
+    // The user's permissions are the role permissions, excluding the user's deny permissions, and then the user's allow permissions
     let total = userRolePermissions;
     if (userPermissionData) {
       if (userPermissionData.deny) {
@@ -343,6 +363,7 @@ class PermissionManager {
         DiscordPermissions.ADMINISTRATOR
       )
     ) {
+      // Admins (discord wise) have all permissions
       return AllInternalPermissions;
     }
     return this._calculateGuildPermissions(userId, userRoles, guild.id);
@@ -367,6 +388,7 @@ class PermissionManager {
         DiscordPermissions.ADMINISTRATOR
       )
     ) {
+      // Admins (discord wise) have all permissions
       return AllInternalPermissions;
     }
     const guildPermissions = await this._calculateGuildPermissions(
@@ -409,9 +431,11 @@ class PermissionManager {
       },
       InternalPermissions.NONE
     );
+    // Permissions are the guild level, excluding the channel role deny, including the channel role allow
     total &= ~channelRoleDenyPermissions;
     total |= channelRoleAllowPermissions;
     // And then finally user deny, allow overrides
+    // Then the user's permissions, excluding the channel user deny, including the channel user allow
     const userPermissionData = channelPermissions.users[userId] as
       | PermissionAllowAndDenyData
       | undefined;
@@ -426,6 +450,7 @@ class PermissionManager {
     return total;
   }
 
+  // Comparing two bitfields / a bitfield and an array of bitfields
   private _hasPermissions(
     userPermission: number,
     permissions: number | number[]
@@ -469,6 +494,7 @@ class PermissionManager {
     }
   }
 
+  // Public function to check if a user has permissions
   public async hasPermissions(
     userId: Snowflake,
     userRoles: Snowflake[],
@@ -476,6 +502,7 @@ class PermissionManager {
     permissions: number | number[],
     channelId?: Snowflake
   ): Promise<BotPermissionResult> {
+    // If channelId set - check channel permissions, otherwise check guild permissions
     if (channelId !== undefined) {
       const channelPermissions = await this.getChannelPermissions(
         userId,
@@ -494,8 +521,9 @@ class PermissionManager {
     }
   }
 
-  // These functions deal with the management of permissions
+  // These functions below deal with the management of permissions
 
+  // Overwrite all guild permissions - required as permissions are stored as an unmutable object
   private async _setAllGuildPermissions({
     guildId,
     permissions,
@@ -513,6 +541,7 @@ class PermissionManager {
     });
   }
 
+  // Overwrite all channel permission - required as above
   private async _setAllChannelPermissions({
     channelId,
     permissions,
@@ -543,6 +572,7 @@ class PermissionManager {
   }
 
   // These parsing functions will ensure that the permission data is in it's full state
+  // It basically just returns an empty object with roles and user's set if the input is null
   private _parseAndFixBasePermissionData(
     permissions: GuildPermissionData | null
   ): GuildPermissionData;
@@ -564,6 +594,7 @@ class PermissionManager {
     return permissions;
   }
 
+  // Same as above - but for the role overrides - and ensures that the roleId part is set
   private _parseAndFixGuildRolePermissionData(
     permissions: GuildPermissionData | null,
     roleId: Snowflake
@@ -579,6 +610,8 @@ class PermissionManager {
     }
     return fixedPermissions;
   }
+
+  // Parses and ensures data is in it's full state - for the role in question
   private _parseAndFixChannelRolePermissionData(
     permissions: ChannelPermissionData | null,
     roleId: Snowflake
@@ -608,7 +641,7 @@ class PermissionManager {
   }
 
   // This can be an override because the format for user permissions is the same on both, and the role data is not touched
-
+  // Parses and ensures data is in it's full state - for the user in question
   private _parseAndFixUserPermissionData(
     permissions: GuildPermissionData | null,
     userId: Snowflake
@@ -777,6 +810,7 @@ class PermissionManager {
     });
   }
 
+  // Fetches the role's permissions if they exist, otherwise returns permissions none value
   private _getRolePermissionFromPotentiallyUndefinedData(
     permissions: GuildPermissionData | null,
     roleId: Snowflake
@@ -790,6 +824,7 @@ class PermissionManager {
     }
   }
 
+  // Check if a user has bot permissions
   private async checkPermissions({
     channelId,
     session,
@@ -829,6 +864,7 @@ class PermissionManager {
     return true;
   }
 
+  // Get role permissions for a role
   public async getRolePermissions({
     roleId,
     guildId,
@@ -843,6 +879,9 @@ class PermissionManager {
     );
   }
 
+  // Public update functions
+
+  // Set role permissions for a role
   public async setRolePermissions({
     roleId,
     permissionsToAllow,
@@ -860,6 +899,7 @@ class PermissionManager {
       roleId,
       session,
     });
+    // Get guild permissions - as we must keep other permissions the same
     const guildPermissions = await this.getAllGuildPermissions(session.guildId);
     const existingPermission =
       this._getRolePermissionFromPotentiallyUndefinedData(
@@ -875,6 +915,7 @@ class PermissionManager {
 
     // Check if there is any overlap
     if ((toAllow & toDeny) !== InternalPermissions.NONE) {
+      // This is unexpected as this shouldn't be possible with how the ui works
       throw new UnexpectedFailure(
         InteractionOrRequestFinalStatus.PERMISSIONS_CANNOT_CROSSOVER_WHEN_UPDATING,
         "Cannot have crossover permissions on allow or deny"
@@ -889,12 +930,16 @@ class PermissionManager {
       permission: newPermission,
     });
 
+    // Functions are "void" as we don't care if they succeed or fail too much
+    // It isn't a disaster if it doesn't happen
+    // Therefore it's better to start them and not wait for them to finish
     void this._sendRoleLogMessage({
       newPermissions: newPermission,
       oldPermissions: existingPermission,
       roleId,
       session,
     });
+    // Trigger updates for all messages
     void this.interactionCacheManager.triggerUpdates({
       targetId: roleId,
       channelId: null,
@@ -904,6 +949,7 @@ class PermissionManager {
     return newPermission;
   }
 
+  // Fetch the permissions and makes sure the user data is setup correctly - present or none
   private _getAllowAndDenyUserPermissions({
     permissions,
     userId,
@@ -942,6 +988,22 @@ class PermissionManager {
     });
   }
 
+  // This function gets the current permissions for a user in a channel
+  public async getChannelUserPermissions({
+    userId,
+    channelId,
+  }: {
+    userId: Snowflake;
+    channelId: Snowflake;
+  }): Promise<PermissionAllowAndDenyData> {
+    const permissions = await this.getAllChannelPermissions(channelId);
+    return this._getAllowAndDenyUserPermissions({
+      permissions,
+      userId,
+    });
+  }
+
+  // Resolves to the final new permissions value - so this is the new permissions including the new ones
   private _computePermissionsFromUpdate({
     oldPermissions,
     permissionsToAllow,
@@ -969,12 +1031,12 @@ class PermissionManager {
     }
 
     let { allow, deny } = oldPermissions;
-    allow |= toAllow;
-    deny &= ~toAllow;
-    allow &= ~toReset;
-    deny &= ~toReset;
-    allow &= ~toDeny;
-    deny |= toDeny;
+    allow |= toAllow; // Allow toAllow
+    deny &= ~toAllow; // Ensure that if toAllow was previously denied it is not now
+    allow &= ~toReset; // As resetting is just removing from both, remove from allow
+    deny &= ~toReset; // And deny
+    allow &= ~toDeny; // Ensure that if toDeny was previously allowed it is not now
+    deny |= toDeny; // Deny toDeny
     return {
       allow,
       deny,
@@ -1005,15 +1067,19 @@ class PermissionManager {
     });
 
     let permissions: ChannelPermissionData | GuildPermissionData | null;
+    // Can be on either a channel or not - the base process is the same
     if (channelId !== undefined) {
       permissions = await this.getAllChannelPermissions(channelId);
     } else {
       permissions = await this.getAllGuildPermissions(session.guildId);
     }
+    // compute old permissions
     const { allow, deny } = this._getAllowAndDenyUserPermissions({
       permissions,
       userId,
     });
+
+    // compute the new permissions - this is the new permissions including the old ones
     const { allow: newAllow, deny: newDeny } =
       this._computePermissionsFromUpdate({
         oldPermissions: { allow, deny },
@@ -1021,6 +1087,7 @@ class PermissionManager {
         permissionsToReset,
         permissionsToDeny,
       });
+    // Set (overwrite) permissions
     if (channelId !== undefined) {
       await this._setChannelUserPermission({
         userId,
@@ -1037,6 +1104,7 @@ class PermissionManager {
         deny: newDeny,
       });
     }
+    // Functions are "void" as we don't care if they succeed or fail too much
     void this._sendAllowDenyLogMessage({
       allowBefore: allow,
       allowAfter: newAllow,
@@ -1059,6 +1127,7 @@ class PermissionManager {
     };
   }
 
+  // This function gets the current permissions for a role
   private _getAllowAndDenyRoleChannelPermissions({
     permissions,
     roleId,
@@ -1083,6 +1152,7 @@ class PermissionManager {
     };
   }
 
+  // Get role permissions
   public async getChannelRolePermissions({
     roleId,
     channelId,
@@ -1097,6 +1167,7 @@ class PermissionManager {
     });
   }
 
+  // Set role permissions
   public async setChannelRolePermissions({
     roleId,
     permissionsToAllow,
@@ -1118,11 +1189,13 @@ class PermissionManager {
       session,
     });
     const channelPermissions = await this.getAllChannelPermissions(channelId);
+    // compute old permissions
     const { allow, deny } = this._getAllowAndDenyRoleChannelPermissions({
       permissions: channelPermissions,
       roleId,
     });
 
+    // compute the new permissions - this is the new permissions including the old ones
     const { allow: newAllow, deny: newDeny } =
       this._computePermissionsFromUpdate({
         oldPermissions: { allow, deny },
@@ -1131,6 +1204,7 @@ class PermissionManager {
         permissionsToDeny,
       });
 
+    // Set (overwrite) permissions
     await this._setChannelRolePermission({
       roleId,
       guildId: session.guildId,
@@ -1138,6 +1212,7 @@ class PermissionManager {
       allow: newAllow,
       deny: newDeny,
     });
+    // Functions are "void" as we don't care if they succeed or fail too much
     void this._sendAllowDenyLogMessage({
       allowBefore: allow,
       allowAfter: newAllow,
@@ -1157,20 +1232,6 @@ class PermissionManager {
       allow: newAllow,
       deny: newDeny,
     };
-  }
-
-  public async getChannelUserPermissions({
-    userId,
-    channelId,
-  }: {
-    userId: Snowflake;
-    channelId: Snowflake;
-  }): Promise<PermissionAllowAndDenyData> {
-    const permissions = await this.getAllChannelPermissions(channelId);
-    return this._getAllowAndDenyUserPermissions({
-      permissions,
-      userId,
-    });
   }
 }
 

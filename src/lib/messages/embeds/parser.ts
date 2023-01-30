@@ -5,6 +5,7 @@ import {
   APIEmbedFooter,
   APIMessage,
 } from "discord-api-types/v9";
+// Functions to change between formats accepted by discord's API and internal representations
 
 import {
   InteractionOrRequestFinalStatus,
@@ -12,6 +13,7 @@ import {
 } from "../../../errors";
 import { StoredEmbed } from "./types";
 
+// Create an internal representation "stored embed" from a discord API message
 const createStoredEmbedFromAPIMessage = (
   message: APIMessage
 ): StoredEmbed | null => {
@@ -77,6 +79,7 @@ const createStoredEmbedFromDataBaseEmbed = (
   };
 };
 
+// Create a discord API embed from an internal representation "stored embed"
 const createSendableEmbedFromStoredEmbed = (embed: StoredEmbed): APIEmbed => {
   const sendableEmbed: APIEmbed = {
     title: embed.title,

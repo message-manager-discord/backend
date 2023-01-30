@@ -1,4 +1,6 @@
+// Derived from
 // https://github.com/detritusjs/client/blob/b27cbaa5bfb48506b059be178da0e871b83ba95e/src/constants.ts#L917
+// and discord.com/developers/docs/topics/permissions
 const DiscordPermissions = Object.freeze({
   NONE: 0n,
   CREATE_INSTANT_INVITE: 1n << 0n,
@@ -41,6 +43,9 @@ const DiscordPermissions = Object.freeze({
   USE_EXTERNAL_STICKERS: 1n << 37n,
   SEND_MESSAGES_IN_THREADS: 1n << 38n,
 });
+
+// Various functions to get the permission names / values, this is to assist with error and message generation about permissions
+// For example getting the name of a permission from the value
 
 const _permissionsByName: { [name: string]: bigint } = {};
 const _permissionsByValue: { [value: string]: string } = {};

@@ -1,8 +1,11 @@
+// Checks for embeds for things like discord limits
+
 import { StoredEmbed } from "./types";
 
 // Sum of title, description, field.name, field.value, footer.text, and author.name must not exceed 6000 characters
 
 // Check if an embed exceeds any of the limits
+// These limits are derived from the discord API documentation
 function checkEmbedMeetsLimits(embed: StoredEmbed): boolean {
   let totalCheckableLength = 0;
   // First check if each individual part of the embed exceeds it's limit, only for parts that have their own limits
@@ -38,6 +41,7 @@ function checkEmbedMeetsLimits(embed: StoredEmbed): boolean {
         field.name?.length ?? 0 + field.value?.length ?? 0;
     }
   }
+  // Finally check the total length of all embed parts
   if (totalCheckableLength > 6000) {
     return true;
   }
