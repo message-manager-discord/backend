@@ -1,6 +1,4 @@
 import {
-  APIEmbedAuthor,
-  APIEmbedFooter,
   APIMessageComponentGuildInteraction,
   InteractionResponseType,
   MessageFlags,

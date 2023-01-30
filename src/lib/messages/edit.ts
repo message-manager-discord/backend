@@ -1,12 +1,6 @@
 import { DiscordAPIError, RawFile } from "@discordjs/rest";
 import { EmbedField, Message, MessageEmbed, Prisma } from "@prisma/client";
-import {
-  APIEmbed,
-  APIEmbedAuthor,
-  APIEmbedFooter,
-  Routes,
-  Snowflake,
-} from "discord-api-types/v9";
+import { APIEmbed, Routes, Snowflake } from "discord-api-types/v9";
 import { RESTPatchAPIChannelMessageResult } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 

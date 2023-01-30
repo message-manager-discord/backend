@@ -1,5 +1,3 @@
-import prismaClient from "@prisma/client";
-const { ReportStatus } = prismaClient;
 import {
   APIModalSubmitGuildInteraction,
   InteractionResponseType,

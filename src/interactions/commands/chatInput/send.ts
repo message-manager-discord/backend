@@ -88,10 +88,14 @@ export default async function handleSendCommand(
   });
   if (contentOnly) {
     return createModal({
-      title: `Sending a message to #${
-        channel.name && channel.name.length > 23
-          ? `${channel.name.substring(0, 20)}...`
-          : channel.name
+      title: `Sending a message to ${
+        channel.name !== null
+          ? `#${
+              channel.name && channel.name.length > 23
+                ? `${channel.name.substring(0, 20)}...`
+                : channel.name
+            }`
+          : "Unknown Channel"
       }`,
       custom_id: `send:${channelId}`,
       components: [
