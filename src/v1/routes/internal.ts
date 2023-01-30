@@ -60,13 +60,13 @@ const internalPlugin = async (instance: FastifyInstance) => {
           return {
             avatar: instance.envVars.AVATAR_URL,
             username: instance.envVars.DEFAULT_STAFF_PROFILE_NAME,
-            discriminator: null
+            discriminator: null,
           };
         } else {
           return {
             username: profile.name,
             avatar: profile.avatar ?? instance.envVars.AVATAR_URL,
-            discriminator: null
+            discriminator: null,
           };
         }
       }

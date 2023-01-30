@@ -15,7 +15,7 @@ class RedisCache {
 
   private async _sendCommand(command: string, args: ArgType): Promise<unknown> {
     //this.logger.debug(`Sending redis command: ${command} with args: ${args}`);
-    const data = (await this._client.call(command, ...args));
+    const data = await this._client.call(command, ...args);
     //this.logger.debug(
     //  `Received data: ${data} from redis command: ${command} with args ${args}`
     //);

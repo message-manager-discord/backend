@@ -559,9 +559,9 @@ const createReportMessage = async ({
       ReportMessages: true,
     },
   });
-  // validate content 
+  // validate content
   if (content.length < 1) {
-    throw new BadRequest("Content must not be empty")
+    throw new BadRequest("Content must not be empty");
   }
   if (report === null) {
     throw new NotFound("report not found");
