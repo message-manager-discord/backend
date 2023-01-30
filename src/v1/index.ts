@@ -3,7 +3,6 @@
  */
 import fastifyRateLimit from "@fastify/rate-limit";
 import fastifySwagger from "@fastify/swagger";
-
 import { FastifyInstance } from "fastify";
 import Redis from "ioredis";
 
@@ -11,7 +10,7 @@ import internalPlugin from "./routes/internal";
 import reportPlugin from "./routes/reports";
 import rootPlugin from "./routes/rootTesting";
 import userPlugin from "./routes/user";
-import { schemas } from "./types";
+import { schemas } from "./types/index";
 
 const versionOnePlugin = async (instance: FastifyInstance) => {
   // Schema is shared 'types' for the api to validate from, for both the request and response

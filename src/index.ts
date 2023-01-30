@@ -7,7 +7,6 @@ import fastifyAuth from "@fastify/auth";
 import fastifyCookie, { FastifyCookieOptions } from "@fastify/cookie";
 import fastifyCors from "@fastify/cors";
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-
 import { RewriteFrames } from "@sentry/integrations";
 import Sentry from "@sentry/node";
 import childProcess from "child_process";

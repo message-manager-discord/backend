@@ -5,8 +5,8 @@ import {
   APIEmbedFooter,
   APIMessage,
 } from "discord-api-types/v9";
-// Functions to change between formats accepted by discord's API and internal representations
 
+// Functions to change between formats accepted by discord's API and internal representations
 import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
