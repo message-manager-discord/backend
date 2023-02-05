@@ -11,7 +11,7 @@ const errors401to404ResponseSchema = {
   },
   404: {
     description: "Not Found - User needs to log in",
-    $ref: "responses.notfound#",
+    $ref: "responses.notFound#",
   },
 };
 
