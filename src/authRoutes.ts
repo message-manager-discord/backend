@@ -6,9 +6,11 @@
 import { FastifyInstance } from "fastify";
 import httpErrors from "http-errors";
 const { Forbidden } = httpErrors;
+import fastifyRateLimit from "@fastify/rate-limit";
 import { Static, Type } from "@sinclair/typebox";
 import crypto from "crypto";
-import { v5 as uuidv5 } from "uuid";
+import Redis from "ioredis";
+import { v4 as uuidv4 } from "uuid";
 
 import DiscordOauthRequests from "./discordOauth";
 
@@ -22,7 +24,7 @@ type CallbackQuerystringType = Static<typeof CallbackQuerystring>;
 
 // Route before authorized with discord - navigated too to get redirected to discord
 const AuthorizeQuerystring = Type.Object({
-  redirect_to: Type.Optional(Type.String()),
+  redirect_url: Type.Optional(Type.String()),
 });
 
 type AuthorizeQuerystringType = Static<typeof AuthorizeQuerystring>;
@@ -36,6 +38,32 @@ const rootPath = "/auth";
 // Since this is a plugin async should be used
 // eslint-disable-next-line @typescript-eslint/require-await
 const addPlugin = async (instance: FastifyInstance) => {
+  await instance.register(fastifyRateLimit, {
+    global: true,
+    max: 20, // 20 requests per minute, shouldn't be hit by a user
+    timeWindow: 60 * 1000, // 1 minute
+    cache: 10000,
+    redis: new Redis({
+      connectionName: "my-connection-name",
+      host: instance.envVars.BACKEND_REDIS_HOST,
+      port: instance.envVars.BACKEND_REDIS_PORT,
+      connectTimeout: 500,
+      maxRetriesPerRequest: 1,
+    }),
+    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+    keyGenerator: (request) => {
+      console.log(request.ip);
+      console.log(request.user);
+      console.log(request.user?.userId);
+
+      return request.user?.userId !== undefined
+        ? request.user.userId
+        : request.ip;
+    },
+    enableDraftSpec: true,
+  });
+  // Must be registered a second time as v1 and auth routes are separate
+
   /**
    * Authorize route, navigated too to get redirected to discord
    * If redirect_to is set the user will be redirected to that after navigating to /callback
@@ -47,20 +75,30 @@ const addPlugin = async (instance: FastifyInstance) => {
       schema: {
         querystring: AuthorizeQuerystring,
         response: {
-          307: {},
+          200: {
+            type: "object",
+            properties: {
+              redirectUrl: { type: "string" },
+            },
+          },
+        },
+      },
+      config: {
+        ratelimit: {
+          max: 2,
+          timeWindow: 5 * 1000,
+          // 2 per 5 seconds
         },
       },
     },
     async (request, reply) => {
-      const { redirect_to } = request.query;
+      const { redirect_url } = request.query;
 
       const state = crypto.randomBytes(16).toString("hex");
-      await instance.redisCache.setState(state, redirect_to ?? null);
+      await instance.redisCache.setState(state, redirect_url ?? null);
+      const redirectUrl = instance.discordOauthRequests.generateAuthUrl(state);
 
-      return reply.redirect(
-        307,
-        instance.discordOauthRequests.generateAuthUrl(state)
-      );
+      return reply.send({ redirectUrl });
     }
   );
   /**
@@ -76,7 +114,25 @@ const addPlugin = async (instance: FastifyInstance) => {
       schema: {
         querystring: CallbackQuerystring,
         response: {
-          307: {},
+          200: {
+            type: "object",
+            properties: {
+              redirectUrl: {
+                type: "string",
+              },
+              token: {
+                type: "string",
+              },
+            },
+          },
+        },
+      },
+      config: {
+        ratelimit: {
+          max: 2,
+          timeWindow: 5 * 1000,
+          // 2 per 5 seconds
+          // To prevent brute force attacks
         },
       },
     },
@@ -103,9 +159,20 @@ const addPlugin = async (instance: FastifyInstance) => {
       const user = await instance.discordOauthRequests.fetchUser({
         token: tokenResponse.access_token,
       });
+
+      await instance.redisCache.setUserData(user.id, {
+        avatar:
+          user.avatar !== null
+            ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`
+            : null,
+        discriminator: user.discriminator,
+        username: user.username,
+      });
+
       // Create user in database - the token is stored here and not on the browser
       // so the token does not get stolen, which could lead to actions under the bot's id being taken on
       // behalf of the user that we do not want to happen
+
       await instance.prisma.user.upsert({
         where: { id: BigInt(user.id) },
         create: {
@@ -122,23 +189,12 @@ const addPlugin = async (instance: FastifyInstance) => {
       });
 
       // Session is to authenticate the client to the api
-      const session = uuidv5(user.id, instance.envVars.UUID_NAMESPACE);
-      await instance.redisCache.setSession(session, user.id);
+      const sessionToken = `browser.${uuidv4()}.${user.id}.${Date.now()}`;
+      await instance.redisCache.setSession(sessionToken, user.id);
       const date = new Date();
       date.setDate(date.getDate() + 7);
-
       const redirectPath = cachedState.redirectPath ?? "/";
-      // This cookie will be used to authenticate the client to the api
-      return reply
-        .setCookie("_HOST-session", session, {
-          secure: true,
-          sameSite: "none",
-          httpOnly: true,
-          path: "/",
-          expires: date,
-          signed: true,
-        })
-        .redirect(307, redirectPath);
+      return reply.send({ redirectUrl: redirectPath, token: sessionToken });
     }
   );
 };

@@ -1,7 +1,5 @@
 // Edit button - start a message generation flow with the edit type from it
 import {
-  APIEmbedAuthor,
-  APIEmbedFooter,
   APIMessageComponentGuildInteraction,
   InteractionResponseType,
   MessageFlags,
@@ -18,6 +16,7 @@ import {
 } from "../../lib/messages/cache";
 import { createMessageCacheKey } from "../../lib/messages/cache";
 import { checkEditPossible } from "../../lib/messages/edit";
+import { createStoredEmbedFromDataBaseEmbed } from "../../lib/messages/embeds/parser";
 import { StoredEmbed } from "../../lib/messages/embeds/types";
 import { GuildSession } from "../../lib/session";
 import { InternalInteractionType } from "../interaction";
@@ -47,43 +46,7 @@ export default async function handleEditButton(
   // Create stored embed from the message (from the database message as the message is not included in the interaction)
   let embed: StoredEmbed | undefined = undefined;
   if (databaseMessage?.embed !== null && databaseMessage?.embed !== undefined) {
-    let footer: APIEmbedFooter | undefined = undefined;
-    if (databaseMessage.embed.footerText !== null) {
-      footer = {
-        text: databaseMessage.embed.footerText,
-        icon_url: databaseMessage.embed.footerIconUrl ?? undefined,
-      };
-    }
-    let author: APIEmbedAuthor | undefined = undefined;
-    if (databaseMessage.embed.authorName !== null) {
-      author = {
-        name: databaseMessage.embed.authorName,
-        url: databaseMessage.embed.authorUrl ?? undefined,
-        icon_url: databaseMessage.embed.authorIconUrl ?? undefined,
-      };
-    }
-
-    embed = {
-      title: databaseMessage.embed.title ?? undefined,
-      description: databaseMessage.embed.description ?? undefined,
-      url: databaseMessage.embed.url ?? undefined,
-      timestamp: databaseMessage.embed.timestamp?.toISOString() ?? undefined,
-      color: databaseMessage.embed.color ?? undefined,
-      footer: footer,
-      author: author,
-      fields:
-        databaseMessage.embed.fields.map((field) => ({
-          name: field.name,
-          value: field.value,
-          inline: field.inline,
-        })) ?? undefined,
-      thumbnail:
-        databaseMessage.embed.thumbnailUrl !== null
-          ? {
-              url: databaseMessage.embed.thumbnailUrl,
-            }
-          : undefined,
-    };
+    embed = createStoredEmbedFromDataBaseEmbed(databaseMessage.embed);
   }
 
   // Add to cache with key

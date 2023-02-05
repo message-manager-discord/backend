@@ -41,6 +41,9 @@ const userPlugin = async (instance: FastifyInstance) => {
   instance.get<{ Params: UserParamsType }>(
     `${rootPath}/:id`,
     {
+      config: { ratelimit: { max: 9, timeWindow: 3 * 1000 } },
+      // This route can be called pretty often by the website, so allows for more than other, 3/second with allowing for bursts up to 9
+      // Also shorter time window so resets more often
       schema: {
         description: "Get user information",
         tags: ["user"],
@@ -51,7 +54,20 @@ const userPlugin = async (instance: FastifyInstance) => {
             description: "OK",
             $ref: "models.user#",
           },
-          ...errors401to404ResponseSchema,
+
+          401: {
+            description: "Unauthorized",
+            $ref: "responses.unauthorized#",
+          },
+          403: {
+            description:
+              "Forbidden - Missing staff privileges to access other users",
+            $ref: "responses.forbidden#",
+          },
+          404: {
+            description: "Not Found - User needs to log in",
+            $ref: "responses.notFound#",
+          },
         },
       },
     },
@@ -83,6 +99,11 @@ const userPlugin = async (instance: FastifyInstance) => {
           userId: userStored.id.toString(),
           token: userStored.oauthToken,
           staff: userStored.staff,
+          admin: instance.envVars.API_ADMIN_IDS.includes(
+            userStored.id.toString()
+          )
+            ? true
+            : undefined,
         };
       }
 
@@ -91,6 +112,15 @@ const userPlugin = async (instance: FastifyInstance) => {
       // However as discordOauthRequests is cached this route being hit often will not cause a ratelimit issue
       // TODO: check what happens when token i sinvalid
       const userInfo = await instance.discordOauthRequests.fetchUser(user);
+      // save hash to cache
+      await instance.redisCache.setUserData(userInfo.id, {
+        avatar:
+          userInfo.avatar !== null
+            ? `https://cdn.discordapp.com/avatars/${userInfo.id}/${userInfo.avatar}.png`
+            : null,
+        discriminator: userInfo.discriminator,
+        username: userInfo.username,
+      });
 
       return {
         id: userInfo.id,
@@ -99,6 +129,7 @@ const userPlugin = async (instance: FastifyInstance) => {
         discriminator: userInfo.discriminator,
         accent_color: userInfo.accent_color,
         staff: user.staff,
+        admin: user.admin,
       };
     }
   );
@@ -109,6 +140,7 @@ const userPlugin = async (instance: FastifyInstance) => {
   }>(
     `${rootPath}/:id`,
     {
+      config: { ratelimit: { max: 1, timeWindow: 5 * 1000 } }, // Not used often, shouldn't be tried often
       schema: {
         description: "Update a user - requires staff privileges",
         tags: ["user"],
@@ -117,7 +149,18 @@ const userPlugin = async (instance: FastifyInstance) => {
         params: UserParams,
         response: {
           204: { description: "No Content - Successful update", type: "null" },
-          ...errors401to404ResponseSchema,
+          401: {
+            description: "Unauthorized",
+            $ref: "responses.unauthorized#",
+          },
+          403: {
+            description: "Forbidden - Missing staff privileges",
+            $ref: "responses.forbidden#",
+          },
+          404: {
+            description: "Not Found - User needs to log in",
+            $ref: "responses.notFound#",
+          },
         },
       },
     },
@@ -130,7 +173,7 @@ const userPlugin = async (instance: FastifyInstance) => {
         throw new BadRequest("You can't edit your own user");
       }
 
-      if (!requestUser.staff) {
+      if (!requestUser.admin) {
         throw new Forbidden("You don't have permission to edit users");
       }
 
@@ -154,6 +197,7 @@ const userPlugin = async (instance: FastifyInstance) => {
   }>(
     `${rootPath}/@me/guilds`,
     {
+      config: { ratelimit: { max: 3, timeWindow: 5 * 1000 } }, // Called often(ish), but resource heavy, so limit to 3/5s
       schema: {
         description:
           "Get user's mutual guilds - only for own guilds, filtered by connected or user has the `MANAGE_SERVER` discord permission",

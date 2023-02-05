@@ -3,7 +3,7 @@ import { Snowflake } from "discord-api-types/globals";
 import {
   APIMessageComponentGuildInteraction,
   APIMessageSelectMenuInteractionData,
-  APISelectMenuComponent,
+  APIStringSelectComponent,
   ComponentType,
   InteractionResponseType,
 } from "discord-api-types/v9";
@@ -42,9 +42,9 @@ export default async function handleManagePermissionsSelect(
     const permissionsToAllow: number[] = [];
     const selectMenu = interaction.message.components?.[0].components.find(
       (component) =>
-        component.type === ComponentType.SelectMenu &&
+        component.type === ComponentType.StringSelect &&
         component.custom_id === interaction.data.custom_id
-    ) as APISelectMenuComponent;
+    ) as APIStringSelectComponent;
 
     const options = selectMenu.options;
     for (const option of options) {
@@ -77,9 +77,9 @@ export default async function handleManagePermissionsSelect(
     const permissionsToReset: number[] = [];
     const selectMenu = interaction.message.components?.find(
       (component) =>
-        component.components[0].type === ComponentType.SelectMenu &&
+        component.components[0].type === ComponentType.StringSelect &&
         component.components[0].custom_id === interaction.data.custom_id
-    )?.components[0] as APISelectMenuComponent; // Find select menu data in interaction data
+    )?.components[0] as APIStringSelectComponent; // Find select menu data in interaction data
     const options = selectMenu.options;
     for (const option of options) {
       const included = values.includes(option.value);
@@ -125,7 +125,7 @@ export default async function handleManagePermissionsSelect(
       (component) =>
         component.components[0].type === ComponentType.SelectMenu &&
         component.components[0].custom_id === interaction.data.custom_id
-    )?.components[0] as APISelectMenuComponent;
+    )?.components[0] as APIStringSelectComponent;
     const options = selectMenu.options;
     for (const option of options) {
       const included = values.includes(option.value);

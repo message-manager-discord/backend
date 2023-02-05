@@ -150,7 +150,7 @@ async function handlePermissionsListSubcommand({
   let description: string;
   let entitiesWithPermissions: { users: Snowflake[]; roles: Snowflake[] };
   if (channel) {
-    description = `Users and roles with permissions on ${channel.name}`;
+    description = `Users and roles with permissions on ${channel.name ?? ""}`;
     entitiesWithPermissions =
       await instance.permissionManager.getChannelEntitiesWithPermissions(
         channel.id
@@ -195,7 +195,9 @@ async function handlePermissionsListSubcommand({
     data: {
       embeds: [
         addTipToEmbed({
-          title: `Permissions for ${channel ? "#" + channel.name : "guild"}`,
+          title: `Permissions for ${
+            channel ? "#" + (channel.name ?? "") : "guild"
+          }`,
           description: description + extraDescription,
           color: embedPink,
         }),

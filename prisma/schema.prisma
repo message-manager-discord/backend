@@ -19,13 +19,16 @@ model Channel {
 }
 
 model Guild {
-  id              BigInt    @id
+  id              BigInt     @id
   logChannelId    BigInt?
   permissions     Json?
-  beforeMigration Boolean   @default(false) // This indicates if the guild existed before the migration to storing message content. 
+  beforeMigration Boolean    @default(false) // This indicates if the guild existed before the migration to storing message content. 
   // If it was it gains access to adding any previous bot sent message to the database.
   messages        Message[]
   channels        Channel[]
+  reports         Report[]
+  guildBans       GuildBan[]
+  warnings        Warning[]
 }
 
 model Message {
@@ -42,6 +45,8 @@ model Message {
   addedByUser Boolean  @default(false) // This indicates if the message was a message previously sent by the bot, and then added to the database.
 
   embed MessageEmbed?
+
+  reports Report[]
 
   @@unique([id, editedAt])
 }
@@ -74,52 +79,114 @@ model EmbedField {
 }
 
 model User {
-  id                   BigInt    @id
+  id                   BigInt        @id
   oauthToken           String? /// @encrypted
   oauthTokenExpiration DateTime?
   refreshToken         String? /// @encrypted
-  staff                Boolean   @default(false)
+  staff                Boolean       @default(false)
+  staffProfile         StaffProfile?
+  userBans             UserBan[]
+}
+
+model StaffProfile {
+  // This is what is used instead of the staff's identity to prevent leaking of their identity.
+  id      BigInt  @id @default(autoincrement())
+  staffId BigInt? @unique
+  staff   User?   @relation(fields: [staffId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  name    String /// @encrypted
+  avatar  String? /// @encrypted
 }
 
 enum ReportStatus {
-  Pending // Not yet reviewed by a staff member
-  Open // A staff member has reviewed the report and it is still open
-  Actioned // A staff member has reviewed the report and it is closed and reported message / server has been actioned
-  Ignored // A staff member has reviewed the report and it is closed and no action has been taken
-  Spam // A staff member has reviewed the report and the report was deemed to be spam. 
+  pending // Not yet reviewed by a staff member
+  spam // A staff member has reviewed the report and it has been closed and marked as a spam report
+  actioned // A staff member has reviewed the report and it has been closed and action has been taken
+  invalid // A staff member has reviewed the report and it has been closed and marked as invalid
   // Three spam reports in a month perioud will result in restriction to reporting ablitity.
 }
 
-model Report {
-  id                    BigInt          @id @default(autoincrement())
-  userId                BigInt
-  content               String /// @encrypted
-  messageId             BigInt
-  guildId               BigInt
-  channelId             BigInt
-  reportedAt            DateTime
-  resolvedAt            DateTime? // Report should be resolved closed if this is set
-  status                ReportStatus    @default(Pending)
-  userReportReason      String /// @encrypted
-  staffResolvedReasonId BigInt?
-  staffResolvedReason   ReportReason?   @relation(fields: [staffResolvedReasonId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  messages              ReportMessage[]
+model GuildBan {
+  id               BigInt            @id @default(autoincrement())
+  reason           String /// @encrypted
+  // Message is the message displayed / sent to the user in question
+  message          String? /// @encrypted
+  expireAt         DateTime? // If not set then will not expire
+  guildId          BigInt
+  guild            Guild             @relation(fields: [guildId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  reportActionLink ReportActionLink?
+  appealed         Boolean           @default(false)
 }
 
-model ReportReason {
-  // Set by staff when closing the ticket
-  id          BigInt   @id @default(autoincrement())
-  name        String
-  description String
-  reports     Report[]
+model UserBan {
+  id                 BigInt            @id @default(autoincrement())
+  reason             String /// @encrypted
+  // Message is the message displayed / sent to the user in question
+  message            String? /// @encrypted
+  expireAt           DateTime? // If not set then will not expire
+  userId             BigInt
+  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  reportActionLinkId BigInt?
+  reportActionLink   ReportActionLink? @relation(fields: [reportActionLinkId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  appealed           Boolean           @default(false)
+}
+
+enum WarningType {
+  warning // The guild has been issued a warning
+  delete // A message has been deleted
+}
+
+model Warning {
+  id               BigInt            @id @default(autoincrement())
+  type             WarningType
+  reason           String /// @encrypted
+  // Message is the message displayed / sent to the user in question
+  message          String? /// @encrypted
+  guildId          BigInt
+  guild            Guild             @relation(fields: [guildId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  reportActionLink ReportActionLink?
+  appealed         Boolean           @default(false)
+}
+
+model ReportActionLink {
+  id         BigInt    @id @default(autoincrement())
+  guildBanId BigInt?   @unique
+  guildBan   GuildBan? @relation(fields: [guildBanId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  userBans   UserBan[]
+  warningId  BigInt?   @unique
+  warning    Warning?  @relation(fields: [warningId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  report     Report?
+}
+
+model Report {
+  id                                BigInt            @id @default(autoincrement())
+  title                             String /// @encrypted
+  status                            ReportStatus      @default(pending)
+  actionId                          BigInt?           @unique
+  action                            ReportActionLink? @relation(fields: [actionId], references: [id])
+  reason                            String /// @encrypted
+  closeStaffId                      BigInt?
+  reportingUserId                   BigInt
+  assignedStaffId                   BigInt?
+  guildId                           BigInt
+  guild                             Guild             @relation(fields: [guildId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  // messgaes 
+  createdAt                         DateTime          @default(now())
+  updatedAt                         DateTime          @updatedAt
+  reportedMessageId                 BigInt
+  reportedMessageSnapshotInternalId Int
+  reportedMessageSnapshot           Message           @relation(fields: [reportedMessageSnapshotInternalId], references: [internalId], onDelete: Cascade, onUpdate: NoAction)
+
+  ReportMessages ReportMessage[]
 }
 
 model ReportMessage {
   // Communication between the user and staff - doesn't include the inital report
-  id        BigInt  @id @default(autoincrement())
+  id        BigInt   @id @default(autoincrement())
   authorId  BigInt
-  fromStaff Boolean // If the author of the message was staff
+  staffId   BigInt? // If the author of the message was staff
+  staffOnly Boolean // If the message is only visible to staff
   content   String /// @encrypted
+  createdAt DateTime @default(now())
   reportId  BigInt
-  report    Report  @relation(fields: [reportId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  report    Report   @relation(fields: [reportId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }

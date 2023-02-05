@@ -144,7 +144,7 @@ class DiscordOauthRequests {
     const statusCode = response.status;
     if (statusCode === 401) {
       return new ExpectedOauth2Failure(
-        InteractionOrRequestFinalStatus.OATUH_TOKEN_EXPIRED,
+        InteractionOrRequestFinalStatus.OAUTH_TOKEN_EXPIRED,
         "Token expired, please re-authenticate"
       );
     } else {
@@ -196,7 +196,7 @@ class DiscordOauthRequests {
       client_id: this._instance.envVars.DISCORD_CLIENT_ID,
       client_secret: this._instance.envVars.DISCORD_CLIENT_SECRET,
       code,
-      redirect_uri: `${this._instance.envVars.BASE_API_URL}/auth/callback`,
+      redirect_uri: `${this._instance.envVars.SITE_URL}/auth/callback`,
     });
     const response = (
       await this._makeRequest({
@@ -246,7 +246,7 @@ class DiscordOauthRequests {
   generateAuthUrl(state: string): string {
     return `https://discord.com/api/oauth2/authorize?response_type=code&client_id=${
       this._instance.envVars.DISCORD_CLIENT_ID // This is checked on startup
-    }&redirect_uri=${`${this._instance.envVars.BASE_API_URL}/auth/callback`}&scope=${requiredScopes.join(
+    }&redirect_uri=${`${this._instance.envVars.SITE_URL}/auth/callback`}&scope=${requiredScopes.join(
       "%20"
     )}&state=${state}`;
   }

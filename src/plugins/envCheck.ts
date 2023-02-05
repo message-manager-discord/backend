@@ -18,7 +18,7 @@ const schemaForEnv = {
     "DISCORD_CLIENT_ID",
     "DISCORD_CLIENT_SECRET",
     "DISCORD_INTERACTIONS_PUBLIC_KEY",
-    "BASE_API_URL",
+    "SITE_URL",
     "METRICS_AUTH_TOKEN",
     "AVATAR_URL",
     "PRISMA_FIELD_ENCRYPTION_KEY",
@@ -26,6 +26,9 @@ const schemaForEnv = {
     "HOST",
     "NO_MIGRATION_AFTER",
     "SENTRY_DSN",
+    "API_ADMIN_IDS",
+    "INTERNAL_TOKEN",
+    "DEFAULT_STAFF_PROFILE_NAME",
   ],
   properties: {
     UUID_NAMESPACE: {
@@ -58,7 +61,7 @@ const schemaForEnv = {
     DISCORD_INTERACTIONS_PUBLIC_KEY: {
       type: "string",
     },
-    BASE_API_URL: {
+    SITE_URL: {
       type: "string",
     },
     METRICS_AUTH_TOKEN: {
@@ -83,6 +86,15 @@ const schemaForEnv = {
     SENTRY_DSN: {
       type: "string",
     },
+    API_ADMIN_IDS: {
+      type: "string",
+    },
+    INTERNAL_TOKEN: {
+      type: "string",
+    },
+    DEFAULT_STAFF_PROFILE_NAME: {
+      type: "string",
+    },
   },
 };
 
@@ -98,7 +110,7 @@ interface EnvVars {
   DISCORD_CLIENT_ID: string;
   DISCORD_CLIENT_SECRET: string;
   DISCORD_INTERACTIONS_PUBLIC_KEY: string;
-  BASE_API_URL: string;
+  SITE_URL: string;
   METRICS_AUTH_TOKEN: string;
   AVATAR_URL: string;
   PORT: number;
@@ -106,6 +118,9 @@ interface EnvVars {
   PRISMA_FIELD_ENCRYPTION_KEY: string;
   NO_MIGRATION_AFTER: number;
   SENTRY_DSN: string;
+  API_ADMIN_IDS: string;
+  INTERNAL_TOKEN: string;
+  DEFAULT_STAFF_PROFILE_NAME: string;
 }
 
 // Extending fastify with the added object - for typing

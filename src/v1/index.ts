@@ -1,17 +1,29 @@
 /**
  * Index file for v1 - contains necessary setup for the api
  */
-
+import fastifyRateLimit from "@fastify/rate-limit";
+import fastifySwagger from "@fastify/swagger";
 import { FastifyInstance } from "fastify";
-import fastifySwagger from "fastify-swagger";
+import Redis from "ioredis";
 
+import internalPlugin from "./routes/internal";
+import reportPlugin from "./routes/reports";
 import rootPlugin from "./routes/rootTesting";
 import userPlugin from "./routes/user";
+import { schemas } from "./types/index";
 
-// eslint-disable-next-line @typescript-eslint/require-await
 const versionOnePlugin = async (instance: FastifyInstance) => {
   // Schema is shared 'types' for the api to validate from, for both the request and response
   // Also is used for the swagger documentation
+  instance.addSchema({
+    $id: "responses.badRequest",
+    type: "object",
+    properties: {
+      statusCode: { type: "integer", example: 400 },
+      error: { type: "string", example: "Bad Request" },
+      message: { type: "string", example: "Missing querystring value" },
+    },
+  });
   instance.addSchema({
     $id: "responses.unauthorized",
     type: "object",
@@ -32,7 +44,7 @@ const versionOnePlugin = async (instance: FastifyInstance) => {
   });
 
   instance.addSchema({
-    $id: "responses.notfound",
+    $id: "responses.notFound",
     type: "object",
     properties: {
       statusCode: { type: "integer", example: 404 },
@@ -63,9 +75,11 @@ const versionOnePlugin = async (instance: FastifyInstance) => {
     },
   });
 
+  schemas.forEach((schema) => instance.addSchema(schema));
   // Swagger is an automatic documentation generator using OpenAPI
   // eslint-disable-next-line @typescript-eslint/no-floating-promises
-  instance.register(fastifySwagger, {
+
+  await instance.register(fastifySwagger, {
     routePrefix: "/docs",
     openapi: {
       info: {
@@ -100,12 +114,30 @@ const versionOnePlugin = async (instance: FastifyInstance) => {
     exposeRoute: true,
   });
 
-  // Test routes
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
-  instance.register(rootPlugin);
-  // User routes
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
-  instance.register(userPlugin);
+  instance.addHook("onRequest", instance.addAuthentication);
+
+  await instance.register(fastifyRateLimit, {
+    global: true,
+    max: 80, // 80 requests per minute
+    timeWindow: 60 * 1000, // 1 minute
+    cache: 10000,
+    redis: new Redis({
+      connectionName: "my-connection-name",
+      host: instance.envVars.BACKEND_REDIS_HOST,
+      port: instance.envVars.BACKEND_REDIS_PORT,
+      connectTimeout: 1000,
+      maxRetriesPerRequest: 1,
+    }),
+
+    keyGenerator: (request) =>
+      request.user?.userId !== undefined ? request.user.userId : request.ip,
+    enableDraftSpec: true,
+  });
+
+  await instance.register(rootPlugin);
+  await instance.register(userPlugin);
+  await instance.register(reportPlugin);
+  await instance.register(internalPlugin);
 };
 
 export default versionOnePlugin;

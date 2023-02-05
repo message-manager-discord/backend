@@ -1,13 +1,7 @@
 // Edit messages that have been sent through the bot previously
 import { DiscordAPIError, RawFile } from "@discordjs/rest";
 import { EmbedField, Message, MessageEmbed, Prisma } from "@prisma/client";
-import {
-  APIEmbed,
-  APIEmbedAuthor,
-  APIEmbedFooter,
-  Routes,
-  Snowflake,
-} from "discord-api-types/v9";
+import { APIEmbed, Routes, Snowflake } from "discord-api-types/v9";
 import { RESTPatchAPIChannelMessageResult } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 
@@ -29,6 +23,7 @@ import { checkEmbedMeetsLimits } from "./embeds/checks";
 import {
   createSendableEmbedFromStoredEmbed,
   createStoredEmbedFromAPIMessage,
+  createStoredEmbedFromDataBaseEmbed,
 } from "./embeds/parser";
 import { StoredEmbed } from "./embeds/types";
 import {
@@ -338,38 +333,7 @@ async function editMessage({
     // with a JSON representation of the embed(s)
     let embedBefore: StoredEmbed | undefined = undefined;
     if (messageBefore?.embed !== null && messageBefore?.embed !== undefined) {
-      let footer: APIEmbedFooter | undefined = undefined;
-      if (messageBefore.embed.footerText !== null) {
-        footer = {
-          text: messageBefore.embed.footerText,
-          icon_url: messageBefore.embed.footerIconUrl ?? undefined,
-        };
-      }
-      let author: APIEmbedAuthor | undefined = undefined;
-      if (messageBefore.embed.authorName !== null) {
-        author = {
-          name: messageBefore.embed.authorName,
-          url: messageBefore.embed.authorUrl ?? undefined,
-          icon_url: messageBefore.embed.authorIconUrl ?? undefined,
-        };
-      }
-
-      embedBefore = {
-        title: messageBefore.embed.title ?? undefined,
-        description: messageBefore.embed.description ?? undefined,
-        url: messageBefore.embed.url ?? undefined,
-        timestamp: messageBefore.embed.timestamp?.toISOString() ?? undefined,
-        color: messageBefore.embed.color ?? undefined,
-        footer: footer,
-        author: author,
-        fields: messageBefore.embed.fields ?? undefined,
-        thumbnail:
-          messageBefore.embed.thumbnailUrl !== null
-            ? {
-                url: messageBefore.embed.thumbnailUrl,
-              }
-            : undefined,
-      };
+      embedBefore = createStoredEmbedFromDataBaseEmbed(messageBefore.embed);
     }
 
     const files: RawFile[] = [];

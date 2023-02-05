@@ -15,23 +15,17 @@ type ArgType = Array<string | number>;
 // Class to be added to instance
 class RedisCache {
   private _client: Redis;
-  private _instance: FastifyInstance;
-  constructor(host: string, port: number, instance: FastifyInstance) {
-    this._client = new RedisClient(port, host, undefined);
-    this._instance = instance;
+  constructor(host: string, port: number) {
+    this._client = new RedisClient(port, host);
   }
 
   // Add logging to sending the redis command
   private async _sendCommand(command: string, args: ArgType): Promise<unknown> {
-    this._instance.log.debug(
-      `Sending redis command: ${command} with args: ${args.toString()}`
-    );
-    const data = (await this._client.send_command(command, ...args)) as unknown;
-
-    this._instance.log.debug(
-      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-      `Received data: ${data} from redis command: ${command} with args ${args.toString()}`
-    );
+    //this.logger.debug(`Sending redis command: ${command} with args: ${args}`);
+    const data = await this._client.call(command, ...args);
+    //this.logger.debug(
+    //  `Received data: ${data} from redis command: ${command} with args ${args}`
+    //);
     return data;
   }
   // A base JSON.GET command - most commands use JSON.xxx
@@ -99,7 +93,8 @@ class RedisCache {
       key,
       value: JSON.stringify(redirectPath),
     });
-    await this._setExpiry({ key, expiry: 60 * 60 * 24 });
+    // One hour expiry
+    await this._setExpiry({ key, expiry: 1000 * 60 * 60 });
   }
   async getState(state: string): Promise<StoredStateResponse | undefined> {
     const data = await this._get({ key: `state:${state}` });
@@ -196,7 +191,7 @@ class RedisCache {
       `${guildId}:migrationCmdRegistered`,
       "true",
       "EX",
-      "60*60",
+      60 * 60,
     ]); // 1 hour
   }
   async getGuildMigrationCommandRegistered(
@@ -206,6 +201,36 @@ class RedisCache {
       `${guildId}:migrationCmdRegistered`,
     ])) as string | undefined | null;
     return registered === "true";
+  }
+
+  // User avatar hashes - store for a long time as they are used by many - but also don't keep them forever
+  async setUserData(
+    userId: Snowflake,
+    data: { avatar: string | null; username: string; discriminator: string }
+  ): Promise<void> {
+    await this._sendCommand("SET", [
+      `user:${userId}:data`,
+      JSON.stringify(data),
+      "EX",
+      60 * 60 * 24 * 7 * 3,
+    ]); // 3 weeks
+  }
+  async getUserData(userId: Snowflake): Promise<{
+    avatar: string | null;
+    username: string;
+    discriminator: string;
+  } | null> {
+    const data = (await this._sendCommand("GET", [
+      `user:${userId}:data`,
+    ])) as string;
+    if (data === "null") {
+      return null;
+    }
+    return JSON.parse(data) as {
+      avatar: string | null;
+      username: string;
+      discriminator: string;
+    } | null;
   }
 }
 
@@ -234,11 +259,7 @@ const redisRestPlugin = fp(
     server.log.info(
       `Connecting to redis general cache at ${options.redis.host}:${options.redis.port}`
     );
-    const redisClient = new RedisCache(
-      options.redis.host,
-      options.redis.port,
-      server
-    );
+    const redisClient = new RedisCache(options.redis.host, options.redis.port);
 
     server.decorate("redisCache", redisClient);
   }

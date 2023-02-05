@@ -1,13 +1,7 @@
 // Delete a message that was sent by the bot
 import { DiscordAPIError, RawFile } from "@discordjs/rest";
 import { EmbedField, Message, MessageEmbed } from "@prisma/client";
-import {
-  APIEmbed,
-  APIEmbedAuthor,
-  APIEmbedFooter,
-  Routes,
-  Snowflake,
-} from "discord-api-types/v9";
+import { APIEmbed, Routes, Snowflake } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 
 import { embedPink } from "../../constants";
@@ -21,6 +15,7 @@ import { InternalPermissions } from "../permissions/consts";
 import { GuildSession } from "../session";
 import { checkDatabaseMessage } from "./checks";
 import { requiredPermissionsDelete } from "./consts";
+import { createStoredEmbedFromDataBaseEmbed } from "./embeds/parser";
 import { StoredEmbed } from "./embeds/types";
 import {
   missingBotDiscordPermissionMessage,
@@ -206,38 +201,7 @@ async function deleteMessage({
     // Generate embed representation if embed was present before
     let embedBefore: StoredEmbed | undefined = undefined;
     if (messageBefore?.embed !== null && messageBefore?.embed !== undefined) {
-      let footer: APIEmbedFooter | undefined = undefined;
-      if (messageBefore.embed.footerText !== null) {
-        footer = {
-          text: messageBefore.embed.footerText,
-          icon_url: messageBefore.embed.footerIconUrl ?? undefined,
-        };
-      }
-      let author: APIEmbedAuthor | undefined = undefined;
-      if (messageBefore.embed.authorName !== null) {
-        author = {
-          name: messageBefore.embed.authorName,
-          url: messageBefore.embed.authorUrl ?? undefined,
-          icon_url: messageBefore.embed.authorIconUrl ?? undefined,
-        };
-      }
-
-      embedBefore = {
-        title: messageBefore.embed.title ?? undefined,
-        description: messageBefore.embed.description ?? undefined,
-        url: messageBefore.embed.url ?? undefined,
-        timestamp: messageBefore.embed.timestamp?.toISOString() ?? undefined,
-        color: messageBefore.embed.color ?? undefined,
-        footer: footer,
-        author: author,
-        fields: messageBefore.embed.fields ?? undefined,
-        thumbnail:
-          messageBefore.embed.thumbnailUrl !== null
-            ? {
-                url: messageBefore.embed.thumbnailUrl,
-              }
-            : undefined,
-      };
+      embedBefore = createStoredEmbedFromDataBaseEmbed(messageBefore.embed);
     }
 
     // Generate log embed file - if embed should be in file

@@ -11,48 +11,49 @@ const { Unauthorized } = httpErrors;
 import { Snowflake } from "discord-api-types/v9";
 import fp from "fastify-plugin";
 
-const requireAuthentication = async (
+const addAuthentication = async (
   request: FastifyRequest,
   reply: FastifyReply
 ): Promise<FastifyReply | void> => {
-  const sessionSigned = request.cookies["_HOST-session"];
-  let session: string | null;
-  try {
-    session = request.unsignCookie(sessionSigned)["value"];
-  } catch {
-    // Unsigning the cookie will throw if it is invalid. This likely means either it is empty, or it's been changed by an attacker
+  const token = request.headers.authorization;
+
+  if (token === undefined) {
     throw new Unauthorized();
   }
 
-  if (session === null) {
-    // Not logged in
-    throw new Unauthorized();
-  }
-
-  // Check if the session is valid and not expired
-  const sessionData = await request.server.redisCache.getSession(session);
-  if (!sessionData) {
-    // Clear cookie so cache doesn't get hit again on next request
-    return reply.clearCookie("_HOST-session").send(new Unauthorized());
-  } else {
+  const sessionData = await request.server.redisCache.getSession(
+    token.replace("Bearer ", "")
+  );
+  if (sessionData) {
     // Then get the user's data from the database - it is separate as sessions should expire but the user's data should not
     const userData = await request.server.prisma.user.findUnique({
       select: { oauthToken: true, staff: true },
       where: { id: BigInt(sessionData.userId) },
     });
-    // We also need the oauthToken - if it's not there not signed in (to get another one)
-    if (!userData || userData.oauthToken === null) {
-      return reply.send(new Unauthorized());
+    if (userData && userData.oauthToken !== null) {
+      request.user = {
+        userId: sessionData.userId,
+        token: userData.oauthToken,
+        staff: userData.staff,
+      };
+      if (reply.server.envVars.API_ADMIN_IDS.includes(sessionData.userId)) {
+        request.user.staff = true;
+        request.user.admin = true;
+      }
+      if (sessionData.expiry - 1000 * 60 * 30 < 0) {
+        // If session expires in the next 30 mins, then force a refresh to avoid users being logged out while working
+        return reply.send(new Unauthorized());
+      }
     }
-    request.user = {
-      userId: sessionData.userId,
-      token: userData.oauthToken,
-      staff: userData.staff,
-    };
-    if (sessionData.expiry - 1000 * 60 * 30 < 0) {
-      // If session expires in the next 30 mins, then force a refresh to avoid users being logged out while working
-      return reply.clearCookie("_HOST-session").send(new Unauthorized());
-    }
+  }
+};
+
+const requireAuthentication = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+): Promise<FastifyReply | void> => {
+  if (request.user === undefined) {
+    return reply.send(new Unauthorized());
   }
 };
 
@@ -60,11 +61,13 @@ interface UserRequestData {
   userId: Snowflake;
   token: string;
   staff: boolean;
+  admin?: true;
 }
 
 declare module "fastify" {
   interface FastifyInstance {
     requireAuthentication: typeof requireAuthentication;
+    addAuthentication: typeof addAuthentication;
   }
   interface FastifyRequest {
     user?: UserRequestData;
@@ -74,6 +77,7 @@ declare module "fastify" {
 // eslint-disable-next-line @typescript-eslint/require-await
 const authPlugin = fp(async (instance: FastifyInstance) => {
   instance.decorate("requireAuthentication", requireAuthentication);
+  instance.decorate("addAuthentication", addAuthentication);
 });
 
 export default authPlugin;

@@ -1,15 +1,16 @@
 /**
  * Entry point file
- * Includes setup of core plugins the HTTP server
+ * Includes setup of core plugins for the HTTP server
  */
 
+import fastifyAuth from "@fastify/auth";
+import fastifyCookie, { FastifyCookieOptions } from "@fastify/cookie";
+import fastifyCors from "@fastify/cors";
+import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import { RewriteFrames } from "@sentry/integrations";
 import Sentry from "@sentry/node";
 import childProcess from "child_process";
 import fastify, { FastifyInstance } from "fastify";
-import fastifyAuth from "fastify-auth";
-import fastifyCookie, { FastifyCookieOptions } from "fastify-cookie";
-import fastifyCors from "fastify-cors";
 import * as url from "url";
 
 import authRoutePlugin from "./authRoutes";
@@ -32,7 +33,7 @@ const instance: FastifyInstance = fastify({
   logger: {
     level: productionEnv ? "warn" : "info",
   },
-});
+}).withTypeProvider<TypeBoxTypeProvider>();
 
 // This plugin loads environmental variables from .env, and registers a .envVars object to the fastify instance
 await instance.register(envPlugin);
@@ -66,9 +67,10 @@ Sentry.init({
 // Handles errors thrown by requests that do not have their own error handlers
 // NOTE: Does not handle errors if an un-awaited promise is used in a request handling
 instance.setErrorHandler(async (error, request, reply) => {
-  if (error.statusCode !== undefined && error.statusCode < 500) {
-    // If the error code is not 5xx (gte 500) then it should not be logged to Sentry.
-    // i.e. FORBIDDEN or NOT FOUND errors
+  if (
+    (error.statusCode !== undefined && error.statusCode < 500) ||
+    error.validation !== undefined
+  ) {
     return reply.send(error);
   }
   // This is required to log errors with sentry
@@ -137,8 +139,10 @@ await instance.register(authRoutePlugin);
 await instance.register(versionOnePlugin, { prefix: "/v1" });
 
 instance.listen(
-  instance.envVars.PORT,
-  instance.envVars.HOST,
+  {
+    port: instance.envVars.PORT,
+    host: instance.envVars.HOST,
+  },
   function (err, address) {
     // This seems to by typed incorrectly
     // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions

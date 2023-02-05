@@ -1,6 +1,12 @@
-// Functions to change between formats accepted by discord's API and internal representations
-import { APIEmbed, APIMessage } from "discord-api-types/v9";
+import { EmbedField, MessageEmbed } from "@prisma/client";
+import {
+  APIEmbed,
+  APIEmbedAuthor,
+  APIEmbedFooter,
+  APIMessage,
+} from "discord-api-types/v9";
 
+// Functions to change between formats accepted by discord's API and internal representations
 import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
@@ -34,6 +40,45 @@ const createStoredEmbedFromAPIMessage = (
   };
 };
 
+const createStoredEmbedFromDataBaseEmbed = (
+  embed: MessageEmbed & {
+    fields: EmbedField[] | null | undefined;
+  }
+): StoredEmbed => {
+  let footer: APIEmbedFooter | undefined = undefined;
+  if (embed.footerText !== null) {
+    footer = {
+      text: embed.footerText,
+      icon_url: embed.footerIconUrl ?? undefined,
+    };
+  }
+  let author: APIEmbedAuthor | undefined = undefined;
+  if (embed.authorName !== null) {
+    author = {
+      name: embed.authorName,
+      url: embed.authorUrl ?? undefined,
+      icon_url: embed.authorIconUrl ?? undefined,
+    };
+  }
+
+  return {
+    title: embed.title ?? undefined,
+    description: embed.description ?? undefined,
+    url: embed.url ?? undefined,
+    timestamp: embed.timestamp?.toISOString() ?? undefined,
+    color: embed.color ?? undefined,
+    footer: footer,
+    author: author,
+    fields: embed.fields ?? undefined,
+    thumbnail:
+      embed.thumbnailUrl !== null
+        ? {
+            url: embed.thumbnailUrl,
+          }
+        : undefined,
+  };
+};
+
 // Create a discord API embed from an internal representation "stored embed"
 const createSendableEmbedFromStoredEmbed = (embed: StoredEmbed): APIEmbed => {
   const sendableEmbed: APIEmbed = {
@@ -53,4 +98,8 @@ const createSendableEmbedFromStoredEmbed = (embed: StoredEmbed): APIEmbed => {
   return sendableEmbed;
 };
 
-export { createSendableEmbedFromStoredEmbed, createStoredEmbedFromAPIMessage };
+export {
+  createSendableEmbedFromStoredEmbed,
+  createStoredEmbedFromAPIMessage,
+  createStoredEmbedFromDataBaseEmbed,
+};
