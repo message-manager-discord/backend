@@ -33,12 +33,12 @@ Prisma is used for migrations - run `npm run migrate` to migrate the database.
 
 ### General overview of important files
 
-.github/workflows - contains github actions for CI config
-prisma - contains prisma schema and migrations
-src - contains the source code
-.env - contains environment variables (do not use .env on production use docker env variables instead)
-.env.example - contains example environment variables
-.eslintrc.js - contains eslint config
-.prettierrc.json - contains prettier config
-.wakatime-project - contains wakatime config
-Dockerfile - contains docker config
+.github/workflows - contains github actions for CI config  
+prisma - contains prisma schema and migrations  
+src - contains the source code  
+.env - contains environment variables (do not use .env on production use docker env variables instead)  
+.env.example - contains example environment variables  
+.eslintrc.js - contains eslint config  
+.prettierrc.json - contains prettier config  
+.wakatime-project - contains wakatime config  
+Dockerfile - contains docker config  
