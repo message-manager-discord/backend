@@ -25,6 +25,7 @@ import permissionPlugin from "./plugins/permissions";
 import prismaPlugin from "./plugins/prisma";
 import redisRestPlugin from "./plugins/redis";
 import sessionPlugin from "./plugins/session";
+import stripePlugin from "./plugins/stripe";
 import versionOnePlugin from "./v1";
 
 const productionEnv = process.env.PRODUCTION === "true";
@@ -92,6 +93,7 @@ instance.setErrorHandler(async (error, request, reply) => {
 // Register plugins that are not affected by versioning (versioning as in /v1/ )
 // As they are functions, follow their definition for a deeper explanation
 await instance.register(prismaPlugin);
+await instance.register(stripePlugin);
 await instance.register(discordRestPlugin, {
   discord: { token: instance.envVars.DISCORD_TOKEN },
 });

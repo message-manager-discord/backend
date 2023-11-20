@@ -45,6 +45,7 @@
     "prisma-field-encryption": "^1.4.0",
     "prom-client": "^14.1.1",
     "redis-discord-cache": "github:message-manager-discord/redis-discord-cache",
+    "stripe": "^11.9.1",
     "tslib": "^2.4.1",
     "uuid": "^9.0.0"
   },

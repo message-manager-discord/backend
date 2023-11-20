@@ -29,6 +29,7 @@ const schemaForEnv = {
     "API_ADMIN_IDS",
     "INTERNAL_TOKEN",
     "DEFAULT_STAFF_PROFILE_NAME",
+    "STRIPE_SECRET_KEY",
   ],
   properties: {
     UUID_NAMESPACE: {
@@ -95,6 +96,9 @@ const schemaForEnv = {
     DEFAULT_STAFF_PROFILE_NAME: {
       type: "string",
     },
+    STRIPE_SECRET_KEY: {
+      type: "string",
+    },
   },
 };
 
@@ -121,6 +125,7 @@ interface EnvVars {
   API_ADMIN_IDS: string;
   INTERNAL_TOKEN: string;
   DEFAULT_STAFF_PROFILE_NAME: string;
+  STRIPE_SECRET_KEY: string;
 }
 
 // Extending fastify with the added object - for typing

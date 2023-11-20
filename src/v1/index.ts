@@ -9,6 +9,7 @@ import Redis from "ioredis";
 import internalPlugin from "./routes/internal";
 import reportPlugin from "./routes/reports";
 import rootPlugin from "./routes/rootTesting";
+import paymentsPlugin from "./routes/payments";
 import userPlugin from "./routes/user";
 import { schemas } from "./types/index";
 
@@ -138,6 +139,7 @@ const versionOnePlugin = async (instance: FastifyInstance) => {
   await instance.register(userPlugin);
   await instance.register(reportPlugin);
   await instance.register(internalPlugin);
+  await instance.register(paymentsPlugin);
 };
 
 export default versionOnePlugin;
