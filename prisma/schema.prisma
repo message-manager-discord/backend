@@ -3,6 +3,16 @@ generator client {
   provider = "prisma-client-js"
 }
 
+generator fieldEncryptionMigrations {
+  provider = "prisma-field-encryption"
+  output   = "../src/primsa-field-encryption-migrations"
+
+  // Optionally opt-in to concurrent model migration.
+  // Since this can cause timeouts and performance issues,
+  // it's off by default, and models are updated sequentially.
+  concurrently = true
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")

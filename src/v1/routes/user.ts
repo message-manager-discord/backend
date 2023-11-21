@@ -5,7 +5,7 @@
 import { Static, Type } from "@sinclair/typebox";
 import httpErrors from "http-errors";
 const { Forbidden, NotFound, BadRequest } = httpErrors;
-import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
+import { Prisma } from "@prisma/client";
 import { FastifyInstance } from "fastify";
 
 import { DiscordPermissions } from "../../consts";
@@ -183,7 +183,7 @@ const userPlugin = async (instance: FastifyInstance) => {
           where: { id: BigInt(userId) },
         });
       } catch (e) {
-        if (e instanceof PrismaClientKnownRequestError) {
+        if (e instanceof Prisma.PrismaClientKnownRequestError) {
           throw new NotFound("User not found");
         }
       }
