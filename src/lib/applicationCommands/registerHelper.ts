@@ -6,7 +6,7 @@ import {
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 
-import toSetCommands from "../../discord_commands/guildAddMessage.json" assert { type: "json" };
+import toSetCommands from "../../discord_commands/guildAddMessage.json";
 async function registerAddCommand(
   guildId: Snowflake,
   instance: FastifyInstance

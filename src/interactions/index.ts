@@ -41,36 +41,36 @@ import {
   UnexpectedFailure,
 } from "../errors";
 import { GuildSession, NonGuildSession } from "../lib/session";
-import handleCancelDeleteButton from "./buttons/cancel-delete";
-import handleConfirmDeleteButton from "./buttons/confirm-delete";
-import handleDeleteButton from "./buttons/delete";
-import handleEditButton from "./buttons/edit";
-import handleMessageGenerationButton from "./buttons/message-generation";
-import handleReportButton from "./buttons/report";
-import handleActionsCommand from "./commands/chatInput/actions";
-import handleAddMessageCommand from "./commands/chatInput/add-message";
-import handleConfigCommand from "./commands/chatInput/config";
+import handleCancelDeleteButton from "#root/buttons/cancel-delete";
+import handleConfirmDeleteButton from "#root/buttons/confirm-delete";
+import handleDeleteButton from "#root/buttons/delete";
+import handleEditButton from "#root/buttons/edit";
+import handleMessageGenerationButton from "#root/buttons/message-generation";
+import handleReportButton from "#root/buttons/report";
+import handleActionsCommand from "#root/commands/chatInput/actions";
+import handleAddMessageCommand from "#root/commands/chatInput/add-message";
+import handleConfigCommand from "#root/commands/chatInput/config";
 import handleInfoCommand, {
   handleInfoAutocomplete,
-} from "./commands/chatInput/info";
-import handleRawFormatCommand from "./commands/chatInput/raw-format";
-import handleSendCommand from "./commands/chatInput/send";
-import handleActionMessageCommand from "./commands/message/actions";
-import handleAddMessageMessageCommand from "./commands/message/addMessage";
-import handleFetchMessageCommand from "./commands/message/fetch";
+} from "#root/commands/chatInput/info";
+import handleRawFormatCommand from "#root/commands/chatInput/raw-format";
+import handleSendCommand from "#root/commands/chatInput/send";
+import handleActionMessageCommand from "#root/commands/message/actions";
+import handleAddMessageMessageCommand from "#root/commands/message/addMessage";
+import handleFetchMessageCommand from "#root/commands/message/fetch";
 import {
   createInternalInteraction,
   InternalInteractionType,
-} from "./interaction";
-import handleModalMessageGeneration from "./modals/message-generation";
-import handleModalReport from "./modals/report";
-import handleModalSend from "./modals/send";
-import handleManagePermissionsSelect from "./selects/manage-permissions-select";
+} from "#root/interaction";
+import handleModalMessageGeneration from "#root/modals/message-generation";
+import handleModalReport from "#root/modals/report";
+import handleModalSend from "#root/modals/send";
+import handleManagePermissionsSelect from "#root/selects/manage-permissions-select";
 import {
   InteractionReturnData,
   isFormDataReturnData,
   isInteractionReturnDataDeferred,
-} from "./types";
+} from "#root/types";
 
 // Interaction handler class
 class InteractionHandler {

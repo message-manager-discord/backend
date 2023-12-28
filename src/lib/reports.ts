@@ -34,7 +34,7 @@ import {
 } from "redis-discord-cache/dist/errors";
 
 import { UserRequestData } from "../plugins/authentication";
-import { createStoredEmbedFromDataBaseEmbed } from "./messages/embeds/parser";
+import { createStoredEmbedFromDataBaseEmbed } from "#root/messages/embeds/parser";
 
 // TODO fix and use custom errors!!!
 

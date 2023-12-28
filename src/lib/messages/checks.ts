@@ -7,7 +7,7 @@ import { ExpectedFailure, InteractionOrRequestFinalStatus } from "../../errors";
 import { registerAddCommand } from "../applicationCommands/registerHelper";
 import { InternalPermissions } from "../permissions/consts";
 import { GuildSession } from "../session";
-import { requiredPermissionsEdit } from "./consts";
+import { requiredPermissionsEdit } from "#root/consts";
 
 // Some options for functions
 interface GetMessageActionsPossibleOptions {

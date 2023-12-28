@@ -1,10 +1,10 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
-  "display": "Node 16",
+  "display": "Node 20",
 
   "compilerOptions": {
-    "module": "esnext",
-    "target": "es2021",
+    "module": "es2022",
+    "target": "es2022",
 
     "strict": true,
     "esModuleInterop": true,

@@ -1,3 +1,3 @@
-import { reportSchemas } from "./reports";
+import { reportSchemas } from "#root/reports";
 
 export const schemas = reportSchemas;

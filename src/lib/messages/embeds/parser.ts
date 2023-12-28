@@ -11,7 +11,7 @@ import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../../../errors";
-import { StoredEmbed } from "./types";
+import { StoredEmbed } from "#root/types";
 
 // Create an internal representation "stored embed" from a discord API message
 const createStoredEmbedFromAPIMessage = (

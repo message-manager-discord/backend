@@ -15,7 +15,7 @@ import {
   UnexpectedFailure,
 } from "../../errors";
 import { GuildSession } from "../session";
-import { InternalPermissions } from "./consts";
+import { InternalPermissions } from "#root/consts";
 
 // Compare bigint's to see if the permission is present
 const checkDiscordPermissionValue = (

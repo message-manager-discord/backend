@@ -3,7 +3,7 @@
 
 import { APIEmbed } from "discord-api-types/v9";
 
-import { allTips } from "./tips";
+import { allTips } from "#root/tips";
 
 // Chance of any tip happening
 const allTipChance = 0.5;

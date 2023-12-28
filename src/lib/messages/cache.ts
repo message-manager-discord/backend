@@ -9,8 +9,8 @@ import {
   InteractionOrRequestFinalStatus,
   LimitHit,
 } from "../../errors";
-import { checkEmbedMeetsLimits } from "./embeds/checks";
-import { StoredEmbed } from "./embeds/types";
+import { checkEmbedMeetsLimits } from "#root/embeds/checks";
+import { StoredEmbed } from "#root/embeds/types";
 
 // Generate message cache key - a function to ensure the key is always the same format
 const createMessageCacheKey = (

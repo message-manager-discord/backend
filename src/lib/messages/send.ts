@@ -25,17 +25,17 @@ import {
   requiredPermissionsSendBot,
   requiredPermissionsSendBotThread,
   requiredPermissionsSendUser,
-} from "./consts";
-import { checkEmbedMeetsLimits } from "./embeds/checks";
+} from "#root/consts";
+import { checkEmbedMeetsLimits } from "#root/embeds/checks";
 import {
   createSendableEmbedFromStoredEmbed,
   createStoredEmbedFromAPIMessage,
-} from "./embeds/parser";
-import { StoredEmbed } from "./embeds/types";
+} from "#root/embeds/parser";
+import { StoredEmbed } from "#root/embeds/types";
 import {
   missingBotDiscordPermissionMessage,
   missingUserDiscordPermissionMessage,
-} from "./utils";
+} from "#root/utils";
 
 // Message for missing internal permissions
 const missingAccessMessage =

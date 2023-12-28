@@ -6,11 +6,14 @@
   "exports": "./dist/index.js",
   "author": "AnotherCat <anothercat1259@gmail.com>",
   "license": "AGPL-3.0-or-later",
+  "imports": {
+    "#root/*": "./*.js"
+  },
   "scripts": {
     "build": "tsc",
     "build:production": "tsc -p ./tsconfig.production.json",
     "start": "node --experimental-specifier-resolution=node .",
-    "dev": " tsc-watch --noClear --onSuccess \"node --experimental-specifier-resolution=node ./dist/index.js\"",
+    "dev": " tsc-watch --noClear --onSuccess \"node ./dist/index.js\"",
     "go": "npm run build && npm run start",
     "test": "tap --ts --test-ignore=dist",
     "migrate": "prisma migrate deploy",
@@ -20,7 +23,7 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "@discordjs/rest": "^1.5.0",
+    "@discordjs/rest": "^2.2.0",
     "@fastify/auth": "^4.2.0",
     "@fastify/cookie": "^8.3.0",
     "@fastify/cors": "^8.2.0",
@@ -32,6 +35,7 @@
     "@sentry/node": "^7.29.0",
     "@sinclair/typebox": "^0.25.16",
     "axios": "^0.26.0",
+    "commonjs-extension-resolution-loader": "^0.1.0",
     "discord-interactions": "^3.2.0",
     "env-schema": "^5.2.0",
     "fastify": "^4.11.0",
@@ -51,7 +55,6 @@
   "devDependencies": {
     "@types/http-errors": "^2.0.1",
     "@types/ioredis": "^5.0.0",
-    "@types/node": "^17.0.45",
     "@types/uuid": "^9.0.0",
     "@typescript-eslint/eslint-plugin": "^5.48.0",
     "@typescript-eslint/parser": "^5.48.0",

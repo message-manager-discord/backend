@@ -1,6 +1,6 @@
 // Checks for embeds for things like discord limits
 
-import { StoredEmbed } from "./types";
+import { StoredEmbed } from "#root/types";
 
 // Sum of title, description, field.name, field.value, footer.text, and author.name must not exceed 6000 characters
 

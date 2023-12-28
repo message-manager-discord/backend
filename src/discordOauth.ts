@@ -13,13 +13,13 @@ import {
 import { FastifyInstance } from "fastify";
 import { URLSearchParams } from "url";
 
-import { discordAPIBaseURL, requiredScopes } from "./constants";
+import { discordAPIBaseURL, requiredScopes } from "#root/constants";
 import {
   ExpectedOauth2Failure,
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
-} from "./errors";
-import { UserRequestData } from "./plugins/authentication";
+} from "#root/errors";
+import { UserRequestData } from "#root/plugins/authentication";
 
 // Two different responses to differentiate between a cache and uncached response
 // This is because they need to be handled differently

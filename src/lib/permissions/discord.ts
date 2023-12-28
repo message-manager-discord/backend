@@ -3,8 +3,11 @@
 import { Snowflake } from "discord-api-types/globals";
 import { Guild } from "redis-discord-cache";
 
-import { DiscordPermissionResult } from "./types";
-import { checkDiscordPermissionValue, tryAndHandleGuildErrors } from "./utils";
+import { DiscordPermissionResult } from "#root/types";
+import {
+  checkDiscordPermissionValue,
+  tryAndHandleGuildErrors,
+} from "#root/utils";
 
 // Fetches the user's permissions for a channel / guild from the gateway cache
 const getUserDiscordPermission = ({

@@ -6,7 +6,7 @@ Backend service for [message.anothercat.me](https://message.anothercat.me)
 
 ### Prerequisites
 
-Node 17.5 (see .nvmrc)
+Node 20 (see .nvmrc)
 Postgresql 13 with user with write permissions
 Redis with REJSON
 
@@ -41,4 +41,4 @@ src - contains the source code
 .eslintrc.js - contains eslint config  
 .prettierrc.json - contains prettier config  
 .wakatime-project - contains wakatime config  
-Dockerfile - contains docker config  
+Dockerfile - contains docker config

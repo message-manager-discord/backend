@@ -12,7 +12,7 @@ import crypto from "crypto";
 import Redis from "ioredis";
 import { v4 as uuidv4 } from "uuid";
 
-import DiscordOauthRequests from "./discordOauth";
+import DiscordOauthRequests from "#root/discordOauth";
 
 // Callback after authorized with discord
 const CallbackQuerystring = Type.Object({

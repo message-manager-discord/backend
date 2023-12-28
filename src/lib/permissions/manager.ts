@@ -18,8 +18,8 @@ import {
 } from "../../errors";
 import { ActionType, createLoggingEmbed } from "../logging/embed";
 import { GuildSession } from "../session";
-import { getParentIdIfParentIdExists } from "./channel";
-import { checkIfRoleIsBelowUsersHighestRole } from "./checks";
+import { getParentIdIfParentIdExists } from "#root/channel";
+import { checkIfRoleIsBelowUsersHighestRole } from "#root/checks";
 import {
   AllInternalPermissions,
   getAllPermissionsAsNameInValue,
@@ -27,18 +27,18 @@ import {
   InternalPermissions,
   parseInternalPermissionValuesToStringNames,
   UsableInternalPermissionValues,
-} from "./consts";
-import PermissionInteractionCache from "./interactionCache";
+} from "#root/consts";
+import PermissionInteractionCache from "#root/interactionCache";
 import {
   BotPermissionResult,
   ChannelPermissionData,
   GuildPermissionData,
   PermissionAllowAndDenyData,
-} from "./types";
+} from "#root/types";
 import {
   checkDiscordPermissionValue,
   checkInternalPermissionValue,
-} from "./utils";
+} from "#root/utils";
 class PermissionManager {
   private _prisma: PrismaClient;
   public interactionCacheManager: PermissionInteractionCache;

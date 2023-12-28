@@ -17,19 +17,19 @@ import {
 import limits from "../../limits";
 import { InternalPermissions } from "../permissions/consts";
 import { GuildSession } from "../session";
-import { checkDatabaseMessage } from "./checks";
-import { requiredPermissionsEdit } from "./consts";
-import { checkEmbedMeetsLimits } from "./embeds/checks";
+import { checkDatabaseMessage } from "#root/checks";
+import { requiredPermissionsEdit } from "#root/consts";
+import { checkEmbedMeetsLimits } from "#root/embeds/checks";
 import {
   createSendableEmbedFromStoredEmbed,
   createStoredEmbedFromAPIMessage,
   createStoredEmbedFromDataBaseEmbed,
-} from "./embeds/parser";
-import { StoredEmbed } from "./embeds/types";
+} from "#root/embeds/parser";
+import { StoredEmbed } from "#root/embeds/types";
 import {
   missingBotDiscordPermissionMessage,
   missingUserDiscordPermissionMessage,
-} from "./utils";
+} from "#root/utils";
 
 // Options for edit functions
 interface CheckEditPossibleOptions {

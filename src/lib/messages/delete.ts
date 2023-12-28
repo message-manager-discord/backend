@@ -13,14 +13,14 @@ import {
 } from "../../errors";
 import { InternalPermissions } from "../permissions/consts";
 import { GuildSession } from "../session";
-import { checkDatabaseMessage } from "./checks";
-import { requiredPermissionsDelete } from "./consts";
-import { createStoredEmbedFromDataBaseEmbed } from "./embeds/parser";
-import { StoredEmbed } from "./embeds/types";
+import { checkDatabaseMessage } from "#root/checks";
+import { requiredPermissionsDelete } from "#root/consts";
+import { createStoredEmbedFromDataBaseEmbed } from "#root/embeds/parser";
+import { StoredEmbed } from "#root/embeds/types";
 import {
   missingBotDiscordPermissionMessage,
   missingUserDiscordPermissionMessage,
-} from "./utils";
+} from "#root/utils";
 
 // Options interface for function
 interface DeleteOptions {

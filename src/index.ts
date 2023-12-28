@@ -13,19 +13,19 @@ import childProcess from "child_process";
 import fastify, { FastifyInstance } from "fastify";
 import * as url from "url";
 
-import authRoutePlugin from "./authRoutes";
-import interactionsPlugin from "./interactions/index";
-import authPlugin from "./plugins/authentication";
-import discordRestPlugin from "./plugins/discord-rest";
-import discordRedisCachePlugin from "./plugins/discordRedis";
-import envPlugin from "./plugins/envCheck";
-import webhookAndLoggingPlugin from "./plugins/logging";
-import metricsPlugin from "./plugins/metrics";
-import permissionPlugin from "./plugins/permissions";
-import prismaPlugin from "./plugins/prisma";
-import redisRestPlugin from "./plugins/redis";
-import sessionPlugin from "./plugins/session";
-import versionOnePlugin from "./v1";
+import authRoutePlugin from "#root/authRoutes";
+import interactionsPlugin from "#root/interactions/index";
+import authPlugin from "#root/plugins/authentication";
+import discordRestPlugin from "#root/plugins/discord-rest";
+import discordRedisCachePlugin from "#root/plugins/discordRedis";
+import envPlugin from "#root/plugins/envCheck";
+import webhookAndLoggingPlugin from "#root/plugins/logging";
+import metricsPlugin from "#root/plugins/metrics";
+import permissionPlugin from "#root/plugins/permissions";
+import prismaPlugin from "#root/plugins/prisma";
+import redisRestPlugin from "#root/plugins/redis";
+import sessionPlugin from "#root/plugins/session";
+import versionOnePlugin from "#root/v1";
 
 const productionEnv = process.env.PRODUCTION === "true";
 
