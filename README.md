@@ -41,4 +41,4 @@ src - contains the source code
 .eslintrc.js - contains eslint config  
 .prettierrc.json - contains prettier config  
 .wakatime-project - contains wakatime config  
-Dockerfile - contains docker config  
+Dockerfile - contains docker config
