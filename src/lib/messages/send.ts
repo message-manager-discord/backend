@@ -167,7 +167,7 @@ async function sendMessage({
     ) {
       throw new ExpectedFailure(
         InteractionOrRequestFinalStatus.EMBED_EXCEEDS_DISCORD_LIMITS,
-        "The embed color exceeds the maximum value of 16777215."
+        "The embed color is not in the range of 0 - 16777215."
       );
     }
     // Also check if title and / or description is set on the embed

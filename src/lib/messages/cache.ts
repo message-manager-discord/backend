@@ -65,7 +65,7 @@ const saveMessageToCache = ({
     ) {
       throw new ExpectedFailure(
         InteractionOrRequestFinalStatus.EMBED_EXCEEDS_DISCORD_LIMITS,
-        "The embed color exceeds the maximum value of 16777215."
+        "The embed color is not in the range of 0 - 16777215."
       );
     }
   }
