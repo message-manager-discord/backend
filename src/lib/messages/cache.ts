@@ -59,6 +59,15 @@ const saveMessageToCache = ({
         "The embed exceeds one or more of limits on embeds."
       );
     }
+    if (
+      data.embed?.color !== undefined &&
+      (data.embed.color > 16777215 || data.embed.color < 0)
+    ) {
+      throw new ExpectedFailure(
+        InteractionOrRequestFinalStatus.EMBED_EXCEEDS_DISCORD_LIMITS,
+        "The embed color exceeds the maximum value of 16777215."
+      );
+    }
   }
   return instance.redisCache.setMessageCache(key, data);
 };

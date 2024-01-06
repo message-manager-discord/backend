@@ -161,6 +161,12 @@ async function sendMessage({
         "The embed exceeds one or more of limits on embeds."
       );
     }
+    if (embed?.color !== undefined && (embed.color > 16777215 || embed.color < 0)) {
+      throw new ExpectedFailure(
+        InteractionOrRequestFinalStatus.EMBED_EXCEEDS_DISCORD_LIMITS,
+        "The embed color exceeds the maximum value of 16777215."
+      );
+    }
     // Also check if title and / or description is set on the embed
     // Also a discord restriction
     if (embed.title === undefined && embed.description === undefined) {
