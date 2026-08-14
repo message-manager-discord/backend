@@ -37,7 +37,7 @@ export default class WebhookManager {
   private async _updateStoredWebhook(
     channelId: Snowflake,
     guildId: Snowflake,
-    webhook: MinimalWebhook
+    webhook: MinimalWebhook,
   ): Promise<void> {
     await this._instance.prisma.channel.upsert({
       where: { id: BigInt(channelId) },
@@ -63,7 +63,7 @@ export default class WebhookManager {
   // Delete the webhook from the database
   private _removeStoredWebhook(
     channelId: Snowflake,
-    guildId: Snowflake
+    guildId: Snowflake,
   ): Promise<unknown> {
     return this._instance.prisma.channel.upsert({
       where: { id: BigInt(channelId) },
@@ -88,19 +88,19 @@ export default class WebhookManager {
   // Fetch an existing webhook owned by the bot
   private async _getWebhookFromDiscord(
     channelId: Snowflake,
-    guildId: Snowflake
+    guildId: Snowflake,
   ): Promise<MinimalWebhook> {
     let webhooks: RESTGetAPIChannelWebhooksResult;
     try {
       webhooks = (await this._instance.restClient.get(
-        Routes.channelWebhooks(channelId)
+        Routes.channelWebhooks(channelId),
       )) as RESTGetAPIChannelWebhooksResult;
     } catch (error) {
       if (error instanceof DiscordAPIError) {
         if (error.code === 403 || error.code === 50013) {
           throw new ExpectedFailure(
             InteractionOrRequestFinalStatus.BOT_MISSING_DISCORD_PERMISSION,
-            "Missing the permission `MANAGE_WEBHOOKS` on that channel"
+            "Missing the permission `MANAGE_WEBHOOKS` on that channel",
           );
         }
         throw error;
@@ -110,7 +110,7 @@ export default class WebhookManager {
     // Filter webhooks by application id, they must match the DISCORD_CLIENT_ID variable
     // This is because we only care about the webhooks created by this application
     const filteredWebhooks = webhooks.filter(
-      (webhook) => webhook.application_id === process.env.DISCORD_CLIENT_ID
+      (webhook) => webhook.application_id === process.env.DISCORD_CLIENT_ID,
     );
     // Get the existing webhook id from the database. Just incase the webhook still exists, but the token has been lost
     // This is because the same webhook should be used if possible so messages can be edited
@@ -121,7 +121,7 @@ export default class WebhookManager {
     });
     // then check if any of the webhooks returned by the api match the stored webhook id
     const existingWebhook = filteredWebhooks.find(
-      (webhook) => webhook.id === storedChannel?.webhookId?.toString()
+      (webhook) => webhook.id === storedChannel?.webhookId?.toString(),
     );
     // if the webhook is found, and it has a token, return it
     if (existingWebhook && existingWebhook.token !== undefined) {
@@ -136,7 +136,7 @@ export default class WebhookManager {
     }
     // Otherwise use the first webhook that matches the application id, and token is not null
     const firstWebhook = filteredWebhooks.find(
-      (webhook) => webhook.token !== undefined
+      (webhook) => webhook.token !== undefined,
     );
 
     if (firstWebhook && firstWebhook.token !== undefined) {
@@ -158,7 +158,7 @@ export default class WebhookManager {
   // Create a webhook owned by the bot
   private async _createWebhook(
     channelId: Snowflake,
-    guildId: Snowflake
+    guildId: Snowflake,
   ): Promise<MinimalWebhook> {
     let webhook: RESTPostAPIChannelWebhookResult;
     try {
@@ -168,7 +168,7 @@ export default class WebhookManager {
           body: {
             name: "Message Manager Logging",
           },
-        }
+        },
       )) as RESTPostAPIChannelWebhookResult;
     } catch (error) {
       if (error instanceof DiscordAPIError) {
@@ -178,7 +178,7 @@ export default class WebhookManager {
         ) {
           throw new UnexpectedFailure(
             InteractionOrRequestFinalStatus.BOT_MISSING_DISCORD_PERMISSION,
-            "Missing the permission `MANAGE_WEBHOOKS` on that channel"
+            "Missing the permission `MANAGE_WEBHOOKS` on that channel",
           );
         }
         throw error;
@@ -189,7 +189,7 @@ export default class WebhookManager {
     if (webhook.token === undefined) {
       throw new UnexpectedFailure(
         InteractionOrRequestFinalStatus.CREATE_WEBHOOK_RESULT_MISSING_TOKEN,
-        "Webhook token is not defined"
+        "Webhook token is not defined",
       );
     }
     await this._updateStoredWebhook(channelId, guildId, {
@@ -208,7 +208,7 @@ export default class WebhookManager {
   // This is designed with the intention to keep the same webhook being used for the same channel for as long as possible
   public async getWebhook(
     channelId: Snowflake,
-    guildId: Snowflake
+    guildId: Snowflake,
   ): Promise<MinimalWebhook> {
     const storedChannel = await this._instance.prisma.channel.findUnique({
       where: { id: BigInt(channelId) },
@@ -230,7 +230,7 @@ export default class WebhookManager {
     channelId: Snowflake,
     guildId: Snowflake,
     data: RESTPostAPIWebhookWithTokenJSONBody,
-    files?: RawFile[]
+    files?: RawFile[],
   ): Promise<APIMessage> {
     const webhook = await this.getWebhook(channelId, guildId);
     try {
@@ -240,7 +240,7 @@ export default class WebhookManager {
           body: data,
           files,
           query: new URLSearchParams({ wait: "true" }),
-        }
+        },
       )) as RESTPostAPIWebhookWithTokenWaitResult;
       return message;
     } catch (error) {

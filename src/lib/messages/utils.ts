@@ -31,17 +31,17 @@ const getGuildChannelHandleErrors = async ({
     if (e instanceof GuildNotFound) {
       throw new ExpectedPermissionFailure(
         InteractionOrRequestFinalStatus.BOT_MISSING_DISCORD_SCOPE,
-        `Guild ${guild.id} not cached. This is likely due to the bot missing the \`bot\` scope. Please reinvite the bot to fix this.`
+        `Guild ${guild.id} not cached. This is likely due to the bot missing the \`bot\` scope. Please reinvite the bot to fix this.`,
       );
     } else if (e instanceof GuildUnavailable) {
       throw new UnexpectedFailure(
         InteractionOrRequestFinalStatus.GUILD_UNAVAILABLE_BUT_SENDING_INTERACTIONS,
-        `Guild ${guild.id} is unavailable. This is likely due to the bot being offline. Please try again later, and if this error persists, please contact the bot developers.`
+        `Guild ${guild.id} is unavailable. This is likely due to the bot being offline. Please try again later, and if this error persists, please contact the bot developers.`,
       );
     } else if (e instanceof ChannelNotFound) {
       throw new ExpectedPermissionFailure(
         InteractionOrRequestFinalStatus.BOT_MISSING_DISCORD_PERMISSION,
-        `Channel ${channelId} not cached. This is likely due to the bot missing the \`VIEW_CHANNELS\` permission. Please make sure the bot has the correct permissions in that channel.`
+        `Channel ${channelId} not cached. This is likely due to the bot missing the \`VIEW_CHANNELS\` permission. Please make sure the bot has the correct permissions in that channel.`,
       );
     } else {
       throw e;
@@ -51,7 +51,7 @@ const getGuildChannelHandleErrors = async ({
     throw new ExpectedPermissionFailure(
       InteractionOrRequestFinalStatus.BOT_MISSING_DISCORD_PERMISSION,
       `Channel ${channelId} not cached. This is likely due to the bot missing the \`VIEW_CHANNELS\` permission. Please make sure the bot has the correct permissions in that channel.` +
-        "\nIf this channel is a thread, this could also be due to the bot either not having access to the thread, or the thread being archived. Please @mention the bot to fix this, if that is the case."
+        "\nIf this channel is a thread, this could also be due to the bot either not having access to the thread, or the thread being archived. Please @mention the bot to fix this, if that is the case.",
     );
   }
   return channel;
@@ -61,7 +61,7 @@ const getGuildChannelHandleErrors = async ({
 const missingDiscordPermissionMessage = (
   entity: string,
   permission: string | string[],
-  channelId: string | null
+  channelId: string | null,
 ) =>
   `${entity} missing the required permission${
     typeof permission === "string"
@@ -74,12 +74,12 @@ const missingDiscordPermissionMessage = (
 // Use above function to generate a message for missing permissions
 const missingUserDiscordPermissionMessage = (
   permission: string | string[],
-  channelId: string | null
+  channelId: string | null,
 ) => missingDiscordPermissionMessage("You are", permission, channelId);
 
 const missingBotDiscordPermissionMessage = (
   permission: string | string[],
-  channelId: string | null
+  channelId: string | null,
 ) => missingDiscordPermissionMessage("The bot is", permission, channelId);
 export {
   getGuildChannelHandleErrors,

@@ -8,7 +8,7 @@ const rootPlugin = async (instance: FastifyInstance) => {
     { preHandler: instance.auth([instance.requireAuthentication]) },
     async function (request, reply) {
       return { userId: request.user?.userId };
-    }
+    },
   );
 };
 

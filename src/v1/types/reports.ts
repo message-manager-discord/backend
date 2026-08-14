@@ -46,10 +46,10 @@ const ReportMessageModel = Type.Object(
         examples: ["123456789012345678"],
         description:
           "The ID of the user who sent the message, if the message was sent by staff (anonymous). (only sent when requesting user is staff)",
-      })
+      }),
     ),
   },
-  { $id: "models.reportMessage" }
+  { $id: "models.reportMessage" },
 );
 
 type ReportMessageModelType = Static<typeof ReportMessageModel>;
@@ -89,7 +89,7 @@ const ReportModel = Type.Object(
     reason: Type.String({ examples: ["Hello world"] }),
     reporting_user_id: Type.String({ examples: ["123456789012345678"] }),
     assigned_staff_id: Type.Optional(
-      Type.String({ examples: ["123456789012345678"] })
+      Type.String({ examples: ["123456789012345678"] }),
     ),
     guild_id: Type.String({ examples: ["123456789012345678"] }),
     messages: Type.Array(ReportMessageModel),
@@ -97,7 +97,7 @@ const ReportModel = Type.Object(
     updated_at: Type.String({ examples: ["2021-01-01T00:00:00.000Z"] }),
     guild_data: Type.Object({
       icon: Type.Optional(
-        Type.String({ examples: ["b09d7fd2ec0f27e29d000f4fd62d8ea5"] })
+        Type.String({ examples: ["b09d7fd2ec0f27e29d000f4fd62d8ea5"] }),
       ),
       name: Type.Optional(Type.String({ examples: ["Example"] })),
       past_warning_count: Type.Optional(Type.Number({ examples: [0] })), // Staff Only
@@ -109,7 +109,7 @@ const ReportModel = Type.Object(
       content: Type.Optional(Type.String({ examples: ["Hello world"] })),
       embed: Type.Optional(EmbedModel),
       author_id: Type.Optional(
-        Type.String({ examples: ["123456789012345678"] })
+        Type.String({ examples: ["123456789012345678"] }),
       ), // Staff Only
       created_at: Type.String({ examples: ["2021-01-01T00:00:00.000Z"] }),
       edit_count: Type.Optional(Type.Number({ examples: [0] })), // Staff Only
@@ -117,7 +117,7 @@ const ReportModel = Type.Object(
     other_reports_on_same_message: Type.Optional(Type.Array(Type.String())), // Staff Only
     staff_view: Type.Boolean(), // True if staff only values are set
   },
-  { $id: "models.report" }
+  { $id: "models.report" },
 );
 
 type ReportModelType = Static<typeof ReportModel>;
@@ -131,12 +131,12 @@ const ReportListingModel = Type.Object(
         status: ReportStatusEnum,
         reporting_user_id: Type.String({ examples: ["123456789012345678"] }),
         assigned_staff_id: Type.Optional(
-          Type.String({ examples: ["123456789012345678"] })
+          Type.String({ examples: ["123456789012345678"] }),
         ),
         guild_id: Type.String({ examples: ["123456789012345678"] }),
         guild_data: Type.Object({
           icon: Type.Optional(
-            Type.String({ examples: ["b09d7fd2ec0f27e29d000f4fd62d8ea5"] })
+            Type.String({ examples: ["b09d7fd2ec0f27e29d000f4fd62d8ea5"] }),
           ),
           name: Type.Optional(Type.String({ examples: ["Example"] })),
         }),
@@ -144,12 +144,12 @@ const ReportListingModel = Type.Object(
         updated_at: Type.String({ examples: ["2021-01-01T00:00:00.000Z"] }),
 
         message_count: Type.Number({ examples: [1] }), // The value changes depending on if the user is staff or not
-      })
+      }),
     ),
     report_count: Type.Number({ examples: [1] }),
     skipped: Type.Number({ examples: [0] }),
   },
-  { $id: "models.reportList" }
+  { $id: "models.reportList" },
 );
 
 type ReportListingModelType = Static<typeof ReportListingModel>;
@@ -163,7 +163,7 @@ const ReportSurroundingContextModel = Type.Object(
     edited_at: Type.String({ examples: ["2021-01-01T00:00:00.000Z"] }),
     more: Type.Boolean({ examples: [false] }),
   },
-  { $id: "models.reportSurroundingContext" }
+  { $id: "models.reportSurroundingContext" },
 );
 
 type ReportSurroundingContextModel = Static<
@@ -178,7 +178,7 @@ const ReportMessageHistoryModel = Type.Object(
     acting_user_id: Type.String({ examples: ["123456789012345678"] }),
     edited_at: Type.String({ examples: ["2021-01-01T00:00:00.000Z"] }),
   },
-  { $id: "models.reportMessageHistory" }
+  { $id: "models.reportMessageHistory" },
 );
 
 type ReportMessageHistoryModelType = Static<typeof ReportMessageHistoryModel>;
@@ -190,7 +190,7 @@ const ReportMessageHistoryResponse = Type.Object(
   },
   {
     $id: "models.reportMessageHistoryResponse",
-  }
+  },
 );
 
 type ReportMessageHistoryResponseType = Static<

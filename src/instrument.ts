@@ -4,7 +4,8 @@ import "dotenv/config";
 import * as url from "url";
 
 // __dirname is not available in ESM modules; compute directory from import.meta.url
-const rootDir = url.fileURLToPath(new URL(".", import.meta.url)) || process.cwd();
+const rootDir =
+  url.fileURLToPath(new URL(".", import.meta.url)) || process.cwd();
 const gitRevision = process.env.GIT_REVISION; // TODO Fix
 
 Sentry.init({

@@ -16,9 +16,9 @@ type ArgType = Array<string | number>;
 class RedisCache {
   private _client: any;
   constructor(host: string, port: number) {
-  // ioredis typings can be awkward with ESM interop across Node/TS versions;
-  // cast to any to avoid construct signature mismatches at build time.
-  this._client = new (Redis as any)(port, host);
+    // ioredis typings can be awkward with ESM interop across Node/TS versions;
+    // cast to any to avoid construct signature mismatches at build time.
+    this._client = new (Redis as any)(port, host);
   }
 
   // Add logging to sending the redis command

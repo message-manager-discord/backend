@@ -7,7 +7,7 @@ interface InternalInteractionType<Interaction> {
 }
 
 const createInternalInteraction = <Interaction>(
-  interaction: Interaction
+  interaction: Interaction,
 ): InternalInteractionType<Interaction> => {
   return {
     responded: false,
