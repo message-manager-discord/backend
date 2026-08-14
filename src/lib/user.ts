@@ -9,7 +9,7 @@ import {
 
 const getUserData = async (
   userId: Snowflake,
-  instance: FastifyInstance
+  instance: FastifyInstance,
 ): Promise<{
   avatar: string | null;
   username: string;
@@ -47,7 +47,7 @@ const getUserData = async (
   if (user === undefined) {
     // Fetch user from discord API
     user = (await instance.restClient.get(
-      Routes.user(userId)
+      Routes.user(userId),
     )) as RESTGetAPIUserResult;
   }
   // Store hash in cache

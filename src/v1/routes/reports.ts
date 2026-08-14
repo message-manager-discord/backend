@@ -103,7 +103,7 @@ const ActionReportBody = Type.Object({
     Type.Object({
       id: Type.String(),
       length: Type.Optional(Type.Number()),
-    })
+    }),
   ),
   delete_message: Type.Boolean(),
   warning: Type.Boolean(),
@@ -133,7 +133,7 @@ const verifyId = (id: string): true => {
 const reportPlugin = async (instance: FastifyInstance) => {
   instance.addHook(
     "preHandler",
-    instance.auth([instance.requireAuthentication])
+    instance.auth([instance.requireAuthentication]),
   );
 
   // Get Reports
@@ -195,7 +195,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
         skip,
         staff: user.staff,
       });
-    }
+    },
   );
 
   // Create Report
@@ -241,7 +241,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
         userId: user.userId,
         staff: user.staff,
       });
-    }
+    },
   );
   // Get Report
   instance.get<{ Params: ReportParamsType; Reply: ReportModelType }>(
@@ -291,7 +291,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
         staff,
         reportId: id,
       });
-    }
+    },
   );
   // Get Message Can Report
   instance.get<{
@@ -327,7 +327,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
         (await checkMessageCanBeReported(channel_id, message_id, instance)) !==
         false
       );
-    }
+    },
   );
 
   // Create Report Messages
@@ -385,7 +385,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
         content: body.content,
         staffOnly: body.staff_only,
       });
-    }
+    },
   );
 
   // Get Report Message
@@ -440,7 +440,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
         reportId: id,
         messageId: message_id,
       });
-    }
+    },
   );
 
   // Assign report
@@ -503,7 +503,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
         assignedUserId: assigned_staff_id,
         adminUser: !!user.admin,
       });
-    }
+    },
   );
 
   instance.post<{
@@ -559,7 +559,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
         messageToReportingUser: message_to_reporting_user,
         closeStatus: status,
       });
-    }
+    },
   );
 
   instance.post<{
@@ -618,7 +618,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
         shouldDeleteMessage: request.body.delete_message,
       });
       return report;
-    }
+    },
   );
 
   instance.get<{
@@ -677,7 +677,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
         limit,
         user,
       });
-    }
+    },
   );
 };
 

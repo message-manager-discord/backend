@@ -96,7 +96,7 @@ class CustomError extends Error {
   constructor(
     status: InteractionOrRequestFinalStatus,
     message: string,
-    components: APIMessageComponent[] = []
+    components: APIMessageComponent[] = [],
   ) {
     super(message);
     this.status = status;

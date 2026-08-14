@@ -70,13 +70,13 @@ const UsableInternalPermissions: readonly InternalPermission[] = Object.freeze([
 
 // Array of all permissions that are valid
 const UsableInternalPermissionValues = Object.freeze(
-  UsableInternalPermissions.map((permission) => permission.value)
+  UsableInternalPermissions.map((permission) => permission.value),
 );
 
 // Combine all permissions using bitwise or (=|) (bitflag has all permissions set)
 const AllInternalPermissions = Object.values(InternalPermissions).reduce(
   (permissions: number, permission: number) => permissions | permission,
-  InternalPermissions.NONE
+  InternalPermissions.NONE,
 );
 
 // Map of permission names to values - to be used to lookup from either way
@@ -98,7 +98,7 @@ const getInternalPermissionByValue = (value: number): string | undefined => {
 };
 
 const parseInternalPermissionValuesToStringNames = (
-  permissions: number[] | readonly number[]
+  permissions: number[] | readonly number[],
 ): string[] => {
   const parsed = permissions.map((permission) => {
     const permissionString = getInternalPermissionByValue(permission);
@@ -125,7 +125,7 @@ const getAllPermissionsInValue = (permission: number): number[] => {
 // Same as above but then gets names
 const getAllPermissionsAsNameInValue = (permission: number): string[] => {
   return parseInternalPermissionValuesToStringNames(
-    getAllPermissionsInValue(permission)
+    getAllPermissionsInValue(permission),
   );
 };
 
