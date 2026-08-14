@@ -1,20 +1,22 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
-  "display": "Node 16",
 
   "compilerOptions": {
-  "module": "nodenext",
-    "target": "es2021",
+    "lib": ["es2025"],
+    "target": "es2025",
+
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+
+    "verbatimModuleSyntax": true,
+
     "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
+
     "rootDir": "src",
-    "resolveJsonModule": true,
-  "moduleResolution": "nodenext",
-    "sourceMap": true,
     "outDir": "dist",
-    "noEmitHelpers": true,
-    "importHelpers": true
+
+    "sourceMap": true,
+
+    "resolveJsonModule": true
   }
 }
