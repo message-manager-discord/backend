@@ -13,11 +13,11 @@ import {
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 
-import { embedPink } from "../../constants";
-import { getMessageActionsPossible } from "../../lib/messages/checks";
-import { GuildSession } from "../../lib/session";
-import { addTipToEmbed } from "../../lib/tips";
-import { InteractionReturnData } from "../types";
+import { embedPink } from "../../constants.js";
+import { getMessageActionsPossible } from "../../lib/messages/checks.js";
+import { GuildSession } from "../../lib/session/index.js";
+import { addTipToEmbed } from "../../lib/tips/index.js";
+import { InteractionReturnData } from "../types.js";
 
 // Function to get the actions for a message
 const actionsLogic = async ({

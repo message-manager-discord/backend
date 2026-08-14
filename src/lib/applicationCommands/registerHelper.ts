@@ -6,13 +6,16 @@ import {
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 
-import toSetCommands from "../../discord_commands/guildAddMessage.json" assert { type: "json" };
+import toSetCommands from "../../discord_commands/guildAddMessage.json" with { type: "json" };
 async function registerAddCommand(
   guildId: Snowflake,
-  instance: FastifyInstance
+  instance: FastifyInstance,
 ) {
   const commands = (await instance.restClient.get(
-    Routes.applicationGuildCommands(instance.envVars.DISCORD_CLIENT_ID, guildId)
+    Routes.applicationGuildCommands(
+      instance.envVars.DISCORD_CLIENT_ID,
+      guildId,
+    ),
   )) as RESTGetAPIApplicationGuildCommandsResult;
   // For each command in required commands, ensure that it is already registered
   // as it's better to check and not do anything in this case
@@ -32,9 +35,9 @@ async function registerAddCommand(
     await instance.restClient.put(
       Routes.applicationGuildCommands(
         instance.envVars.DISCORD_CLIENT_ID,
-        guildId
+        guildId,
       ),
-      { body: toSetCommands }
+      { body: toSetCommands },
     );
   }
 }

@@ -7,10 +7,10 @@ import { Snowflake } from "discord-api-types/globals";
 import { APIEmbed } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 
-import { discordAPIBaseURL } from "../../constants";
-import { embedPink } from "../../constants";
-import createPermissionsEmbed from "../../interactions/shared/permissions-config";
-import { addTipToEmbed } from "../../lib/tips";
+import { discordAPIBaseURL } from "../../constants.js";
+import { embedPink } from "../../constants.js";
+import createPermissionsEmbed from "../../interactions/shared/permissions-config.js";
+import { addTipToEmbed } from "../../lib/tips/index.js";
 
 // The idea behind this is to prevent interactions from becoming outdated
 
@@ -39,7 +39,7 @@ class PermissionInteractionCache {
   private _makePermissionId(
     targetId: Snowflake, // The target of the permission editing - either a user or a role
     channelId: Snowflake, // Channel id the permission is for - if it is for guild level, then it is "none"
-    guildId: Snowflake // The guild id the permission is for
+    guildId: Snowflake, // The guild id the permission is for
   ): string {
     return `${targetId}-${channelId}-${guildId}`;
   }
@@ -118,7 +118,7 @@ class PermissionInteractionCache {
     const permissionId = this._makePermissionId(
       targetId,
       channelId ?? "none",
-      guildId
+      guildId,
     );
 
     const messageCacheId = this._makeMessageId(messageId, guildId);
@@ -132,12 +132,15 @@ class PermissionInteractionCache {
     }
 
     // Set a timeout to remove and disable the interaction after 10 mins
-    const timeoutId = setTimeout(() => {
-      void this._removeInteractionFromCacheAndDisable({
-        messageId,
-        guildId,
-      });
-    }, 10 * 60 * 1000);
+    const timeoutId = setTimeout(
+      () => {
+        void this._removeInteractionFromCacheAndDisable({
+          messageId,
+          guildId,
+        });
+      },
+      10 * 60 * 1000,
+    );
     // Save the interaction data in cache
     this._interactionCache[messageCacheId] = {
       interactionId,
@@ -154,11 +157,11 @@ class PermissionInteractionCache {
     } else {
       if (
         !this._permissionsToMessageIdMapping[permissionId].messageIds.includes(
-          messageCacheId
+          messageCacheId,
         )
       ) {
         this._permissionsToMessageIdMapping[permissionId].messageIds.push(
-          messageCacheId
+          messageCacheId,
         );
       }
     }
@@ -180,7 +183,7 @@ class PermissionInteractionCache {
     const permissionId = this._makePermissionId(
       targetId,
       channelId ?? "none",
-      guildId
+      guildId,
     );
     const messageCacheIds = this._permissionsToMessageIdMapping[permissionId];
 

@@ -8,39 +8,39 @@ import {
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 
-import { embedPink } from "../../constants";
+import { embedPink } from "../../constants.js";
 import {
   InteractionOrRequestFinalStatus,
   LimitHit,
   UnexpectedFailure,
-} from "../../errors";
+} from "../../errors.js";
 import {
   getMessageFromCache,
   MessageSavedInCache,
   splitMessageCacheKey,
-} from "../../lib/messages/cache";
-import { editMessage } from "../../lib/messages/edit";
-import { sendMessage } from "../../lib/messages/send";
-import { GuildSession } from "../../lib/session";
-import { addTipToEmbed } from "../../lib/tips";
-import { InternalInteractionType } from "../interaction";
+} from "../../lib/messages/cache.js";
+import { editMessage } from "../../lib/messages/edit.js";
+import { sendMessage } from "../../lib/messages/send.js";
+import { GuildSession } from "../../lib/session/index.js";
+import { addTipToEmbed } from "../../lib/tips/index.js";
+import { InternalInteractionType } from "../interaction.js";
 import {
   createModal,
   createTextInputWithRow,
-} from "../modals/createStructures";
-import handleMessageGenerationSelect from "../selects/message-generation";
+} from "../modals/createStructures.js";
+import handleMessageGenerationSelect from "../selects/message-generation.js";
 import {
   createEmbedMessageGenerationEmbed,
   createInitialMessageGenerationEmbed,
   CreateMessageGenerationEmbedResult,
   MessageGenerationButtonTypes,
-} from "../shared/message-generation";
-import { InteractionReturnData } from "../types";
+} from "../shared/message-generation.js";
+import { InteractionReturnData } from "../types.js";
 
 export default async function handleMessageGenerationButton(
   internalInteraction: InternalInteractionType<APIMessageComponentGuildInteraction>,
   session: GuildSession,
-  instance: FastifyInstance
+  instance: FastifyInstance,
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   const messageGenerationKey = interaction.data.custom_id.split(":")[1] as
@@ -55,7 +55,7 @@ export default async function handleMessageGenerationButton(
   ) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.COMPONENT_CUSTOM_ID_MALFORMED,
-      "No message key on message generation button"
+      "No message key on message generation button",
     );
   }
   const currentStatus = await getMessageFromCache({
@@ -84,7 +84,7 @@ export default async function handleMessageGenerationButton(
     case "embed": // 2nd level flow for embed
       returnData = createEmbedMessageGenerationEmbed(
         messageGenerationKey,
-        currentStatus
+        currentStatus,
       );
       return {
         type: InteractionResponseType.UpdateMessage,
@@ -194,7 +194,7 @@ export default async function handleMessageGenerationButton(
       if ((currentStatus.embed?.fields?.length ?? 0) >= 25) {
         throw new LimitHit(
           InteractionOrRequestFinalStatus.EMBED_EXCEEDS_DISCORD_LIMITS,
-          "Only 25 fields allowed in an embed."
+          "Only 25 fields allowed in an embed.",
         );
       }
       return createModal({
@@ -267,7 +267,7 @@ export default async function handleMessageGenerationButton(
       returnData = createInitialMessageGenerationEmbed(
         messageGenerationKey,
         currentStatus,
-        interaction.guild_id
+        interaction.guild_id,
       );
       return {
         type: InteractionResponseType.UpdateMessage,
@@ -303,13 +303,13 @@ export default async function handleMessageGenerationButton(
       return await handleMessageGenerationSelect(
         internalInteraction,
         session,
-        instance
+        instance,
       );
 
     default:
       throw new UnexpectedFailure(
         InteractionOrRequestFinalStatus.COMPONENT_CUSTOM_ID_NOT_FOUND,
-        "Invalid message generation type"
+        "Invalid message generation type",
       );
   }
 }
@@ -396,7 +396,7 @@ const handleEdit = async ({
   if (currentStatus.messageId === undefined) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.MESSAGE_ID_MISSING_ON_MESSAGE_EDIT_CACHE,
-      "Message ID missing on message edit cache"
+      "Message ID missing on message edit cache",
     );
   }
 

@@ -9,17 +9,17 @@ import {
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 
-import { getInternalPermissionByName } from "../../lib/permissions/consts";
-import { GuildSession } from "../../lib/session";
-import { InternalInteractionType } from "../interaction";
-import createPermissionsEmbed from "../shared/permissions-config";
-import { InteractionReturnData } from "../types";
+import { getInternalPermissionByName } from "../../lib/permissions/consts.js";
+import { GuildSession } from "../../lib/session/index.js";
+import { InternalInteractionType } from "../interaction.js";
+import createPermissionsEmbed from "../shared/permissions-config.js";
+import { InteractionReturnData } from "../types.js";
 
 // Function to handle the permissions editing select menu
 export default async function handleManagePermissionsSelect(
   internalInteraction: InternalInteractionType<APIMessageComponentGuildInteraction>,
   session: GuildSession,
-  instance: FastifyInstance
+  instance: FastifyInstance,
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   const customIdData = interaction.data.custom_id.split(":");
@@ -43,7 +43,7 @@ export default async function handleManagePermissionsSelect(
     const selectMenu = interaction.message.components?.[0].components.find(
       (component) =>
         component.type === ComponentType.StringSelect &&
-        component.custom_id === interaction.data.custom_id
+        component.custom_id === interaction.data.custom_id,
     ) as APIStringSelectComponent;
 
     const options = selectMenu.options;
@@ -78,7 +78,7 @@ export default async function handleManagePermissionsSelect(
     const selectMenu = interaction.message.components?.find(
       (component) =>
         component.components[0].type === ComponentType.StringSelect &&
-        component.components[0].custom_id === interaction.data.custom_id
+        component.components[0].custom_id === interaction.data.custom_id,
     )?.components[0] as APIStringSelectComponent; // Find select menu data in interaction data
     const options = selectMenu.options;
     for (const option of options) {
@@ -124,7 +124,7 @@ export default async function handleManagePermissionsSelect(
     const selectMenu = interaction.message.components?.find(
       (component) =>
         component.components[0].type === ComponentType.SelectMenu &&
-        component.components[0].custom_id === interaction.data.custom_id
+        component.components[0].custom_id === interaction.data.custom_id,
     )?.components[0] as APIStringSelectComponent;
     const options = selectMenu.options;
     for (const option of options) {

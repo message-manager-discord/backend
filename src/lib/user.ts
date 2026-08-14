@@ -5,7 +5,7 @@ import { FastifyInstance } from "fastify";
 import {
   ExpectedOauth2Failure,
   InteractionOrRequestFinalStatus,
-} from "../errors";
+} from "../errors.js";
 
 const getUserData = async (
   userId: Snowflake,

@@ -3,11 +3,14 @@ import { Message } from "@prisma/client";
 import { APIMessage, Snowflake } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 
-import { ExpectedFailure, InteractionOrRequestFinalStatus } from "../../errors";
-import { registerAddCommand } from "../applicationCommands/registerHelper";
-import { InternalPermissions } from "../permissions/consts";
-import { GuildSession } from "../session";
-import { requiredPermissionsEdit } from "./consts";
+import {
+  ExpectedFailure,
+  InteractionOrRequestFinalStatus,
+} from "../../errors.js";
+import { registerAddCommand } from "../applicationCommands/registerHelper.js";
+import { InternalPermissions } from "../permissions/consts.js";
+import { GuildSession } from "../session/index.js";
+import { requiredPermissionsEdit } from "./consts.js";
 
 // Some options for functions
 interface GetMessageActionsPossibleOptions {
@@ -50,7 +53,7 @@ async function checkIfMessageExistsAndHandleAdding({
       // If guild has not had command registered, register it
       if (
         !(await instance.redisCache.getGuildMigrationCommandRegistered(
-          session.guildId
+          session.guildId,
         ))
       ) {
         await registerAddCommand(session.guildId, instance);
@@ -58,7 +61,7 @@ async function checkIfMessageExistsAndHandleAdding({
         // If they do not tell them to ask someone who does to add the message
         const userHasSendMessagePermission = await session.hasBotPermissions(
           InternalPermissions.SEND_MESSAGES,
-          message.channel_id
+          message.channel_id,
         );
         throw new ExpectedFailure(
           InteractionOrRequestFinalStatus.MESSAGE_NOT_FOUND_IN_DATABASE_MIGRATION_POSSIBLE,
@@ -66,14 +69,14 @@ async function checkIfMessageExistsAndHandleAdding({
             userHasSendMessagePermission.allPresent
               ? 'Try using the "Add Message" context menu command or the `/add-message` slash command'
               : "Ask someone who has the send messages bot permission to add this message"
-          } (for more info check out \`/info migration\`)`
+          } (for more info check out \`/info migration\`)`,
         );
       }
     }
     // If migration not eligible - or message not sent by bot, throw error
     throw new ExpectedFailure(
       InteractionOrRequestFinalStatus.MESSAGE_NOT_FOUND_IN_DATABASE,
-      "That message was not sent via the bot!"
+      "That message was not sent via the bot!",
     );
   }
 }
@@ -84,13 +87,13 @@ const checkDatabaseMessage = (message: Message | null): message is Message => {
   if (!message) {
     throw new ExpectedFailure(
       InteractionOrRequestFinalStatus.MESSAGE_NOT_FOUND_IN_DATABASE,
-      "That message was not sent via the bot!"
+      "That message was not sent via the bot!",
     );
   }
   if (message.deleted) {
     throw new ExpectedFailure(
       InteractionOrRequestFinalStatus.MESSAGE_DELETED_DURING_ACTION,
-      "That message was deleted during this action. Please dismiss all related messages."
+      "That message was deleted during this action. Please dismiss all related messages.",
     );
   }
   return true;
@@ -124,13 +127,13 @@ async function getMessageActionsPossible({
   const botHasViewChannel = (
     await session.botHasDiscordPermissions(
       requiredPermissionsEdit,
-      message.channel_id
+      message.channel_id,
     )
   ).allPresent;
   const userHasViewChannel = (
     await session.hasDiscordPermissions(
       requiredPermissionsEdit,
-      message.channel_id
+      message.channel_id,
     )
   ).allPresent;
   const botAndUserHaveViewChannel = botHasViewChannel && userHasViewChannel;
@@ -139,13 +142,13 @@ async function getMessageActionsPossible({
   const hasEdit = (
     await session.hasBotPermissions(
       InternalPermissions.EDIT_MESSAGES,
-      message.channel_id
+      message.channel_id,
     )
   ).allPresent;
   const hasDelete = (
     await session.hasBotPermissions(
       InternalPermissions.DELETE_MESSAGES,
-      message.channel_id
+      message.channel_id,
     )
   ).allPresent;
 

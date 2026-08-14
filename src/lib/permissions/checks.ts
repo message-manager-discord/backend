@@ -1,4 +1,4 @@
-import { GuildSession } from "../session";
+import { GuildSession } from "../session/index.js";
 
 // Wrapper around gateway logic for comparing role positions
 // Role positions are important as users must have a higher role than another user to be able

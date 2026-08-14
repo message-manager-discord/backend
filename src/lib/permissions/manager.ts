@@ -10,16 +10,16 @@ import { Snowflake } from "discord-api-types/globals";
 import { FastifyInstance } from "fastify";
 import { Guild } from "redis-discord-cache";
 
-import { DiscordPermissions } from "../../consts";
+import { DiscordPermissions } from "../../consts.js";
 import {
   ExpectedPermissionFailure,
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
-} from "../../errors";
-import { ActionType, createLoggingEmbed } from "../logging/embed";
-import { GuildSession } from "../session";
-import { getParentIdIfParentIdExists } from "./channel";
-import { checkIfRoleIsBelowUsersHighestRole } from "./checks";
+} from "../../errors.js";
+import { ActionType, createLoggingEmbed } from "../logging/embed.js";
+import { GuildSession } from "../session/index.js";
+import { getParentIdIfParentIdExists } from "./channel.js";
+import { checkIfRoleIsBelowUsersHighestRole } from "./checks.js";
 import {
   AllInternalPermissions,
   getAllPermissionsAsNameInValue,
@@ -27,18 +27,18 @@ import {
   InternalPermissions,
   parseInternalPermissionValuesToStringNames,
   UsableInternalPermissionValues,
-} from "./consts";
-import PermissionInteractionCache from "./interactionCache";
+} from "./consts.js";
+import PermissionInteractionCache from "./interactionCache.js";
 import {
   BotPermissionResult,
   ChannelPermissionData,
   GuildPermissionData,
   PermissionAllowAndDenyData,
-} from "./types";
+} from "./types.js";
 import {
   checkDiscordPermissionValue,
   checkInternalPermissionValue,
-} from "./utils";
+} from "./utils.js";
 class PermissionManager {
   private _prisma: PrismaClient;
   public interactionCacheManager: PermissionInteractionCache;
@@ -50,7 +50,7 @@ class PermissionManager {
   // For comparing permissions after they've changed - used in logging and success messages
   private _getPermissionsDifference(
     before: number,
-    after: number
+    after: number,
   ): { removed: number; added: number } {
     // use bitfield flags to compare and show what has changed
     const added = after & ~before;
@@ -75,24 +75,24 @@ class PermissionManager {
     // Handles both add and remove
     const difference = this._getPermissionsDifference(
       oldPermissions,
-      newPermissions
+      newPermissions,
     );
     const added = getAllPermissionsAsNameInValue(difference.added).filter(
-      (value) => value !== "NONE"
+      (value) => value !== "NONE",
     );
     const removed = getAllPermissionsAsNameInValue(difference.removed).filter(
-      (value) => value !== "NONE"
+      (value) => value !== "NONE",
     );
     // Generate text for permissions
     let description = `The permissions for role <@&${roleId}> have been updated`;
     if (added.length > 0) {
       description += `\n✅ The following permissions have been allowed: \`${added.join(
-        "`, `"
+        "`, `",
       )}\``;
     }
     if (removed.length > 0) {
       description += `\n❌ The following permissions have been removed: \`${removed.join(
-        "`, `"
+        "`, `",
       )}\``;
     }
     if (added.length === 0 && removed.length === 0) {
@@ -135,11 +135,11 @@ class PermissionManager {
     // Any permission that was previously in allow or denied but now in neither is consider reset, and now will be inherited
     const allowDifference = this._getPermissionsDifference(
       allowBefore,
-      allowAfter
+      allowAfter,
     );
     const denyDifference = this._getPermissionsDifference(
       denyBefore,
-      denyAfter
+      denyAfter,
     );
     // Use AllInternalPermissions to loop over all differences, and then sort them into respective arrays
     const allowed: number[] = [];
@@ -198,7 +198,7 @@ class PermissionManager {
 
   // Get the permissions for roles and users on a guild
   async getAllGuildPermissions(
-    guildId: Snowflake
+    guildId: Snowflake,
   ): Promise<GuildPermissionData | null> {
     const guild = await this._prisma.guild.findUnique({
       where: { id: BigInt(guildId) },
@@ -212,7 +212,7 @@ class PermissionManager {
 
   // Get the permissions for a role on a guild
   async getAllChannelPermissions(
-    channelId: Snowflake
+    channelId: Snowflake,
   ): Promise<ChannelPermissionData | null> {
     const channel = await this._prisma.channel.findUnique({
       where: { id: BigInt(channelId) },
@@ -227,7 +227,7 @@ class PermissionManager {
   // Get all channels on a guild that has a permission set to anything more than NONE
   // Used to display what channels have permissions set (in a tip like message)
   public async getChannelsWithPermissions(
-    guildId: Snowflake
+    guildId: Snowflake,
   ): Promise<Snowflake[]> {
     let channels = await this._prisma.channel.findMany({
       where: {
@@ -241,13 +241,13 @@ class PermissionManager {
       if (!channel.permissions) return false;
       // Return true if at any level there is any permission set to anything other than NONE
       for (const permission of Object.values(
-        (channel.permissions as unknown as ChannelPermissionData).roles
+        (channel.permissions as unknown as ChannelPermissionData).roles,
       )) {
         if (permission.allow !== InternalPermissions.NONE) return true;
         if (permission.deny !== InternalPermissions.NONE) return true;
       }
       for (const permission of Object.values(
-        (channel.permissions as unknown as ChannelPermissionData).users
+        (channel.permissions as unknown as ChannelPermissionData).users,
       )) {
         if (permission.allow !== InternalPermissions.NONE) return true;
         if (permission.deny !== InternalPermissions.NONE) return true;
@@ -261,7 +261,7 @@ class PermissionManager {
   // Get all users / roles with permissions set on a guild - used to display what users / roles have permissions set
   // when listing permissions
   public async getEntitiesWithPermissions(
-    guildId: Snowflake
+    guildId: Snowflake,
   ): Promise<{ users: Snowflake[]; roles: Snowflake[] }> {
     const guildPermissions = await this.getAllGuildPermissions(guildId);
     const permissions = this._parseAndFixBasePermissionData(guildPermissions);
@@ -286,7 +286,7 @@ class PermissionManager {
   // Get all users / roles with permissions set for a channel
   // used to display what users / roles have permissions set when listing permissions
   public async getChannelEntitiesWithPermissions(
-    channelId: Snowflake
+    channelId: Snowflake,
   ): Promise<{ users: Snowflake[]; roles: Snowflake[] }> {
     const channelPermissions = await this.getAllChannelPermissions(channelId);
     const permissions = this._parseAndFixBasePermissionData(channelPermissions);
@@ -314,7 +314,7 @@ class PermissionManager {
   private async _calculateGuildPermissions(
     userId: Snowflake,
     userRoles: Snowflake[],
-    guildId: Snowflake
+    guildId: Snowflake,
   ): Promise<number> {
     // This doesn't include a check for discord administrator permission, as that should only be done once (in the case of calculating channel permissions)
     // This private function is also used for channel permissions
@@ -327,7 +327,7 @@ class PermissionManager {
         if (!rolePermissions) return permissions;
         return permissions | rolePermissions;
       },
-      InternalPermissions.NONE
+      InternalPermissions.NONE,
     );
     const userPermissionData = guildPermissions.users[userId] as
       | PermissionAllowAndDenyData
@@ -350,17 +350,17 @@ class PermissionManager {
   public async getGuildPermissions(
     userId: Snowflake,
     userRoles: Snowflake[],
-    guild: Guild
+    guild: Guild,
   ): Promise<number> {
     // First check if the user is a discord administrator
     const userPermissions = await guild.calculateGuildPermissions(
       userId,
-      userRoles
+      userRoles,
     );
     if (
       checkDiscordPermissionValue(
         userPermissions,
-        DiscordPermissions.ADMINISTRATOR
+        DiscordPermissions.ADMINISTRATOR,
       )
     ) {
       // Admins (discord wise) have all permissions
@@ -374,18 +374,18 @@ class PermissionManager {
     userId: Snowflake,
     userRoles: Snowflake[],
     guild: Guild,
-    channelId: Snowflake
+    channelId: Snowflake,
   ): Promise<number> {
     // First check if the user is a discord administrator
 
     const userPermissions = await guild.calculateGuildPermissions(
       userId,
-      userRoles
+      userRoles,
     );
     if (
       checkDiscordPermissionValue(
         userPermissions,
-        DiscordPermissions.ADMINISTRATOR
+        DiscordPermissions.ADMINISTRATOR,
       )
     ) {
       // Admins (discord wise) have all permissions
@@ -394,19 +394,18 @@ class PermissionManager {
     const guildPermissions = await this._calculateGuildPermissions(
       userId,
       userRoles,
-      guild.id
+      guild.id,
     );
     let total = guildPermissions;
 
     // Ensure that the channel being checked is not a thread, and if it is, check on the parent channel instead
     const channelIdOrParentId = await getParentIdIfParentIdExists(
       channelId,
-      guild
+      guild,
     );
 
-    const channelPermissions = await this.getAllChannelPermissions(
-      channelIdOrParentId
-    );
+    const channelPermissions =
+      await this.getAllChannelPermissions(channelIdOrParentId);
     if (!channelPermissions) {
       return guildPermissions;
     }
@@ -420,7 +419,7 @@ class PermissionManager {
           return permissions;
         return permissions | rolePermissions.deny;
       },
-      InternalPermissions.NONE
+      InternalPermissions.NONE,
     );
     const channelRoleAllowPermissions = userRoles.reduce(
       (permissions: number, roleId: Snowflake) => {
@@ -429,7 +428,7 @@ class PermissionManager {
           return permissions;
         return permissions | rolePermissions.allow;
       },
-      InternalPermissions.NONE
+      InternalPermissions.NONE,
     );
     // Permissions are the guild level, excluding the channel role deny, including the channel role allow
     total &= ~channelRoleDenyPermissions;
@@ -453,7 +452,7 @@ class PermissionManager {
   // Comparing two bitfields / a bitfield and an array of bitfields
   private _hasPermissions(
     userPermission: number,
-    permissions: number | number[]
+    permissions: number | number[],
   ): BotPermissionResult {
     if (typeof permissions === "number") {
       if ((userPermission & permissions) === permissions) {
@@ -500,7 +499,7 @@ class PermissionManager {
     userRoles: Snowflake[],
     guild: Guild,
     permissions: number | number[],
-    channelId?: Snowflake
+    channelId?: Snowflake,
   ): Promise<BotPermissionResult> {
     // If channelId set - check channel permissions, otherwise check guild permissions
     if (channelId !== undefined) {
@@ -508,14 +507,14 @@ class PermissionManager {
         userId,
         userRoles,
         guild,
-        channelId
+        channelId,
       );
       return this._hasPermissions(channelPermissions, permissions);
     } else {
       const guildPermissions = await this.getGuildPermissions(
         userId,
         userRoles,
-        guild
+        guild,
       );
       return this._hasPermissions(guildPermissions, permissions);
     }
@@ -574,16 +573,16 @@ class PermissionManager {
   // These parsing functions will ensure that the permission data is in it's full state
   // It basically just returns an empty object with roles and user's set if the input is null
   private _parseAndFixBasePermissionData(
-    permissions: GuildPermissionData | null
+    permissions: GuildPermissionData | null,
   ): GuildPermissionData;
   private _parseAndFixBasePermissionData(
-    permissions: ChannelPermissionData | null
+    permissions: ChannelPermissionData | null,
   ): ChannelPermissionData;
   private _parseAndFixBasePermissionData(
-    permissions: GuildPermissionData | ChannelPermissionData | null
+    permissions: GuildPermissionData | ChannelPermissionData | null,
   ): GuildPermissionData | ChannelPermissionData;
   private _parseAndFixBasePermissionData(
-    permissions: GuildPermissionData | ChannelPermissionData | null
+    permissions: GuildPermissionData | ChannelPermissionData | null,
   ): GuildPermissionData | ChannelPermissionData {
     if (!permissions) {
       return {
@@ -597,7 +596,7 @@ class PermissionManager {
   // Same as above - but for the role overrides - and ensures that the roleId part is set
   private _parseAndFixGuildRolePermissionData(
     permissions: GuildPermissionData | null,
-    roleId: Snowflake
+    roleId: Snowflake,
   ): GuildPermissionData {
     const fixedPermissions = this._parseAndFixBasePermissionData(permissions);
     // Could potentially be undefined
@@ -614,7 +613,7 @@ class PermissionManager {
   // Parses and ensures data is in it's full state - for the role in question
   private _parseAndFixChannelRolePermissionData(
     permissions: ChannelPermissionData | null,
-    roleId: Snowflake
+    roleId: Snowflake,
   ): ChannelPermissionData {
     const fixedPermissions = this._parseAndFixBasePermissionData(permissions);
     // Could potentially be undefined
@@ -644,15 +643,15 @@ class PermissionManager {
   // Parses and ensures data is in it's full state - for the user in question
   private _parseAndFixUserPermissionData(
     permissions: GuildPermissionData | null,
-    userId: Snowflake
+    userId: Snowflake,
   ): GuildPermissionData;
   private _parseAndFixUserPermissionData(
     permissions: ChannelPermissionData | null,
-    userId: Snowflake
+    userId: Snowflake,
   ): ChannelPermissionData;
   private _parseAndFixUserPermissionData(
     permissions: GuildPermissionData | ChannelPermissionData | null,
-    userId: Snowflake
+    userId: Snowflake,
   ): GuildPermissionData | ChannelPermissionData {
     const fixedPermissions = this._parseAndFixBasePermissionData(permissions);
     // Could potentially be undefined
@@ -692,7 +691,7 @@ class PermissionManager {
     // Ensure the permission data is setup correctly
     existingGuildPermissions = this._parseAndFixGuildRolePermissionData(
       existingGuildPermissions,
-      roleId
+      roleId,
     );
     existingGuildPermissions.roles[roleId] = permission;
     await this._setAllGuildPermissions({
@@ -719,7 +718,7 @@ class PermissionManager {
     // Ensure the permission data is setup correctly
     existingGuildPermissions = this._parseAndFixUserPermissionData(
       existingGuildPermissions,
-      userId
+      userId,
     );
     // Set the allow and deny values
     if (allow !== undefined) {
@@ -749,14 +748,13 @@ class PermissionManager {
     allow?: number;
     deny?: number;
   }): Promise<void> {
-    let existingChannelPermissions = await this.getAllChannelPermissions(
-      channelId
-    );
+    let existingChannelPermissions =
+      await this.getAllChannelPermissions(channelId);
 
     // Ensure the permission data is setup correctly
     existingChannelPermissions = this._parseAndFixChannelRolePermissionData(
       existingChannelPermissions,
-      roleId
+      roleId,
     );
     // Set the allow and deny values
     if (allow !== undefined) {
@@ -787,14 +785,13 @@ class PermissionManager {
     allow?: number;
     deny?: number;
   }): Promise<void> {
-    let existingChannelPermissions = await this.getAllChannelPermissions(
-      channelId
-    );
+    let existingChannelPermissions =
+      await this.getAllChannelPermissions(channelId);
 
     // Ensure the permission data is setup correctly
     existingChannelPermissions = this._parseAndFixUserPermissionData(
       existingChannelPermissions,
-      userId
+      userId,
     );
     // Set the allow and deny values
     if (allow !== undefined) {
@@ -813,7 +810,7 @@ class PermissionManager {
   // Fetches the role's permissions if they exist, otherwise returns permissions none value
   private _getRolePermissionFromPotentiallyUndefinedData(
     permissions: GuildPermissionData | null,
-    roleId: Snowflake
+    roleId: Snowflake,
   ): number {
     // Could potentially be undefined
     // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
@@ -844,12 +841,12 @@ class PermissionManager {
     ) {
       throw new ExpectedPermissionFailure(
         InteractionOrRequestFinalStatus.USER_ROLES_NOT_HIGH_ENOUGH,
-        "The role you are trying to manage permissions for is not below your highest role"
+        "The role you are trying to manage permissions for is not below your highest role",
       );
     }
     const permissionResult = await session.hasBotPermissions(
       InternalPermissions.MANAGE_PERMISSIONS,
-      channelId
+      channelId,
     );
     if (!permissionResult.allPresent) {
       const parsedMissingPermissions =
@@ -858,7 +855,7 @@ class PermissionManager {
         InteractionOrRequestFinalStatus.USER_MISSING_INTERNAL_BOT_PERMISSION,
         `You are missing the ${parsedMissingPermissions.join(", ")} permission${
           parsedMissingPermissions.length > 1 ? "s" : ""
-        }${channelId !== undefined ? ` on the channel <#${channelId}>` : ""}`
+        }${channelId !== undefined ? ` on the channel <#${channelId}>` : ""}`,
       );
     }
     return true;
@@ -875,7 +872,7 @@ class PermissionManager {
     const permissions = await this.getAllGuildPermissions(guildId);
     return this._getRolePermissionFromPotentiallyUndefinedData(
       permissions,
-      roleId
+      roleId,
     );
   }
 
@@ -904,7 +901,7 @@ class PermissionManager {
     const existingPermission =
       this._getRolePermissionFromPotentiallyUndefinedData(
         guildPermissions,
-        roleId
+        roleId,
       );
     const toAllow = permissionsToAllow.reduce((acc, curr) => {
       return acc | curr;
@@ -918,7 +915,7 @@ class PermissionManager {
       // This is unexpected as this shouldn't be possible with how the ui works
       throw new UnexpectedFailure(
         InteractionOrRequestFinalStatus.PERMISSIONS_CANNOT_CROSSOVER_WHEN_UPDATING,
-        "Cannot have crossover permissions on allow or deny"
+        "Cannot have crossover permissions on allow or deny",
       );
     }
     let newPermission = existingPermission;
@@ -1026,7 +1023,7 @@ class PermissionManager {
     ) {
       throw new UnexpectedFailure(
         InteractionOrRequestFinalStatus.PERMISSIONS_CANNOT_CROSSOVER_WHEN_UPDATING,
-        "Cannot have crossover permissions on allow, deny, or reset (inherit)"
+        "Cannot have crossover permissions on allow, deny, or reset (inherit)",
       );
     }
 

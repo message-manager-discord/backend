@@ -6,11 +6,12 @@ import fastifySwagger from "@fastify/swagger";
 import { FastifyInstance } from "fastify";
 import Redis from "ioredis";
 
-import internalPlugin from "./routes/internal";
-import reportPlugin from "./routes/reports";
-import rootPlugin from "./routes/rootTesting";
-import userPlugin from "./routes/user";
-import { schemas } from "./types/index";
+import internalPlugin from "./routes/internal.js";
+import reportPlugin from "./routes/reports.js";
+import rootPlugin from "./routes/rootTesting.js";
+import userPlugin from "./routes/user.js";
+import { schemas } from "./types/index.js";
+import fastifySwaggerUi from "@fastify/swagger-ui";
 
 const versionOnePlugin = async (instance: FastifyInstance) => {
   // Schema is shared 'types' for the api to validate from, for both the request and response
@@ -80,7 +81,6 @@ const versionOnePlugin = async (instance: FastifyInstance) => {
   // eslint-disable-next-line @typescript-eslint/no-floating-promises
 
   await instance.register(fastifySwagger, {
-    routePrefix: "/docs",
     openapi: {
       info: {
         title: "Message Manager API Docs",
@@ -109,9 +109,14 @@ const versionOnePlugin = async (instance: FastifyInstance) => {
         },
       ],
     },
-    uiConfig: {},
-    hideUntagged: true,
-    exposeRoute: true,
+  });
+
+  instance.register(fastifySwaggerUi, {
+    routePrefix: "/docs",
+    uiConfig: {
+      docExpansion: "full",
+      deepLinking: false,
+    },
   });
 
   instance.addHook("onRequest", instance.addAuthentication);
@@ -121,7 +126,7 @@ const versionOnePlugin = async (instance: FastifyInstance) => {
     max: 80, // 80 requests per minute
     timeWindow: 60 * 1000, // 1 minute
     cache: 10000,
-    redis: new Redis({
+    redis: new (Redis as any)({
       connectionName: "my-connection-name",
       host: instance.envVars.BACKEND_REDIS_HOST,
       port: instance.envVars.BACKEND_REDIS_PORT,

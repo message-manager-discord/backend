@@ -11,26 +11,26 @@ import {
   ExpectedFailure,
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
-} from "../../errors";
+} from "../../errors.js";
 import {
   getMessageFromCache,
   MessageSavedInCache,
   saveMessageToCache,
-} from "../../lib/messages/cache";
-import { isIsoDate } from "../../lib/messages/embeds/utils";
-import { GuildSession } from "../../lib/session";
-import { InternalInteractionType } from "../interaction";
+} from "../../lib/messages/cache.js";
+import { isIsoDate } from "../../lib/messages/embeds/utils.js";
+import { GuildSession } from "../../lib/session/index.js";
+import { InternalInteractionType } from "../interaction.js";
 import {
   createEmbedMessageGenerationEmbed,
   createInitialMessageGenerationEmbed,
   MessageGenerationButtonTypes,
-} from "../shared/message-generation";
-import { InteractionReturnData } from "../types";
+} from "../shared/message-generation.js";
+import { InteractionReturnData } from "../types.js";
 
 export default async function handleModalMessageGeneration(
   internalInteraction: InternalInteractionType<APIModalSubmitGuildInteraction>,
   session: GuildSession,
-  instance: FastifyInstance
+  instance: FastifyInstance,
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   const messageGenerationKey = interaction.data.custom_id.split(":")[1] as
@@ -45,7 +45,7 @@ export default async function handleModalMessageGeneration(
   ) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.COMPONENT_CUSTOM_ID_MALFORMED,
-      "No message id on message generation button"
+      "No message id on message generation button",
     );
   }
   const currentStatus = await getMessageFromCache({
@@ -111,7 +111,7 @@ export default async function handleModalMessageGeneration(
     default:
       throw new UnexpectedFailure(
         InteractionOrRequestFinalStatus.MODAL_CUSTOM_ID_NOT_FOUND,
-        "Invalid message generation type for modal"
+        "Invalid message generation type for modal",
       );
   }
 }
@@ -129,13 +129,13 @@ const handleContent = async ({
   instance: FastifyInstance;
 }): Promise<APIInteractionResponse> => {
   const content = interaction.data.components?.find(
-    (component) => component.components[0].custom_id === "content"
+    (component) => component.components[0].custom_id === "content",
   )?.components[0].value; // find content
 
   if (interaction.channel_id === undefined) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.GENERIC_UNEXPECTED_FAILURE,
-      "Missing channel_id on modal submit"
+      "Missing channel_id on modal submit",
     ); // Not sure why this might happen (discord typing says it could, but docs do not indicate why)
     // Hasn't thrown in tests yet
     // Will change if it happens
@@ -151,7 +151,7 @@ const handleContent = async ({
   const responseData = createInitialMessageGenerationEmbed(
     messageGenerationKey,
     currentStatus,
-    interaction.guild_id
+    interaction.guild_id,
   );
 
   return {
@@ -178,16 +178,16 @@ const handleEmbedMetadata = async ({
 }): Promise<APIInteractionResponse> => {
   // Get the different fields
   const color = interaction.data.components?.find(
-    (component) => component.components[0].custom_id === "color"
+    (component) => component.components[0].custom_id === "color",
   )?.components[0].value;
   const timestamp = interaction.data.components?.find(
-    (component) => component.components[0].custom_id === "timestamp"
+    (component) => component.components[0].custom_id === "timestamp",
   )?.components[0].value;
   const url = interaction.data.components?.find(
-    (component) => component.components[0].custom_id === "url"
+    (component) => component.components[0].custom_id === "url",
   )?.components[0].value;
   const thumbnailUrl = interaction.data.components?.find(
-    (component) => component.components[0].custom_id === "thumbnail"
+    (component) => component.components[0].custom_id === "thumbnail",
   )?.components[0].value;
 
   // If any are set, and embed is undefined define embed
@@ -204,7 +204,7 @@ const handleEmbedMetadata = async ({
     // None are set, and none have been set therefore we can safely return
     const returnData = createEmbedMessageGenerationEmbed(
       messageGenerationKey,
-      currentStatus
+      currentStatus,
     );
     return {
       type: InteractionResponseType.UpdateMessage,
@@ -220,7 +220,7 @@ const handleEmbedMetadata = async ({
     if (isNaN(Number(color))) {
       throw new ExpectedFailure(
         InteractionOrRequestFinalStatus.EMBED_VALUE_EDITING_MALFORMED,
-        "Color is not a valid integer"
+        "Color is not a valid integer",
       );
     }
     currentStatus.embed.color = Number(color);
@@ -232,7 +232,7 @@ const handleEmbedMetadata = async ({
     if (!isIsoDate(timestamp)) {
       throw new ExpectedFailure(
         InteractionOrRequestFinalStatus.EMBED_VALUE_EDITING_MALFORMED,
-        "Timestamp is not a valid ISO8601 timestamp"
+        "Timestamp is not a valid ISO8601 timestamp",
       );
     }
     currentStatus.embed.timestamp = timestamp;
@@ -244,7 +244,7 @@ const handleEmbedMetadata = async ({
     if (!/^(http|https):\/\/[^ "]+$/.test(url)) {
       throw new ExpectedFailure(
         InteractionOrRequestFinalStatus.EMBED_VALUE_EDITING_MALFORMED,
-        "URL is not a valid URL"
+        "URL is not a valid URL",
       );
     }
     currentStatus.embed.url = url;
@@ -256,7 +256,7 @@ const handleEmbedMetadata = async ({
     if (!/^(http|https):\/\/[^ "]+$/.test(thumbnailUrl)) {
       throw new ExpectedFailure(
         InteractionOrRequestFinalStatus.EMBED_VALUE_EDITING_MALFORMED,
-        "Thumbnail URL is not a valid URL"
+        "Thumbnail URL is not a valid URL",
       );
     }
     currentStatus.embed.thumbnail = {
@@ -275,7 +275,7 @@ const handleEmbedMetadata = async ({
   // Update representation by regenerating the embed
   const returnData = createEmbedMessageGenerationEmbed(
     messageGenerationKey,
-    currentStatus
+    currentStatus,
   );
   return {
     type: InteractionResponseType.UpdateMessage,
@@ -301,10 +301,10 @@ const handleEmbedFooter = async ({
 }): Promise<APIInteractionResponse> => {
   // Get the different fields
   const text = interaction.data.components?.find(
-    (component) => component.components[0].custom_id === "text"
+    (component) => component.components[0].custom_id === "text",
   )?.components[0].value;
   const iconUrl = interaction.data.components?.find(
-    (component) => component.components[0].custom_id === "icon"
+    (component) => component.components[0].custom_id === "icon",
   )?.components[0].value;
   if (
     (text !== undefined && text !== "") ||
@@ -326,7 +326,7 @@ const handleEmbedFooter = async ({
       // Text must be set for footer, this means text not set icon set
       throw new ExpectedFailure(
         InteractionOrRequestFinalStatus.EMBED_EDITING_MISSING_REQUIRED_VALUE,
-        "Footer text must be set for any other footer value to be set. Either set a footer text, or remove the icon url."
+        "Footer text must be set for any other footer value to be set. Either set a footer text, or remove the icon url.",
       );
     }
     if (text === undefined || text === "") {
@@ -345,7 +345,7 @@ const handleEmbedFooter = async ({
         if (!/^(http|https):\/\/[^ "]+$/.test(iconUrl)) {
           throw new ExpectedFailure(
             InteractionOrRequestFinalStatus.EMBED_VALUE_EDITING_MALFORMED,
-            "Icon URL is not a valid URL"
+            "Icon URL is not a valid URL",
           );
         }
         currentStatus.embed.footer.icon_url = iconUrl;
@@ -361,7 +361,7 @@ const handleEmbedFooter = async ({
   // Update representation by regenerating the embed
   const returnData = createEmbedMessageGenerationEmbed(
     messageGenerationKey,
-    currentStatus
+    currentStatus,
   );
   return {
     type: InteractionResponseType.UpdateMessage,
@@ -387,10 +387,10 @@ const handleEmbedContent = async ({
 }): Promise<APIInteractionResponse> => {
   // Get the different fields
   const title = interaction.data.components?.find(
-    (component) => component.components[0].custom_id === "title"
+    (component) => component.components[0].custom_id === "title",
   )?.components[0].value;
   const description = interaction.data.components?.find(
-    (component) => component.components[0].custom_id === "description"
+    (component) => component.components[0].custom_id === "description",
   )?.components[0].value;
   if (
     (title !== undefined && title !== "") ||
@@ -427,7 +427,7 @@ const handleEmbedContent = async ({
   // Update representation by regenerating the embed
   const returnData = createEmbedMessageGenerationEmbed(
     messageGenerationKey,
-    currentStatus
+    currentStatus,
   );
   return {
     type: InteractionResponseType.UpdateMessage,
@@ -472,15 +472,15 @@ const handleEmbedAddField = async ({
 }): Promise<APIInteractionResponse> => {
   // Get the different fields
   const fieldName = interaction.data.components?.find(
-    (component) => component.components[0].custom_id === "name"
+    (component) => component.components[0].custom_id === "name",
   )?.components[0].value;
   const fieldValue = interaction.data.components?.find(
-    (component) => component.components[0].custom_id === "value"
+    (component) => component.components[0].custom_id === "value",
   )?.components[0].value;
   const inline = parseTrueLikeValues(
     interaction.data.components?.find(
-      (component) => component.components[0].custom_id === "inline"
-    )?.components[0].value
+      (component) => component.components[0].custom_id === "inline",
+    )?.components[0].value,
   );
   if (
     fieldName === undefined ||
@@ -491,7 +491,7 @@ const handleEmbedAddField = async ({
     // Name and value must be set, as this is adding a field
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.EMBED_EDITING_MISSING_DISCORD_REQUIRED_VALUE,
-      "Field name and value must be set."
+      "Field name and value must be set.",
     );
   }
 
@@ -519,7 +519,7 @@ const handleEmbedAddField = async ({
   // Update representation by regenerating the embed
   const returnData = createEmbedMessageGenerationEmbed(
     messageGenerationKey,
-    currentStatus
+    currentStatus,
   );
   return {
     type: InteractionResponseType.UpdateMessage,
@@ -546,15 +546,15 @@ const handleEditEmbedField = async ({
 }): Promise<APIInteractionResponse> => {
   // Get the different fields
   const fieldName = interaction.data.components?.find(
-    (component) => component.components[0].custom_id === "name"
+    (component) => component.components[0].custom_id === "name",
   )?.components[0].value;
   const fieldValue = interaction.data.components?.find(
-    (component) => component.components[0].custom_id === "value"
+    (component) => component.components[0].custom_id === "value",
   )?.components[0].value;
   const inline = parseTrueLikeValues(
     interaction.data.components?.find(
-      (component) => component.components[0].custom_id === "inline"
-    )?.components[0].value
+      (component) => component.components[0].custom_id === "inline",
+    )?.components[0].value,
   );
   const fieldIndex = Number(interaction.data.custom_id.split(":")[3]); // Index in the current list - used identify which field
 
@@ -577,7 +577,7 @@ const handleEditEmbedField = async ({
     ) {
       throw new UnexpectedFailure(
         InteractionOrRequestFinalStatus.EMBED_EDITING_MISSING_DISCORD_REQUIRED_VALUE,
-        "Field name and value both must be set. To remove the field make sure both are empty."
+        "Field name and value both must be set. To remove the field make sure both are empty.",
       );
     }
     // ensure embed and fields is defined
@@ -612,7 +612,7 @@ const handleEditEmbedField = async ({
   // Update representation by regenerating the embed
   const returnData = createEmbedMessageGenerationEmbed(
     messageGenerationKey,
-    currentStatus
+    currentStatus,
   );
   return {
     type: InteractionResponseType.UpdateMessage,
@@ -641,13 +641,13 @@ const handleEmbedAuthor = async ({
 
   // Get the different fields
   const authorName = interaction.data.components?.find(
-    (component) => component.components[0].custom_id === "name"
+    (component) => component.components[0].custom_id === "name",
   )?.components[0].value;
   const authorUrl = interaction.data.components?.find(
-    (component) => component.components[0].custom_id === "url"
+    (component) => component.components[0].custom_id === "url",
   )?.components[0].value;
   const authorIconUrl = interaction.data.components?.find(
-    (component) => component.components[0].custom_id === "icon"
+    (component) => component.components[0].custom_id === "icon",
   )?.components[0].value;
   if (
     (authorName !== undefined && authorName !== "") ||
@@ -662,7 +662,7 @@ const handleEmbedAuthor = async ({
       ) {
         throw new ExpectedFailure(
           InteractionOrRequestFinalStatus.EMBED_EDITING_MISSING_REQUIRED_VALUE,
-          "Author name must be set for any other author value to be set. Either set an author name, or remove the author url or author icon url."
+          "Author name must be set for any other author value to be set. Either set an author name, or remove the author url or author icon url.",
         );
       } // clear author if name is not set
       if (currentStatus.embed !== undefined) {
@@ -684,7 +684,7 @@ const handleEmbedAuthor = async ({
         if (!/^(http|https):\/\/[^ "]+$/.test(authorUrl)) {
           throw new ExpectedFailure(
             InteractionOrRequestFinalStatus.EMBED_VALUE_EDITING_MALFORMED,
-            "Author URL is not a valid URL"
+            "Author URL is not a valid URL",
           );
         }
 
@@ -697,7 +697,7 @@ const handleEmbedAuthor = async ({
         if (!/^(http|https):\/\/[^ "]+$/.test(authorIconUrl)) {
           throw new ExpectedFailure(
             InteractionOrRequestFinalStatus.EMBED_VALUE_EDITING_MALFORMED,
-            "Author Icon URL is not a valid URL"
+            "Author Icon URL is not a valid URL",
           );
         }
         currentStatus.embed.author.icon_url = authorIconUrl;
@@ -714,7 +714,7 @@ const handleEmbedAuthor = async ({
   // Update representation by regenerating the embed
   const returnData = createEmbedMessageGenerationEmbed(
     messageGenerationKey,
-    currentStatus
+    currentStatus,
   );
   return {
     type: InteractionResponseType.UpdateMessage,

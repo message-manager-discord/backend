@@ -2,7 +2,7 @@ import { Static, Type } from "@sinclair/typebox";
 import { FastifyInstance } from "fastify";
 import httpErrors from "http-errors";
 
-import { getUserData } from "../../lib/user";
+import { getUserData } from "../../lib/user.js";
 const { Unauthorized } = httpErrors;
 const UserParams = Type.Object({
   id: Type.String({ description: "The user's id, `@me` for the current user" }),
@@ -24,7 +24,7 @@ const internalPlugin = async (instance: FastifyInstance) => {
   }>(
     "/internal/users/:id/data",
     {
-      config: { ratelimit: { max: 3, timeWindow: 5 * 1000 } }, // Called often(ish), but shouldn't be called for the same user from that user often
+      config: { rateLimit: { max: 3, timeWindow: 5 * 1000 } }, // Called often(ish), but shouldn't be called for the same user from that user often
       schema: {
         description: "Get a user's data (avatar & username & discrim)",
         tags: ["user"],
@@ -71,7 +71,7 @@ const internalPlugin = async (instance: FastifyInstance) => {
         }
       }
       return await getUserData(request.params.id, instance);
-    }
+    },
   );
 };
 

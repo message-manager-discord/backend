@@ -17,10 +17,10 @@ import { Readable } from "stream";
 import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
-} from "../../../errors";
-import { GuildSession } from "../../../lib/session";
-import { InternalInteractionType } from "../../interaction";
-import { InteractionReturnData } from "../../types";
+} from "../../../errors.js";
+import { GuildSession } from "../../../lib/session/index.js";
+import { InternalInteractionType } from "../../interaction.js";
+import { InteractionReturnData } from "../../types.js";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function handleFetchMessageCommand(
@@ -28,7 +28,7 @@ export default async function handleFetchMessageCommand(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   session: GuildSession,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  instance: FastifyInstance
+  instance: FastifyInstance,
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   // Returns the content of the message in a txt file format
@@ -39,7 +39,7 @@ export default async function handleFetchMessageCommand(
   if (message === undefined) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.APPLICATION_COMMAND_RESOLVED_MISSING_EXPECTED_VALUE,
-      "Message not found in resolved data"
+      "Message not found in resolved data",
     );
   }
 
@@ -88,7 +88,7 @@ export default async function handleFetchMessageCommand(
       new Blob([JSON.stringify(fileData, undefined, 2)], {
         type: "application/json",
       }),
-      "message.json"
+      "message.json",
     );
     isJson = true;
   } else {
@@ -100,7 +100,7 @@ export default async function handleFetchMessageCommand(
       new Blob([message.content], {
         type: "text/plain",
       }),
-      "message.txt"
+      "message.txt",
     );
     isJson = false;
   }
@@ -128,7 +128,7 @@ export default async function handleFetchMessageCommand(
     new Blob([JSON.stringify(messageData)], {
       type: "application/json",
     }),
-    "" // empty string for filename is required for discord to accept this as the
+    "", // empty string for filename is required for discord to accept this as the
     // payload (otherwise form-data adds a filename of "blob" and discord doesn't recognize it as the payload)
   );
   // Encode formdata to return

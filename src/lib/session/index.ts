@@ -15,22 +15,22 @@ import { Guild, GuildManager } from "redis-discord-cache";
 import {
   GuildNotFound,
   GuildUnavailable,
-} from "redis-discord-cache/dist/errors";
+} from "redis-discord-cache/dist/errors.js";
 
 import {
   ExpectedPermissionFailure,
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
-} from "../../errors";
+} from "../../errors.js";
 import {
   checkBotDiscordPermission,
   checkUserDiscordPermission,
-} from "../permissions/discord";
-import PermissionManager from "../permissions/manager";
+} from "../permissions/discord.js";
+import PermissionManager from "../permissions/manager.js";
 import {
   BotPermissionResult,
   DiscordPermissionResult,
-} from "../permissions/types";
+} from "../permissions/types.js";
 
 // Session class - an instance is created for each interaction received
 class GuildSession {
@@ -82,12 +82,12 @@ class GuildSession {
         if (e instanceof GuildNotFound) {
           throw new ExpectedPermissionFailure(
             InteractionOrRequestFinalStatus.BOT_MISSING_DISCORD_SCOPE,
-            `Guild ${this.guildId} not cached. This is likely due to the bot missing the \`bot\` scope. Please reinvite the bot to fix this.`
+            `Guild ${this.guildId} not cached. This is likely due to the bot missing the \`bot\` scope. Please reinvite the bot to fix this.`,
           );
         } else if (e instanceof GuildUnavailable) {
           throw new UnexpectedFailure(
             InteractionOrRequestFinalStatus.GUILD_UNAVAILABLE_BUT_SENDING_INTERACTIONS,
-            `Guild ${this.guildId} is unavailable. This is likely due to the bot being offline. Please try again later, and if this error persists, please contact the bot developers.`
+            `Guild ${this.guildId} is unavailable. This is likely due to the bot being offline. Please try again later, and if this error persists, please contact the bot developers.`,
           );
         } else {
           throw e;
@@ -106,20 +106,20 @@ class GuildSession {
   // Calculate the permissions for the user in the channel in terms of bot permissions
   async hasBotPermissions(
     permissions: number | number[],
-    channelId: Snowflake | undefined
+    channelId: Snowflake | undefined,
   ): Promise<BotPermissionResult> {
     return this._permissionsManager.hasPermissions(
       this.userId,
       this.userRoles,
       await this.cachedGuild,
       permissions,
-      channelId
+      channelId,
     );
   }
   // Calculate the permissions for the user in the channel - discord permissions
   async hasDiscordPermissions(
     permissions: bigint | bigint[],
-    channelId: Snowflake | undefined
+    channelId: Snowflake | undefined,
   ): Promise<DiscordPermissionResult> {
     return checkUserDiscordPermission({
       userId: this.userId,
@@ -132,7 +132,7 @@ class GuildSession {
   // Check if the bot has the required permissions in the channel - discord permissions
   async botHasDiscordPermissions(
     permissions: bigint | bigint[],
-    channelId: Snowflake | undefined
+    channelId: Snowflake | undefined,
   ): Promise<DiscordPermissionResult> {
     return checkBotDiscordPermission({
       guild: await this.cachedGuild,
@@ -169,7 +169,7 @@ class NonGuildSession {}
 
 // Type guard for guild interactions
 const interactionIsFromGuild = (
-  interaction: APIDMInteraction | APIGuildInteraction
+  interaction: APIDMInteraction | APIGuildInteraction,
 ): interaction is APIGuildInteraction => {
   return (interaction as APIGuildInteraction).guild_id !== undefined;
 };
@@ -185,7 +185,7 @@ export default class SessionManager {
   createSessionFromInteraction(interaction: APIGuildInteraction): GuildSession;
   createSessionFromInteraction(interaction: APIDMInteraction): NonGuildSession;
   createSessionFromInteraction(
-    interaction: APIGuildInteraction | APIDMInteraction
+    interaction: APIGuildInteraction | APIDMInteraction,
   ): NonGuildSession | GuildSession {
     // Only create a guild session if the interaction is from a guild
     if (interactionIsFromGuild(interaction)) {
@@ -194,7 +194,7 @@ export default class SessionManager {
         userRoles: interaction.member.roles,
         guildId: interaction.guild_id,
         userInteractionCalculatedChannelPermissions: BigInt(
-          interaction.member.permissions
+          interaction.member.permissions,
         ),
         instance: this._instance,
       });

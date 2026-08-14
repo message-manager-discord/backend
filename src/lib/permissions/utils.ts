@@ -6,21 +6,21 @@ import {
   ChannelNotFound,
   GuildNotFound,
   GuildUnavailable,
-} from "redis-discord-cache/dist/errors";
+} from "redis-discord-cache/dist/errors.js";
 
-import { DiscordPermissions } from "../../consts";
+import { DiscordPermissions } from "../../consts.js";
 import {
   ExpectedPermissionFailure,
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
-} from "../../errors";
-import { GuildSession } from "../session";
-import { InternalPermissions } from "./consts";
+} from "../../errors.js";
+import { GuildSession } from "../session/index.js";
+import { InternalPermissions } from "./consts.js";
 
 // Compare bigint's to see if the permission is present
 const checkDiscordPermissionValue = (
   existingPermission: bigint,
-  permission: bigint
+  permission: bigint,
 ): boolean => {
   const adminPerm =
     (existingPermission & DiscordPermissions.ADMINISTRATOR) ===
@@ -34,7 +34,7 @@ const checkDiscordPermissionValue = (
 // Same as above, but for internal (admin checks must be done elsewhere)
 const checkInternalPermissionValue = (
   existingPermission: number,
-  permission: number
+  permission: number,
 ): boolean => {
   return (existingPermission & permission) === permission;
 };
@@ -42,7 +42,7 @@ const checkInternalPermissionValue = (
 // Try to run a guild function - and handle all the errors that may happen.
 // This is for guild functions on the gateway cache
 const tryAndHandleGuildErrors = async <T>(
-  func: () => Promise<T>
+  func: () => Promise<T>,
 ): Promise<T> => {
   try {
     return await func();
@@ -50,17 +50,17 @@ const tryAndHandleGuildErrors = async <T>(
     if (e instanceof GuildNotFound) {
       throw new ExpectedPermissionFailure(
         InteractionOrRequestFinalStatus.BOT_MISSING_DISCORD_SCOPE,
-        `Guild ${"null"} not cached. This is likely due to the bot missing the \`bot\` scope. Please reinvite the bot to fix this.`
+        `Guild ${"null"} not cached. This is likely due to the bot missing the \`bot\` scope. Please reinvite the bot to fix this.`,
       );
     } else if (e instanceof GuildUnavailable) {
       throw new UnexpectedFailure(
         InteractionOrRequestFinalStatus.GUILD_UNAVAILABLE_BUT_SENDING_INTERACTIONS,
-        `Guild ${"guild.id"} is unavailable. This is likely due to the bot being offline. Please try again later, and if this error persists, please contact the bot developers.`
+        `Guild ${"guild.id"} is unavailable. This is likely due to the bot being offline. Please try again later, and if this error persists, please contact the bot developers.`,
       );
     } else if (e instanceof ChannelNotFound) {
       throw new ExpectedPermissionFailure(
         InteractionOrRequestFinalStatus.BOT_MISSING_DISCORD_PERMISSION,
-        `Channel ${"channelId"} not cached. This is likely due to the bot missing the \`VIEW_CHANNELS\` permission. Please make sure the bot has the correct permissions in that channel.`
+        `Channel ${"channelId"} not cached. This is likely due to the bot missing the \`VIEW_CHANNELS\` permission. Please make sure the bot has the correct permissions in that channel.`,
       );
     } else {
       throw e;
@@ -81,14 +81,14 @@ async function checkIfUserCanManageRolePermissions({
   const userRolesAboveRole = await guild.checkIfRoleIsLowerThanUsersRole(
     roleId,
     session.userRoles,
-    session.userId
+    session.userId,
   );
   const role = await guild.getRole(roleId);
 
   if (!role) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.ROLE_NOT_IN_CACHE,
-      "Role missing from cache"
+      "Role missing from cache",
     );
   } // Check, as checkIfRoleIsLowerThanUsersRole just ignores it is the role is missing
 
@@ -96,7 +96,7 @@ async function checkIfUserCanManageRolePermissions({
     !(
       await session.hasBotPermissions(
         InternalPermissions.MANAGE_PERMISSIONS,
-        session.guildId
+        session.guildId,
       )
     ).allPresent
   ) {

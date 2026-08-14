@@ -10,12 +10,12 @@ import {
   ComponentType,
 } from "discord-api-types/v9";
 
-import { embedPink } from "../../constants";
+import { embedPink } from "../../constants.js";
 import {
   MessageSavedInCache,
   splitMessageCacheKey,
-} from "../../lib/messages/cache";
-import { addTipToEmbed } from "../../lib/tips";
+} from "../../lib/messages/cache.js";
+import { addTipToEmbed } from "../../lib/tips/index.js";
 
 type MessageGenerationButtonTypes =
   | "content"
@@ -35,7 +35,7 @@ type MessageGenerationButtonTypes =
 const generateMessageGenerationCustomId = (
   messageGenerationKey: string,
   type: MessageGenerationButtonTypes,
-  index?: number
+  index?: number,
 ): string => {
   return `message-generation:${messageGenerationKey}:${type}${
     index !== undefined ? `:${index}` : ""
@@ -52,7 +52,7 @@ interface CreateMessageGenerationEmbedResult {
 const createInitialMessageGenerationEmbed = (
   messageGenerationKey: string,
   currentStatus: MessageSavedInCache,
-  guildId: Snowflake
+  guildId: Snowflake,
 ): CreateMessageGenerationEmbedResult => {
   const type = currentStatus.messageId === undefined ? "send" : "edit"; // Determine if we are sending or editing
   const channelId = splitMessageCacheKey(messageGenerationKey).channelId; // Get channel id from cache key
@@ -95,7 +95,7 @@ const createInitialMessageGenerationEmbed = (
             style: ButtonStyle.Primary,
             custom_id: generateMessageGenerationCustomId(
               messageGenerationKey,
-              "content"
+              "content",
             ),
           },
           {
@@ -104,7 +104,7 @@ const createInitialMessageGenerationEmbed = (
             style: ButtonStyle.Primary,
             custom_id: generateMessageGenerationCustomId(
               messageGenerationKey,
-              "embed"
+              "embed",
             ),
           },
 
@@ -114,7 +114,7 @@ const createInitialMessageGenerationEmbed = (
             style: ButtonStyle.Success,
             custom_id: generateMessageGenerationCustomId(
               messageGenerationKey,
-              type
+              type,
             ),
           },
         ],
@@ -126,7 +126,7 @@ const createInitialMessageGenerationEmbed = (
 // Second screen - for editing / adding an embed to a message
 const createEmbedMessageGenerationEmbed = (
   messageGenerationKey: string,
-  currentStatus: MessageSavedInCache
+  currentStatus: MessageSavedInCache,
 ): CreateMessageGenerationEmbedResult => {
   let selectMenu: APIActionRowComponent<APISelectMenuComponent>;
 
@@ -143,7 +143,7 @@ const createEmbedMessageGenerationEmbed = (
           placeholder: "Select a field to edit",
           custom_id: generateMessageGenerationCustomId(
             messageGenerationKey,
-            "select-fields"
+            "select-fields",
           ),
           max_values: 1,
           min_values: 1,
@@ -167,7 +167,7 @@ const createEmbedMessageGenerationEmbed = (
           placeholder: "Select a field to edit",
           custom_id: generateMessageGenerationCustomId(
             messageGenerationKey,
-            "select-fields"
+            "select-fields",
           ),
           max_values: 1,
           min_values: 1,
@@ -202,7 +202,7 @@ const createEmbedMessageGenerationEmbed = (
             style: ButtonStyle.Primary,
             custom_id: generateMessageGenerationCustomId(
               messageGenerationKey,
-              "embed-metadata"
+              "embed-metadata",
             ),
           },
           {
@@ -211,7 +211,7 @@ const createEmbedMessageGenerationEmbed = (
             style: ButtonStyle.Primary,
             custom_id: generateMessageGenerationCustomId(
               messageGenerationKey,
-              "embed-content"
+              "embed-content",
             ),
           },
           {
@@ -220,7 +220,7 @@ const createEmbedMessageGenerationEmbed = (
             style: ButtonStyle.Primary,
             custom_id: generateMessageGenerationCustomId(
               messageGenerationKey,
-              "embed-footer"
+              "embed-footer",
             ),
           },
           {
@@ -229,7 +229,7 @@ const createEmbedMessageGenerationEmbed = (
             style: ButtonStyle.Primary,
             custom_id: generateMessageGenerationCustomId(
               messageGenerationKey,
-              "embed-author"
+              "embed-author",
             ),
           },
           {
@@ -238,7 +238,7 @@ const createEmbedMessageGenerationEmbed = (
             style: ButtonStyle.Primary,
             custom_id: generateMessageGenerationCustomId(
               messageGenerationKey,
-              "embed-add-field"
+              "embed-add-field",
             ),
           },
         ],
@@ -253,7 +253,7 @@ const createEmbedMessageGenerationEmbed = (
             style: ButtonStyle.Success,
             custom_id: generateMessageGenerationCustomId(
               messageGenerationKey,
-              "embed-back"
+              "embed-back",
             ),
           },
         ],

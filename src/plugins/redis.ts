@@ -5,18 +5,20 @@
 import { Snowflake } from "discord-api-types/v9";
 import { FastifyInstance, FastifyPluginOptions } from "fastify";
 import fp from "fastify-plugin";
-import RedisClient, { Redis } from "ioredis";
+import Redis from "ioredis";
 
-import { StoredStateResponse } from "../authRoutes";
-import { MessageSavedInCache } from "../lib/messages/cache";
+import { StoredStateResponse } from "../authRoutes.js";
+import { MessageSavedInCache } from "../lib/messages/cache.js";
 
 type ArgType = Array<string | number>;
 
 // Class to be added to instance
 class RedisCache {
-  private _client: Redis;
+  private _client: any;
   constructor(host: string, port: number) {
-    this._client = new RedisClient(port, host);
+  // ioredis typings can be awkward with ESM interop across Node/TS versions;
+  // cast to any to avoid construct signature mismatches at build time.
+  this._client = new (Redis as any)(port, host);
   }
 
   // Add logging to sending the redis command
@@ -113,7 +115,7 @@ class RedisCache {
   // Message Cache functions - this is for the edit modal flow
   async setMessageCache(
     key: string,
-    message: MessageSavedInCache
+    message: MessageSavedInCache,
   ): Promise<void> {
     key = `message:${key}`;
     // TTL of one day
@@ -145,10 +147,10 @@ class RedisCache {
     });
   }
   async getSession(
-    session: string
+    session: string,
   ): Promise<{ userId: Snowflake; expiry: number } | null> {
     const userId = JSON.parse(
-      (await this._get({ key: `session:${session}` })) as string
+      (await this._get({ key: `session:${session}` })) as string,
     ) as Snowflake | null;
     if (userId === null) {
       return null;
@@ -165,14 +167,14 @@ class RedisCache {
   // OAuth Cache - caching oauth requests to avoid running them too often (very high ratelimits)
   async getOauthCache(path: string, userId: Snowflake): Promise<unknown> {
     return JSON.parse(
-      (await this._get({ key: `oauth:${path}:${userId}` })) as string
+      (await this._get({ key: `oauth:${path}:${userId}` })) as string,
     ) as unknown;
   }
   async setOauthCache(
     path: string,
     userId: Snowflake,
     data: unknown,
-    expiry: number = 1000 * 60 * 3
+    expiry: number = 1000 * 60 * 3,
   ): Promise<void> {
     await this._set({
       key: `oauth:${path}:${userId}`,
@@ -195,7 +197,7 @@ class RedisCache {
     ]); // 1 hour
   }
   async getGuildMigrationCommandRegistered(
-    guildId: Snowflake
+    guildId: Snowflake,
   ): Promise<boolean> {
     const registered = (await this._sendCommand("GET", [
       `${guildId}:migrationCmdRegistered`,
@@ -206,7 +208,7 @@ class RedisCache {
   // User avatar hashes - store for a long time as they are used by many - but also don't keep them forever
   async setUserData(
     userId: Snowflake,
-    data: { avatar: string | null; username: string; discriminator: string }
+    data: { avatar: string | null; username: string; discriminator: string },
   ): Promise<void> {
     await this._sendCommand("SET", [
       `user:${userId}:data`,
@@ -257,12 +259,12 @@ const redisRestPlugin = fp(
       throw new Error("Host or port not set");
     }
     server.log.info(
-      `Connecting to redis general cache at ${options.redis.host}:${options.redis.port}`
+      `Connecting to redis general cache at ${options.redis.host}:${options.redis.port}`,
     );
     const redisClient = new RedisCache(options.redis.host, options.redis.port);
 
     server.decorate("redisCache", redisClient);
-  }
+  },
 );
 
 export default redisRestPlugin;

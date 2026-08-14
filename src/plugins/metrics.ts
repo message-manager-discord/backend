@@ -63,7 +63,7 @@ const discordRestPlugin = fp(async (instance: FastifyInstance) => {
         route: request.url,
         status_code: reply.statusCode,
       },
-      reply.getResponseTime()
+      reply.elapsedTime,
     );
   });
 });

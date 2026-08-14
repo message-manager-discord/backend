@@ -4,14 +4,14 @@ import {
   ChannelNotFound,
   GuildNotFound,
   GuildUnavailable,
-} from "redis-discord-cache/dist/errors";
-import { MinimalChannel } from "redis-discord-cache/dist/structures/types";
+} from "redis-discord-cache/dist/errors.js";
+import { MinimalChannel } from "redis-discord-cache/dist/structures/types.js";
 
 import {
   ExpectedPermissionFailure,
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
-} from "../../errors";
+} from "../../errors.js";
 
 // Get's a guild channel from the gateway cache - handles some errors that could occur
 // This is different from the function in permissions' utils.ts because this one

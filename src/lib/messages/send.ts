@@ -10,32 +10,32 @@ import {
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 
-import { embedPink } from "../../constants";
-import { parseDiscordPermissionValuesToStringNames } from "../../consts";
+import { embedPink } from "../../constants.js";
+import { parseDiscordPermissionValuesToStringNames } from "../../consts.js";
 import {
   ExpectedFailure,
   ExpectedPermissionFailure,
   InteractionOrRequestFinalStatus,
   LimitHit,
   UnexpectedFailure,
-} from "../../errors";
-import { InternalPermissions } from "../permissions/consts";
-import { GuildSession } from "../session";
+} from "../../errors.js";
+import { InternalPermissions } from "../permissions/consts.js";
+import { GuildSession } from "../session/index.js";
 import {
   requiredPermissionsSendBot,
   requiredPermissionsSendBotThread,
   requiredPermissionsSendUser,
-} from "./consts";
-import { checkEmbedMeetsLimits } from "./embeds/checks";
+} from "./consts.js";
+import { checkEmbedMeetsLimits } from "./embeds/checks.js";
 import {
   createSendableEmbedFromStoredEmbed,
   createStoredEmbedFromAPIMessage,
-} from "./embeds/parser";
-import { StoredEmbed } from "./embeds/types";
+} from "./embeds/parser.js";
+import { StoredEmbed } from "./embeds/types.js";
 import {
   missingBotDiscordPermissionMessage,
   missingUserDiscordPermissionMessage,
-} from "./utils";
+} from "./utils.js";
 
 // Message for missing internal permissions
 const missingAccessMessage =
@@ -74,7 +74,7 @@ async function checkSendMessagePossible({
 
   const userHasRequiredDiscordPermissions = await session.hasDiscordPermissions(
     requiredPermissionsSendUser,
-    channelId
+    channelId,
   );
   if (!userHasRequiredDiscordPermissions.allPresent) {
     throw new ExpectedPermissionFailure(
@@ -82,10 +82,10 @@ async function checkSendMessagePossible({
 
       missingUserDiscordPermissionMessage(
         parseDiscordPermissionValuesToStringNames(
-          userHasRequiredDiscordPermissions.missing
+          userHasRequiredDiscordPermissions.missing,
         ),
-        channelId
-      )
+        channelId,
+      ),
     );
   }
   // Check if the bot has the correct permissions
@@ -93,17 +93,17 @@ async function checkSendMessagePossible({
     await session.botHasDiscordPermissions(
       // If the target channel is a thread, also required the SEND_MESSAGES_IN_THREADS permission
       thread ? requiredPermissionsSendBotThread : requiredPermissionsSendBot,
-      channelId
+      channelId,
     );
   if (!botHasRequiredDiscordPermissions.allPresent) {
     throw new ExpectedPermissionFailure(
       InteractionOrRequestFinalStatus.BOT_MISSING_DISCORD_PERMISSION,
       missingBotDiscordPermissionMessage(
         parseDiscordPermissionValuesToStringNames(
-          botHasRequiredDiscordPermissions.missing
+          botHasRequiredDiscordPermissions.missing,
         ),
-        channelId
-      )
+        channelId,
+      ),
     );
   }
 
@@ -112,13 +112,13 @@ async function checkSendMessagePossible({
     !(
       await session.hasBotPermissions(
         InternalPermissions.SEND_MESSAGES,
-        channelId
+        channelId,
       )
     ).allPresent
   ) {
     throw new ExpectedPermissionFailure(
       InteractionOrRequestFinalStatus.USER_MISSING_INTERNAL_BOT_PERMISSION,
-      missingAccessMessage
+      missingAccessMessage,
     );
   }
 
@@ -149,7 +149,7 @@ async function sendMessage({
   if ((content === undefined || content === "") && embed === undefined) {
     throw new ExpectedFailure(
       InteractionOrRequestFinalStatus.ATTEMPTING_TO_SEND_WHEN_NO_CONTENT_SET,
-      "No content or embeds have been set, this is required to send a message"
+      "No content or embeds have been set, this is required to send a message",
     );
   }
   // Check if embed exceeds limits (limits set by discord)
@@ -158,7 +158,7 @@ async function sendMessage({
     if (exceedsLimits) {
       throw new LimitHit(
         InteractionOrRequestFinalStatus.EMBED_EXCEEDS_DISCORD_LIMITS,
-        "The embed exceeds one or more of limits on embeds."
+        "The embed exceeds one or more of limits on embeds.",
       );
     }
     if (
@@ -167,7 +167,7 @@ async function sendMessage({
     ) {
       throw new ExpectedFailure(
         InteractionOrRequestFinalStatus.EMBED_EXCEEDS_DISCORD_LIMITS,
-        "The embed color is not in the range of 0 - 16777215."
+        "The embed color is not in the range of 0 - 16777215.",
       );
     }
     // Also check if title and / or description is set on the embed
@@ -175,7 +175,7 @@ async function sendMessage({
     if (embed.title === undefined && embed.description === undefined) {
       throw new ExpectedFailure(
         InteractionOrRequestFinalStatus.EMBED_REQUIRES_TITLE_OR_DESCRIPTION,
-        "The embed requires a title or description."
+        "The embed requires a title or description.",
       );
     }
   }
@@ -190,7 +190,7 @@ async function sendMessage({
       Routes.channelMessages(channelId),
       {
         body: { content, embeds },
-      }
+      },
     )) as RESTPostAPIChannelMessageResult;
     // Save message to database
     const sentEmbed = createStoredEmbedFromAPIMessage(messageResult);
@@ -310,12 +310,12 @@ async function sendMessage({
       if (error.code === 404) {
         throw new UnexpectedFailure(
           InteractionOrRequestFinalStatus.CHANNEL_NOT_FOUND_DISCORD_HTTP,
-          "Channel not found"
+          "Channel not found",
         );
       } else if (error.code === 403 || error.code === 50013) {
         throw new UnexpectedFailure(
           InteractionOrRequestFinalStatus.MISSING_PERMISSIONS_DISCORD_HTTP_SEND_MESSAGE,
-          error.message
+          error.message,
         );
       }
       throw error;

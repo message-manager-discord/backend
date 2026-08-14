@@ -13,18 +13,18 @@ import {
 import { FastifyInstance } from "fastify";
 import Fuse from "fuse.js";
 
-import { embedPink, inviteUrl } from "../../../constants";
+import { embedPink, inviteUrl } from "../../../constants.js";
 import {
   ExpectedFailure,
   InteractionOrRequestFinalStatus,
-} from "../../../errors";
-import { GuildSession, NonGuildSession } from "../../../lib/session";
-import { addTipToEmbed } from "../../../lib/tips";
-import { InternalInteractionType } from "../../interaction";
-import { InteractionReturnData } from "../../types";
+} from "../../../errors.js";
+import { GuildSession, NonGuildSession } from "../../../lib/session/index.js";
+import { addTipToEmbed } from "../../../lib/tips/index.js";
+import { InternalInteractionType } from "../../interaction.js";
+import { InteractionReturnData } from "../../types.js";
 
 const createInfoEmbed = async (
-  instance: FastifyInstance
+  instance: FastifyInstance,
 ): Promise<APIEmbed> => {
   return {
     title: "Info about the bot",
@@ -212,7 +212,7 @@ const createEmbedFromTag = (tag: Tag): APIEmbed => {
 
 // Generate interaction response
 const channelMessageResponseWithEmbed = (
-  embed: APIEmbed
+  embed: APIEmbed,
 ): APIInteractionResponseChannelMessageWithSource => ({
   type: InteractionResponseType.ChannelMessageWithSource,
   data: {
@@ -224,7 +224,7 @@ const channelMessageResponseWithEmbed = (
 export default async function handleInfoCommand(
   internalInteraction: InternalInteractionType<APIChatInputApplicationCommandInteraction>,
   session: GuildSession | NonGuildSession,
-  instance: FastifyInstance
+  instance: FastifyInstance,
 ): Promise<InteractionReturnData> {
   // Handle the info command with tag set
   const interaction = internalInteraction.interaction;
@@ -232,21 +232,21 @@ export default async function handleInfoCommand(
     interaction.data.options?.find(
       (option) =>
         option.name === "tag" &&
-        option.type === ApplicationCommandOptionType.String
+        option.type === ApplicationCommandOptionType.String,
     ) as APIApplicationCommandInteractionDataStringOption
   )?.value;
   if (nonTextTagsNames.indexOf(tagName) >= 0) {
     return channelMessageResponseWithEmbed(
-      await nonTextTags[tagName].createEmbed(instance)
+      await nonTextTags[tagName].createEmbed(instance),
     );
   } else if (textTags.indexOf(tagName) >= 0) {
     return channelMessageResponseWithEmbed(
-      createEmbedFromTag(infoTags[tagName])
+      createEmbedFromTag(infoTags[tagName]),
     );
   } else {
     throw new ExpectedFailure(
       InteractionOrRequestFinalStatus.TAG_NOT_FOUND,
-      "That tag was not found"
+      "That tag was not found",
     );
   }
 }
@@ -259,14 +259,14 @@ export default async function handleInfoCommand(
 async function handleInfoAutocomplete(
   internalInteraction: InternalInteractionType<APIApplicationCommandAutocompleteInteraction>,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  instance: FastifyInstance
+  instance: FastifyInstance,
 ): Promise<APIApplicationCommandAutocompleteResponse> {
   const interaction = internalInteraction.interaction;
   const tagFilling: string | undefined = (
     interaction.data.options?.find(
       (option) =>
         option.name === "tag" &&
-        option.type === ApplicationCommandOptionType.String
+        option.type === ApplicationCommandOptionType.String,
     ) as APIApplicationCommandInteractionDataStringOption
   )?.value;
   // If the tag option is being filled out return a list of tags, filtered by the tagsSearch

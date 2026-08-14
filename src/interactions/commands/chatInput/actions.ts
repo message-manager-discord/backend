@@ -14,16 +14,16 @@ import {
   ExpectedFailure,
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
-} from "../../../errors";
-import { GuildSession } from "../../../lib/session";
-import { InternalInteractionType } from "../../interaction";
-import { actionsLogic } from "../../shared/actions";
-import { InteractionReturnData } from "../../types";
+} from "../../../errors.js";
+import { GuildSession } from "../../../lib/session/index.js";
+import { InternalInteractionType } from "../../interaction.js";
+import { actionsLogic } from "../../shared/actions.js";
+import { InteractionReturnData } from "../../types.js";
 
 export default async function handleActionsCommand(
   internalInteraction: InternalInteractionType<APIChatInputApplicationCommandGuildInteraction>,
   session: GuildSession,
-  instance: FastifyInstance
+  instance: FastifyInstance,
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   // First option: Message Id
@@ -31,13 +31,13 @@ export default async function handleActionsCommand(
     interaction.data.options?.find(
       (option) =>
         option.name === "message-id" &&
-        option.type === ApplicationCommandOptionType.String
+        option.type === ApplicationCommandOptionType.String,
     ) as APIApplicationCommandInteractionDataStringOption
   )?.value;
   if (!messageId) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.APPLICATION_COMMAND_MISSING_EXPECTED_OPTION,
-      "No message id option on actions command"
+      "No message id option on actions command",
     );
   }
 
@@ -49,14 +49,14 @@ export default async function handleActionsCommand(
     } else {
       throw new ExpectedFailure(
         InteractionOrRequestFinalStatus.APPLICATION_COMMAND_SNOWFLAKE_OPTION_NOT_VALID,
-        "Invalid message id option on actions command - make sure this is a valid message id"
+        "Invalid message id option on actions command - make sure this is a valid message id",
       );
     }
   }
   // Fetch message from api
   try {
     const message = (await instance.restClient.get(
-      Routes.channelMessage(interaction.channel_id, messageId)
+      Routes.channelMessage(interaction.channel_id, messageId),
     )) as RESTGetAPIChannelMessageResult;
     return await actionsLogic({
       // Execute actions logic
@@ -73,17 +73,17 @@ export default async function handleActionsCommand(
     if (error.status === 403) {
       throw new ExpectedFailure(
         InteractionOrRequestFinalStatus.BOT_MISSING_DISCORD_PERMISSION,
-        "The bot is missing the discord permissions to access that message"
+        "The bot is missing the discord permissions to access that message",
       );
     } else if (error.status === 404) {
       throw new ExpectedFailure(
         InteractionOrRequestFinalStatus.MESSAGE_NOT_FOUND_DISCORD_DELETED_OR_NOT_EXIST,
-        "That message could not be found, make sure you are using the command in the same channel as the message"
+        "That message could not be found, make sure you are using the command in the same channel as the message",
       );
     } else if (error.code === 50035) {
       throw new ExpectedFailure(
         InteractionOrRequestFinalStatus.APPLICATION_COMMAND_SNOWFLAKE_OPTION_NOT_VALID,
-        "Invalid message id option on actions command - make sure this is a valid message id"
+        "Invalid message id option on actions command - make sure this is a valid message id",
       );
     }
     throw error;

@@ -10,10 +10,10 @@ import {
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 
-import { failureRed } from "../../constants";
-import { GuildSession } from "../../lib/session";
-import { addTipToEmbed } from "../../lib/tips";
-import { InternalInteractionType } from "../interaction";
+import { failureRed } from "../../constants.js";
+import { GuildSession } from "../../lib/session/index.js";
+import { addTipToEmbed } from "../../lib/tips/index.js";
+import { InternalInteractionType } from "../interaction.js";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function handleCancelDeleteButton(
@@ -22,7 +22,7 @@ export default async function handleCancelDeleteButton(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   session: GuildSession,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  instance: FastifyInstance
+  instance: FastifyInstance,
 ): Promise<APIInteractionResponseUpdateMessage> {
   const interaction = internalInteraction.interaction;
   // Edit original confirmation message to show that the message was not deleted
