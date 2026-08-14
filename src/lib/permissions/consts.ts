@@ -107,7 +107,7 @@ const parseInternalPermissionValuesToStringNames = (
     }
     return undefined;
   });
-  return parsed.filter((permission) => permission !== undefined) as string[];
+  return parsed.filter((permission) => permission !== undefined);
 };
 
 // Parse a bitfield value for all the permissions it has

@@ -256,7 +256,7 @@ const getReports = async ({
           ? ["invalid", "actioned", "spam"]
           : filterStatus === "assigned"
             ? ["pending"] // As assigned is only for pending and review - and the assigned staff id will be set on closed reports
-            : [filterStatus as ReportStatus];
+            : [filterStatus];
 
   const assignedFilter =
     assigned_to !== undefined

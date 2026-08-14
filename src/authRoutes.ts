@@ -36,7 +36,7 @@ type StoredStateResponse = {
 const rootPath = "/auth";
 
 // Since this is a plugin async should be used
-// eslint-disable-next-line @typescript-eslint/require-await
+ 
 const addPlugin = async (instance: FastifyInstance) => {
   await instance.register(fastifyRateLimit, {
     global: true,
@@ -50,7 +50,7 @@ const addPlugin = async (instance: FastifyInstance) => {
       connectTimeout: 500,
       maxRetriesPerRequest: 1,
     }),
-    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+     
     keyGenerator: (request) => {
       console.log(request.ip);
       console.log(request.user);

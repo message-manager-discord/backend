@@ -1,6 +1,7 @@
+import "dotenv/config";
+
 import * as Sentry from "@sentry/node";
 import { rewriteFramesIntegration } from "@sentry/node";
-import "dotenv/config";
 import * as url from "url";
 
 // __dirname is not available in ESM modules; compute directory from import.meta.url

@@ -3,6 +3,7 @@
  */
 import fastifyRateLimit from "@fastify/rate-limit";
 import fastifySwagger from "@fastify/swagger";
+import fastifySwaggerUi from "@fastify/swagger-ui";
 import { FastifyInstance } from "fastify";
 import Redis from "ioredis";
 
@@ -11,7 +12,6 @@ import reportPlugin from "./routes/reports.js";
 import rootPlugin from "./routes/rootTesting.js";
 import userPlugin from "./routes/user.js";
 import { schemas } from "./types/index.js";
-import fastifySwaggerUi from "@fastify/swagger-ui";
 
 const versionOnePlugin = async (instance: FastifyInstance) => {
   // Schema is shared 'types' for the api to validate from, for both the request and response
@@ -78,7 +78,7 @@ const versionOnePlugin = async (instance: FastifyInstance) => {
 
   schemas.forEach((schema) => instance.addSchema(schema));
   // Swagger is an automatic documentation generator using OpenAPI
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
+   
 
   await instance.register(fastifySwagger, {
     openapi: {
