@@ -31,7 +31,7 @@ import {
   GuildNotFound,
   GuildUnavailable,
   ShardInactive,
-} from "redis-discord-cache/dist/errors.js";
+} from "redis-discord-cache";
 
 import type { UserRequestData } from "../plugins/authentication.js";
 import { createStoredEmbedFromDataBaseEmbed } from "./messages/embeds/parser.js";
