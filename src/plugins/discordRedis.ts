@@ -4,9 +4,10 @@
  * With a gateway cache instance also running, and must be connected to the same redis instance
  */
 
-import { FastifyInstance, FastifyPluginOptions } from "fastify";
+import type { FastifyInstance, FastifyPluginOptions } from "fastify";
 import fp from "fastify-plugin";
-import { createRedisClient, GuildManager } from "redis-discord-cache";
+import type { GuildManager } from "redis-discord-cache";
+import { createRedisClient } from "redis-discord-cache";
 
 declare module "fastify" {
   interface FastifyInstance {

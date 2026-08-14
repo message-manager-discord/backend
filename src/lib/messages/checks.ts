@@ -1,7 +1,7 @@
 // Various checks for message actions
-import { Message } from "@prisma/client";
-import { APIMessage, Snowflake } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { Message } from "@prisma/client";
+import type { APIMessage, Snowflake } from "discord-api-types/v9";
+import type { FastifyInstance } from "fastify";
 
 import {
   ExpectedFailure,
@@ -9,7 +9,7 @@ import {
 } from "../../errors.js";
 import { registerAddCommand } from "../applicationCommands/registerHelper.js";
 import { InternalPermissions } from "../permissions/consts.js";
-import { GuildSession } from "../session/index.js";
+import type { GuildSession } from "../session/index.js";
 import { requiredPermissionsEdit } from "./consts.js";
 
 // Some options for functions

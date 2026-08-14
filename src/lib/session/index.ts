@@ -3,15 +3,15 @@
  * This includes stuff like permission calculation
  */
 
-import { RawFile } from "@discordjs/rest";
-import { Snowflake } from "discord-api-types/globals";
-import {
+import type { RawFile } from "@discordjs/rest";
+import type { Snowflake } from "discord-api-types/globals";
+import type {
   APIDMInteraction,
   APIEmbed,
   APIGuildInteraction,
 } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
-import { Guild, GuildManager } from "redis-discord-cache";
+import type { FastifyInstance } from "fastify";
+import type { Guild, GuildManager } from "redis-discord-cache";
 import {
   GuildNotFound,
   GuildUnavailable,
@@ -26,8 +26,8 @@ import {
   checkBotDiscordPermission,
   checkUserDiscordPermission,
 } from "../permissions/discord.js";
-import PermissionManager from "../permissions/manager.js";
-import {
+import type PermissionManager from "../permissions/manager.js";
+import type {
   BotPermissionResult,
   DiscordPermissionResult,
 } from "../permissions/types.js";

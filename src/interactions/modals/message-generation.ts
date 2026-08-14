@@ -1,31 +1,34 @@
 // Handle all message generation modal interactions
-import {
+import type {
   APIInteractionResponse,
-  APIModalSubmitGuildInteraction,
+  APIModalSubmitGuildInteraction} from "discord-api-types/v9";
+import {
   InteractionResponseType,
   MessageFlags,
 } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 
 import {
   ExpectedFailure,
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../../errors.js";
+import type {
+  MessageSavedInCache} from "../../lib/messages/cache.js";
 import {
   getMessageFromCache,
-  MessageSavedInCache,
   saveMessageToCache,
 } from "../../lib/messages/cache.js";
 import { isIsoDate } from "../../lib/messages/embeds/utils.js";
-import { GuildSession } from "../../lib/session/index.js";
-import { InternalInteractionType } from "../interaction.js";
+import type { GuildSession } from "../../lib/session/index.js";
+import type { InternalInteractionType } from "../interaction.js";
+import type {
+  MessageGenerationButtonTypes} from "../shared/message-generation.js";
 import {
   createEmbedMessageGenerationEmbed,
-  createInitialMessageGenerationEmbed,
-  MessageGenerationButtonTypes,
+  createInitialMessageGenerationEmbed
 } from "../shared/message-generation.js";
-import { InteractionReturnData } from "../types.js";
+import type { InteractionReturnData } from "../types.js";
 
 export default async function handleModalMessageGeneration(
   internalInteraction: InternalInteractionType<APIModalSubmitGuildInteraction>,

@@ -1,11 +1,11 @@
 // Types for internal interaction representations
-import {
+import type {
   APIInteractionResponse,
   APIInteractionResponseDeferredChannelMessageWithSource,
   APIInteractionResponseDeferredMessageUpdate,
   RESTPatchAPIInteractionOriginalResponseJSONBody,
 } from "discord-api-types/v9";
-import { Readable } from "stream";
+import type { Readable } from "stream";
 
 // An interaction handler may return either a JSON interaction response or a FormData interaction response
 // FormData responses should be used to send / response with a file or a message with a file
@@ -48,10 +48,5 @@ const isInteractionReturnDataDeferred = (
   (data as InteractionReturnDataDeferred).callback !== undefined &&
   (data as InteractionReturnDataDeferred).returnData !== undefined;
 
-export {
-  FormDataReturnData,
-  InteractionReturnData,
-  InteractionReturnDataAfterDeferred,
-  isFormDataReturnData,
-  isInteractionReturnDataDeferred,
-};
+export type { FormDataReturnData, InteractionReturnData, InteractionReturnDataAfterDeferred };
+export { isFormDataReturnData, isInteractionReturnDataDeferred };

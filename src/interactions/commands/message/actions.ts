@@ -1,18 +1,18 @@
 // Action message context menu
-import {
+import type {
   APIMessage,
   APIMessageApplicationCommandGuildInteraction,
 } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 
 import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../../../errors.js";
-import { GuildSession } from "../../../lib/session/index.js";
-import { InternalInteractionType } from "../../interaction.js";
+import type { GuildSession } from "../../../lib/session/index.js";
+import type { InternalInteractionType } from "../../interaction.js";
 import { actionsLogic } from "../../shared/actions.js";
-import { InteractionReturnData } from "../../types.js";
+import type { InteractionReturnData } from "../../types.js";
 
 export default function handleActionMessageCommand(
   internalInteraction: InternalInteractionType<APIMessageApplicationCommandGuildInteraction>,

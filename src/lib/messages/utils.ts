@@ -1,11 +1,11 @@
 // Utility functions for message logic
-import { Guild } from "redis-discord-cache";
+import type { Guild } from "redis-discord-cache";
 import {
   ChannelNotFound,
   GuildNotFound,
   GuildUnavailable,
 } from "redis-discord-cache/dist/errors.js";
-import { MinimalChannel } from "redis-discord-cache/dist/structures/types.js";
+import type { MinimalChannel } from "redis-discord-cache/dist/structures/types.js";
 
 import {
   ExpectedPermissionFailure,

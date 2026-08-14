@@ -4,7 +4,7 @@
 import fastifyRateLimit from "@fastify/rate-limit";
 import fastifySwagger from "@fastify/swagger";
 import fastifySwaggerUi from "@fastify/swagger-ui";
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 import Redis from "ioredis";
 
 import internalPlugin from "./routes/internal.js";

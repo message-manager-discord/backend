@@ -6,7 +6,7 @@
  * and some just send a response back to the user (ie permission errors)
  */
 
-import { APIMessageComponent } from "discord-api-types/v9";
+import type { APIMessageComponent } from "discord-api-types/v9";
 
 enum InteractionOrRequestFinalStatus {
   /*

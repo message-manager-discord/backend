@@ -1,12 +1,13 @@
 // Handle message generation buttons - usually returning a modal from them
-import {
+import type {
   APIEmbed,
   APIInteractionResponse,
-  APIMessageComponentGuildInteraction,
+  APIMessageComponentGuildInteraction} from "discord-api-types/v9";
+import {
   InteractionResponseType,
   MessageFlags,
 } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 
 import { embedPink } from "../../constants.js";
 import {
@@ -14,28 +15,30 @@ import {
   LimitHit,
   UnexpectedFailure,
 } from "../../errors.js";
+import type {
+  MessageSavedInCache} from "../../lib/messages/cache.js";
 import {
   getMessageFromCache,
-  MessageSavedInCache,
   splitMessageCacheKey,
 } from "../../lib/messages/cache.js";
 import { editMessage } from "../../lib/messages/edit.js";
 import { sendMessage } from "../../lib/messages/send.js";
-import { GuildSession } from "../../lib/session/index.js";
+import type { GuildSession } from "../../lib/session/index.js";
 import { addTipToEmbed } from "../../lib/tips/index.js";
-import { InternalInteractionType } from "../interaction.js";
+import type { InternalInteractionType } from "../interaction.js";
 import {
   createModal,
   createTextInputWithRow,
 } from "../modals/createStructures.js";
 import handleMessageGenerationSelect from "../selects/message-generation.js";
+import type {
+  CreateMessageGenerationEmbedResult,
+  MessageGenerationButtonTypes} from "../shared/message-generation.js";
 import {
   createEmbedMessageGenerationEmbed,
-  createInitialMessageGenerationEmbed,
-  CreateMessageGenerationEmbedResult,
-  MessageGenerationButtonTypes,
+  createInitialMessageGenerationEmbed
 } from "../shared/message-generation.js";
-import { InteractionReturnData } from "../types.js";
+import type { InteractionReturnData } from "../types.js";
 
 export default async function handleMessageGenerationButton(
   internalInteraction: InternalInteractionType<APIMessageComponentGuildInteraction>,

@@ -5,10 +5,10 @@
  * Many functions seem very similar, but they are not. They act on different types of permissions and therefore must
  * set different objects, so would be more complex to combine them
  */
-import { Prisma, PrismaClient } from "@prisma/client";
-import { Snowflake } from "discord-api-types/globals";
-import { FastifyInstance } from "fastify";
-import { Guild } from "redis-discord-cache";
+import type { Prisma, PrismaClient } from "@prisma/client";
+import type { Snowflake } from "discord-api-types/globals";
+import type { FastifyInstance } from "fastify";
+import type { Guild } from "redis-discord-cache";
 
 import { DiscordPermissions } from "../../consts.js";
 import {
@@ -17,7 +17,7 @@ import {
   UnexpectedFailure,
 } from "../../errors.js";
 import { ActionType, createLoggingEmbed } from "../logging/embed.js";
-import { GuildSession } from "../session/index.js";
+import type { GuildSession } from "../session/index.js";
 import { getParentIdIfParentIdExists } from "./channel.js";
 import { checkIfRoleIsBelowUsersHighestRole } from "./checks.js";
 import {
@@ -29,7 +29,7 @@ import {
   UsableInternalPermissionValues,
 } from "./consts.js";
 import PermissionInteractionCache from "./interactionCache.js";
-import {
+import type {
   BotPermissionResult,
   ChannelPermissionData,
   GuildPermissionData,

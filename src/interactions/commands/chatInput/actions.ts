@@ -1,24 +1,25 @@
 // Chat input command for getting actions for a message (same as ../message/actions.ts) but with message fetching logic (as it's not
 // returned by the api) for chat input commands
 import { DiscordAPIError } from "@discordjs/rest";
-import {
+import type {
   APIApplicationCommandInteractionDataStringOption,
   APIChatInputApplicationCommandGuildInteraction,
+  RESTGetAPIChannelMessageResult} from "discord-api-types/v9";
+import {
   ApplicationCommandOptionType,
-  RESTGetAPIChannelMessageResult,
   Routes,
 } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 
 import {
   ExpectedFailure,
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../../../errors.js";
-import { GuildSession } from "../../../lib/session/index.js";
-import { InternalInteractionType } from "../../interaction.js";
+import type { GuildSession } from "../../../lib/session/index.js";
+import type { InternalInteractionType } from "../../interaction.js";
 import { actionsLogic } from "../../shared/actions.js";
-import { InteractionReturnData } from "../../types.js";
+import type { InteractionReturnData } from "../../types.js";
 
 export default async function handleActionsCommand(
   internalInteraction: InternalInteractionType<APIChatInputApplicationCommandGuildInteraction>,

@@ -1,27 +1,29 @@
 // Edit button - start a message generation flow with the edit type from it
+import type {
+  APIMessageComponentGuildInteraction} from "discord-api-types/v9";
 import {
-  APIMessageComponentGuildInteraction,
   InteractionResponseType,
   MessageFlags,
 } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 
 import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../../errors.js";
+import type {
+  MessageSavedInCache} from "../../lib/messages/cache.js";
 import {
-  MessageSavedInCache,
   saveMessageToCache,
 } from "../../lib/messages/cache.js";
 import { createMessageCacheKey } from "../../lib/messages/cache.js";
 import { checkEditPossible } from "../../lib/messages/edit.js";
 import { createStoredEmbedFromDataBaseEmbed } from "../../lib/messages/embeds/parser.js";
-import { StoredEmbed } from "../../lib/messages/embeds/types.js";
-import { GuildSession } from "../../lib/session/index.js";
-import { InternalInteractionType } from "../interaction.js";
+import type { StoredEmbed } from "../../lib/messages/embeds/types.js";
+import type { GuildSession } from "../../lib/session/index.js";
+import type { InternalInteractionType } from "../interaction.js";
 import { createInitialMessageGenerationEmbed } from "../shared/message-generation.js";
-import { InteractionReturnData } from "../types.js";
+import type { InteractionReturnData } from "../types.js";
 
 export default async function handleEditButton(
   internalInteraction: InternalInteractionType<APIMessageComponentGuildInteraction>,

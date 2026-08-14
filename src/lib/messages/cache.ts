@@ -1,8 +1,8 @@
 // This manages the currently editing messages stored in cache
 // For message editing flows
 
-import { Snowflake } from "discord-api-types/globals";
-import { FastifyInstance } from "fastify";
+import type { Snowflake } from "discord-api-types/globals";
+import type { FastifyInstance } from "fastify";
 
 import {
   ExpectedFailure,
@@ -10,7 +10,7 @@ import {
   LimitHit,
 } from "../../errors.js";
 import { checkEmbedMeetsLimits } from "./embeds/checks.js";
-import { StoredEmbed } from "./embeds/types.js";
+import type { StoredEmbed } from "./embeds/types.js";
 
 // Generate message cache key - a function to ensure the key is always the same format
 const createMessageCacheKey = (
@@ -89,10 +89,5 @@ const getMessageFromCache = async ({
   return message;
 };
 
-export {
-  createMessageCacheKey,
-  getMessageFromCache,
-  MessageSavedInCache,
-  saveMessageToCache,
-  splitMessageCacheKey,
-};
+export type { MessageSavedInCache };
+export { createMessageCacheKey, getMessageFromCache, saveMessageToCache, splitMessageCacheKey };

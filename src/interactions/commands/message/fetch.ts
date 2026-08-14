@@ -1,15 +1,16 @@
 // Context menu command that returns a representation of the message
 // Can be used on any message
-import {
+import type {
   APIEmbed,
   APIInteractionResponseChannelMessageWithSource,
   APIMessage,
   APIMessageApplicationCommandGuildInteraction,
-  APIMessageComponent,
+  APIMessageComponent} from "discord-api-types/v9";
+import {
   InteractionResponseType,
   MessageFlags,
 } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 import { FormDataEncoder } from "form-data-encoder";
 import { Blob, FormData } from "formdata-node";
 import { Readable } from "stream";
@@ -18,9 +19,9 @@ import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../../../errors.js";
-import { GuildSession } from "../../../lib/session/index.js";
-import { InternalInteractionType } from "../../interaction.js";
-import { InteractionReturnData } from "../../types.js";
+import type { GuildSession } from "../../../lib/session/index.js";
+import type { InternalInteractionType } from "../../interaction.js";
+import type { InteractionReturnData } from "../../types.js";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function handleFetchMessageCommand(

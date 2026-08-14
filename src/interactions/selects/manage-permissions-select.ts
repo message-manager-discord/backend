@@ -1,19 +1,20 @@
 // Handle select menu for editing permissions
-import { Snowflake } from "discord-api-types/globals";
-import {
+import type { Snowflake } from "discord-api-types/globals";
+import type {
   APIMessageComponentGuildInteraction,
   APIMessageSelectMenuInteractionData,
-  APIStringSelectComponent,
+  APIStringSelectComponent} from "discord-api-types/v9";
+import {
   ComponentType,
   InteractionResponseType,
 } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 
 import { getInternalPermissionByName } from "../../lib/permissions/consts.js";
-import { GuildSession } from "../../lib/session/index.js";
-import { InternalInteractionType } from "../interaction.js";
+import type { GuildSession } from "../../lib/session/index.js";
+import type { InternalInteractionType } from "../interaction.js";
 import createPermissionsEmbed from "../shared/permissions-config.js";
-import { InteractionReturnData } from "../types.js";
+import type { InteractionReturnData } from "../types.js";
 
 // Function to handle the permissions editing select menu
 export default async function handleManagePermissionsSelect(

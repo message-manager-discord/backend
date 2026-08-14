@@ -3,7 +3,7 @@
 // A client is used to handle parsing / ratelimits / errors / and type safety
 
 import { REST } from "@discordjs/rest";
-import { FastifyInstance, FastifyPluginOptions } from "fastify";
+import type { FastifyInstance, FastifyPluginOptions } from "fastify";
 import fp from "fastify-plugin";
 
 import DiscordOauthRequests from "../discordOauth.js";

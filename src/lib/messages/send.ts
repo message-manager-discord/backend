@@ -1,14 +1,16 @@
 // Send messages through the bot
-import { DiscordAPIError, RawFile } from "@discordjs/rest";
-import { Prisma } from "@prisma/client";
-import {
+import type { RawFile } from "@discordjs/rest";
+import { DiscordAPIError } from "@discordjs/rest";
+import type { Prisma } from "@prisma/client";
+import type {
   APIEmbed,
   APIMessage,
   ChannelType,
-  RESTPostAPIChannelMessageResult,
+  RESTPostAPIChannelMessageResult} from "discord-api-types/v9";
+import {
   Routes,
 } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 
 import { embedPink } from "../../constants.js";
 import { parseDiscordPermissionValuesToStringNames } from "../../consts.js";
@@ -20,7 +22,7 @@ import {
   UnexpectedFailure,
 } from "../../errors.js";
 import { InternalPermissions } from "../permissions/consts.js";
-import { GuildSession } from "../session/index.js";
+import type { GuildSession } from "../session/index.js";
 import {
   requiredPermissionsSendBot,
   requiredPermissionsSendBotThread,
@@ -31,7 +33,7 @@ import {
   createSendableEmbedFromStoredEmbed,
   createStoredEmbedFromAPIMessage,
 } from "./embeds/parser.js";
-import { StoredEmbed } from "./embeds/types.js";
+import type { StoredEmbed } from "./embeds/types.js";
 import {
   missingBotDiscordPermissionMessage,
   missingUserDiscordPermissionMessage,
@@ -324,4 +326,5 @@ async function sendMessage({
   }
 }
 
-export { checkSendMessagePossible, sendMessage, ThreadOptionObject };
+export type { ThreadOptionObject };
+export { checkSendMessagePossible, sendMessage };

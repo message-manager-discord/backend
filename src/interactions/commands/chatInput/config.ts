@@ -1,7 +1,7 @@
 // Config top level command - contains subcommands for permissions and logging channels
 import axios from "axios";
-import { Snowflake } from "discord-api-types/globals";
-import {
+import type { Snowflake } from "discord-api-types/globals";
+import type {
   APIApplicationCommandInteractionDataChannelOption,
   APIApplicationCommandInteractionDataMentionableOption,
   APIApplicationCommandInteractionDataStringOption,
@@ -11,12 +11,13 @@ import {
   APIEmbed,
   APIInteractionDataResolvedChannel,
   APIInteractionResponseChannelMessageWithSource,
+  RESTGetAPIInteractionOriginalResponseResult} from "discord-api-types/v9";
+import {
   ApplicationCommandOptionType,
   InteractionResponseType,
-  MessageFlags,
-  RESTGetAPIInteractionOriginalResponseResult,
+  MessageFlags
 } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 
 import { discordAPIBaseURL, embedPink } from "../../../constants.js";
 import { DiscordPermissions } from "../../../consts.js";
@@ -29,11 +30,11 @@ import {
 import { checkIfRoleIsBelowUsersHighestRole } from "../../../lib/permissions/checks.js";
 import { InternalPermissions } from "../../../lib/permissions/consts.js";
 import { checkDiscordPermissionValue } from "../../../lib/permissions/utils.js";
-import { GuildSession } from "../../../lib/session/index.js";
+import type { GuildSession } from "../../../lib/session/index.js";
 import { addTipToEmbed } from "../../../lib/tips/index.js";
-import { InternalInteractionType } from "../../interaction.js";
+import type { InternalInteractionType } from "../../interaction.js";
 import createPermissionsEmbed from "../../shared/permissions-config.js";
-import { InteractionReturnData } from "../../types.js";
+import type { InteractionReturnData } from "../../types.js";
 
 // Handle top level command
 export default async function handleConfigCommand(

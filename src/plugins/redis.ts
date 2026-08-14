@@ -2,13 +2,13 @@
  * Shared functions for accessing the redis cache for various reasons
  */
 
-import { Snowflake } from "discord-api-types/v9";
-import { FastifyInstance, FastifyPluginOptions } from "fastify";
+import type { Snowflake } from "discord-api-types/v9";
+import type { FastifyInstance, FastifyPluginOptions } from "fastify";
 import fp from "fastify-plugin";
 import Redis from "ioredis";
 
-import { StoredStateResponse } from "../authRoutes.js";
-import { MessageSavedInCache } from "../lib/messages/cache.js";
+import type { StoredStateResponse } from "../authRoutes.js";
+import type { MessageSavedInCache } from "../lib/messages/cache.js";
 
 type ArgType = Array<string | number>;
 

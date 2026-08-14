@@ -3,11 +3,12 @@
  * As they are only used by the website - which is always up to date
  * They are routes to run the OAuth2 flow with discord
  */
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 import httpErrors from "http-errors";
 const { Forbidden } = httpErrors;
 import fastifyRateLimit from "@fastify/rate-limit";
-import { Static, Type } from "@sinclair/typebox";
+import type { Static} from "@sinclair/typebox";
+import { Type } from "@sinclair/typebox";
 import crypto from "crypto";
 import Redis from "ioredis";
 import { v4 as uuidv4 } from "uuid";
@@ -200,4 +201,4 @@ const addPlugin = async (instance: FastifyInstance) => {
 
 export default addPlugin;
 
-export { StoredStateResponse };
+export type { StoredStateResponse };

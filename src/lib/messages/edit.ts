@@ -1,9 +1,11 @@
 // Edit messages that have been sent through the bot previously
-import { DiscordAPIError, RawFile } from "@discordjs/rest";
-import { EmbedField, Message, MessageEmbed, Prisma } from "@prisma/client";
-import { APIEmbed, Routes, Snowflake } from "discord-api-types/v9";
-import { RESTPatchAPIChannelMessageResult } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { RawFile } from "@discordjs/rest";
+import { DiscordAPIError } from "@discordjs/rest";
+import type { EmbedField, Message, MessageEmbed, Prisma } from "@prisma/client";
+import type { APIEmbed, Snowflake } from "discord-api-types/v9";
+import type { RESTPatchAPIChannelMessageResult } from "discord-api-types/v9";
+import { Routes } from "discord-api-types/v9";
+import type { FastifyInstance } from "fastify";
 
 import { embedPink } from "../../constants.js";
 import { parseDiscordPermissionValuesToStringNames } from "../../consts.js";
@@ -16,7 +18,7 @@ import {
 } from "../../errors.js";
 import limits from "../../limits.js";
 import { InternalPermissions } from "../permissions/consts.js";
-import { GuildSession } from "../session/index.js";
+import type { GuildSession } from "../session/index.js";
 import { checkDatabaseMessage } from "./checks.js";
 import { requiredPermissionsEdit } from "./consts.js";
 import { checkEmbedMeetsLimits } from "./embeds/checks.js";
@@ -25,7 +27,7 @@ import {
   createStoredEmbedFromAPIMessage,
   createStoredEmbedFromDataBaseEmbed,
 } from "./embeds/parser.js";
-import { StoredEmbed } from "./embeds/types.js";
+import type { StoredEmbed } from "./embeds/types.js";
 import {
   missingBotDiscordPermissionMessage,
   missingUserDiscordPermissionMessage,

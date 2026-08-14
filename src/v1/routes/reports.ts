@@ -1,5 +1,6 @@
-import { Static, Type } from "@sinclair/typebox";
-import { FastifyInstance } from "fastify";
+import type { Static} from "@sinclair/typebox";
+import { Type } from "@sinclair/typebox";
+import type { FastifyInstance } from "fastify";
 import httpErrors from "http-errors";
 
 import {
@@ -14,12 +15,13 @@ import {
   getReportMessage,
   getReports,
 } from "../../lib/reports.js";
-import {
-  ReportCloseStatusEnum,
+import type {
   ReportListingModelType,
   ReportMessageHistoryResponseType,
   ReportMessageModelType,
-  ReportModelType,
+  ReportModelType} from "../types/reports.js";
+import {
+  ReportCloseStatusEnum,
   ReportStatusRequest,
 } from "../types/reports.js";
 const { Forbidden, BadRequest } = httpErrors;

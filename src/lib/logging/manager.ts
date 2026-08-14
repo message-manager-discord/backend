@@ -1,9 +1,11 @@
 // Functions for logging managing / sending for sending log messages through
 // discord webhooks
-import { DiscordAPIError, RawFile } from "@discordjs/rest";
-import { Snowflake } from "discord-api-types/globals";
-import { APIEmbed, APIMessage, RESTJSONErrorCodes } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { RawFile } from "@discordjs/rest";
+import { DiscordAPIError } from "@discordjs/rest";
+import type { Snowflake } from "discord-api-types/globals";
+import type { APIEmbed, APIMessage} from "discord-api-types/v9";
+import { RESTJSONErrorCodes } from "discord-api-types/v9";
+import type { FastifyInstance } from "fastify";
 
 import { DiscordPermissions } from "../../consts.js";
 import {
@@ -12,8 +14,8 @@ import {
 } from "../../errors.js";
 import { InternalPermissions } from "../permissions/consts.js";
 import { checkDiscordPermissionValue } from "../permissions/utils.js";
-import { GuildSession } from "../session/index.js";
-import WebhookManager from "../webhook/manager.js";
+import type { GuildSession } from "../session/index.js";
+import type WebhookManager from "../webhook/manager.js";
 
 export default class LoggingManager {
   _webhookManager: WebhookManager;

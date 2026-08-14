@@ -2,7 +2,7 @@
 // This is where interactions are received and then are sent out to the correct functions and handlers
 
 import * as Sentry from "@sentry/node";
-import {
+import type {
   APIApplicationCommandAutocompleteGuildInteraction,
   APIApplicationCommandAutocompleteInteraction,
   APIApplicationCommandAutocompleteResponse,
@@ -17,19 +17,20 @@ import {
   APIMessageComponentGuildInteraction,
   APIMessageComponentInteraction,
   APIModalSubmitGuildInteraction,
-  APIModalSubmitInteraction,
+  APIModalSubmitInteraction} from "discord-api-types/v9";
+import {
   ApplicationCommandType,
   InteractionResponseType,
   InteractionType,
   MessageFlags,
 } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 import FastifyRawBody from "fastify-raw-body";
 import httpErrors from "http-errors";
 const { Forbidden } = httpErrors;
 import axios from "axios";
 import { verifyKey } from "discord-interactions";
-import { FastifyRequest } from "fastify";
+import type { FastifyRequest } from "fastify";
 import { ShardInactive } from "redis-discord-cache/dist/errors.js";
 
 import { discordAPIBaseURL } from "../constants.js";
@@ -40,7 +41,7 @@ import {
   Outage,
   UnexpectedFailure,
 } from "../errors.js";
-import { GuildSession, NonGuildSession } from "../lib/session/index.js";
+import type { GuildSession, NonGuildSession } from "../lib/session/index.js";
 import handleCancelDeleteButton from "./buttons/cancel-delete.js";
 import handleConfirmDeleteButton from "./buttons/confirm-delete.js";
 import handleDeleteButton from "./buttons/delete.js";
@@ -58,16 +59,18 @@ import handleSendCommand from "./commands/chatInput/send.js";
 import handleActionMessageCommand from "./commands/message/actions.js";
 import handleAddMessageMessageCommand from "./commands/message/addMessage.js";
 import handleFetchMessageCommand from "./commands/message/fetch.js";
+import type {
+  InternalInteractionType} from "./interaction.js";
 import {
-  createInternalInteraction,
-  InternalInteractionType,
+  createInternalInteraction
 } from "./interaction.js";
 import handleModalMessageGeneration from "./modals/message-generation.js";
 import handleModalReport from "./modals/report.js";
 import handleModalSend from "./modals/send.js";
 import handleManagePermissionsSelect from "./selects/manage-permissions-select.js";
+import type {
+  InteractionReturnData} from "./types.js";
 import {
-  InteractionReturnData,
   isFormDataReturnData,
   isInteractionReturnDataDeferred,
 } from "./types.js";

@@ -1,11 +1,12 @@
 // Responds with the "raw" format for certain discord object, as the modals do not contain
 // a WYSIWYG editor
-import {
+import type {
   APIApplicationCommandInteractionDataChannelOption,
   APIApplicationCommandInteractionDataRoleOption,
   APIApplicationCommandInteractionDataSubcommandOption,
   APIApplicationCommandInteractionDataUserOption,
-  APIChatInputApplicationCommandGuildInteraction,
+  APIChatInputApplicationCommandGuildInteraction} from "discord-api-types/v9";
+import {
   ApplicationCommandOptionType,
   InteractionResponseType,
   MessageFlags,
@@ -15,8 +16,8 @@ import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../../../errors.js";
-import { InternalInteractionType } from "../../interaction.js";
-import { InteractionReturnData } from "../../types.js";
+import type { InternalInteractionType } from "../../interaction.js";
+import type { InteractionReturnData } from "../../types.js";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function handleRawFormatCommand(

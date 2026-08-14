@@ -1,5 +1,5 @@
 // Registering the webhook manager to the instance
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
 
 import LoggingManager from "../lib/logging/manager.js";

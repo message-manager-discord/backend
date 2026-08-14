@@ -4,18 +4,20 @@
  * For example if a deleted webhook is detected (404), it will be deleted from the database, and an attempt to recreate it will be made
  */
 
-import { DiscordAPIError, RawFile } from "@discordjs/rest";
-import { Snowflake } from "discord-api-types/globals";
-import {
+import type { RawFile } from "@discordjs/rest";
+import { DiscordAPIError } from "@discordjs/rest";
+import type { Snowflake } from "discord-api-types/globals";
+import type {
   APIMessage,
   RESTGetAPIChannelWebhooksResult,
-  RESTJSONErrorCodes,
   RESTPostAPIChannelWebhookResult,
   RESTPostAPIWebhookWithTokenJSONBody,
-  RESTPostAPIWebhookWithTokenWaitResult,
+  RESTPostAPIWebhookWithTokenWaitResult} from "discord-api-types/v9";
+import {
+  RESTJSONErrorCodes,
   Routes,
 } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 
 import {
   ExpectedFailure,

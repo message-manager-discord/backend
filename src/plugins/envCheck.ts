@@ -1,5 +1,5 @@
 import envSchema from "env-schema";
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
 
 // Code for loading, validating, and typing environmental variables

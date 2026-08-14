@@ -4,11 +4,11 @@
  * The function must be added in a pre-handler hook to run - this is so only routes that need authentication will require it
  */
 
-import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import httpErrors from "http-errors";
 const { Unauthorized } = httpErrors;
 
-import { Snowflake } from "discord-api-types/v9";
+import type { Snowflake } from "discord-api-types/v9";
 import fp from "fastify-plugin";
 
 const addAuthentication = async (
@@ -81,4 +81,4 @@ const authPlugin = fp(async (instance: FastifyInstance) => {
 });
 
 export default authPlugin;
-export { UserRequestData };
+export type { UserRequestData };
