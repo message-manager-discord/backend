@@ -2,15 +2,16 @@
  * Custom client for making requests to Discord's OAuth2 API
  */
 
-import axios, { AxiosError, AxiosResponse } from "axios";
-import {
+import type { AxiosError, AxiosResponse } from "axios";
+import axios from "axios";
+import type {
   RESTGetAPICurrentUserGuildsResult,
   RESTGetAPICurrentUserResult,
   RESTGetCurrentUserGuildMemberResult,
   RESTPostOAuth2AccessTokenResult,
   Snowflake,
 } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 import { URLSearchParams } from "url";
 
 import { discordAPIBaseURL, requiredScopes } from "./constants.js";
@@ -19,7 +20,7 @@ import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "./errors.js";
-import { UserRequestData } from "./plugins/authentication.js";
+import type { UserRequestData } from "./plugins/authentication.js";
 
 // Two different responses to differentiate between a cache and uncached response
 // This is because they need to be handled differently

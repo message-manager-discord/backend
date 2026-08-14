@@ -1,18 +1,20 @@
 // Shared logic for generating message generation embeds
 // As this logic is used in multiple places, it is abstracted out
-import { Snowflake } from "discord-api-types/globals";
-import {
+import type { Snowflake } from "discord-api-types/globals";
+import type {
   APIActionRowComponent,
   APIEmbed,
   APIMessageActionRowComponent,
-  APISelectMenuComponent,
+  APISelectMenuComponent} from "discord-api-types/v9";
+import {
   ButtonStyle,
   ComponentType,
 } from "discord-api-types/v9";
 
 import { embedPink } from "../../constants.js";
+import type {
+  MessageSavedInCache} from "../../lib/messages/cache.js";
 import {
-  MessageSavedInCache,
   splitMessageCacheKey,
 } from "../../lib/messages/cache.js";
 import { addTipToEmbed } from "../../lib/tips/index.js";
@@ -262,10 +264,5 @@ const createEmbedMessageGenerationEmbed = (
   };
 };
 
-export {
-  createEmbedMessageGenerationEmbed,
-  createInitialMessageGenerationEmbed,
-  CreateMessageGenerationEmbedResult,
-  generateMessageGenerationCustomId,
-  MessageGenerationButtonTypes,
-};
+export type { CreateMessageGenerationEmbedResult, MessageGenerationButtonTypes };
+export { createEmbedMessageGenerationEmbed, createInitialMessageGenerationEmbed, generateMessageGenerationCustomId };

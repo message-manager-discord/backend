@@ -2,10 +2,11 @@
 // This is used in the permission's editing flow, so if other users are editing permissions at that time
 // there are no clashes
 
-import axios, { AxiosError, AxiosResponse } from "axios";
-import { Snowflake } from "discord-api-types/globals";
-import { APIEmbed } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { AxiosError, AxiosResponse } from "axios";
+import axios from "axios";
+import type { Snowflake } from "discord-api-types/globals";
+import type { APIEmbed } from "discord-api-types/v9";
+import type { FastifyInstance } from "fastify";
 
 import { discordAPIBaseURL } from "../../constants.js";
 import { embedPink } from "../../constants.js";

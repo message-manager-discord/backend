@@ -1,14 +1,15 @@
 // Handle confirmation of the deletion of a message at the confirmation stage
-import {
+import type {
   APIActionRowComponent,
   APIInteractionResponseUpdateMessage,
   APIMessageActionRowComponent,
-  APIMessageComponentGuildInteraction,
+  APIMessageComponentGuildInteraction} from "discord-api-types/v9";
+import {
   ComponentType,
   InteractionResponseType,
   MessageFlags,
 } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 
 import { successGreen } from "../../constants.js";
 import {
@@ -16,9 +17,9 @@ import {
   UnexpectedFailure,
 } from "../../errors.js";
 import { deleteMessage } from "../../lib/messages/delete.js";
-import { GuildSession } from "../../lib/session/index.js";
+import type { GuildSession } from "../../lib/session/index.js";
 import { addTipToEmbed } from "../../lib/tips/index.js";
-import { InternalInteractionType } from "../interaction.js";
+import type { InternalInteractionType } from "../interaction.js";
 
 export default async function handleConfirmDeleteButton(
   internalInteraction: InternalInteractionType<APIMessageComponentGuildInteraction>,

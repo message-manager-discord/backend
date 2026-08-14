@@ -1,11 +1,12 @@
 // Modal after send - from the chat input command
-import {
+import type {
   APIEmbed,
-  APIModalSubmitGuildInteraction,
+  APIModalSubmitGuildInteraction} from "discord-api-types/v9";
+import {
   InteractionResponseType,
   MessageFlags,
 } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 
 import { embedPink } from "../../constants.js";
 import {
@@ -13,10 +14,10 @@ import {
   UnexpectedFailure,
 } from "../../errors.js";
 import { sendMessage } from "../../lib/messages/send.js";
-import { GuildSession } from "../../lib/session/index.js";
+import type { GuildSession } from "../../lib/session/index.js";
 import { addTipToEmbed } from "../../lib/tips/index.js";
-import { InternalInteractionType } from "../interaction.js";
-import { InteractionReturnData } from "../types.js";
+import type { InternalInteractionType } from "../interaction.js";
+import type { InteractionReturnData } from "../types.js";
 // This modal is guild only (check in interaction handler)
 export default async function handleModalSend(
   internalInteraction: InternalInteractionType<APIModalSubmitGuildInteraction>,

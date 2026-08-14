@@ -1,16 +1,17 @@
 // Information message
-import {
+import type {
   APIApplicationCommandAutocompleteInteraction,
   APIApplicationCommandAutocompleteResponse,
   APIApplicationCommandInteractionDataStringOption,
   APIChatInputApplicationCommandInteraction,
   APIEmbed,
-  APIInteractionResponseChannelMessageWithSource,
+  APIInteractionResponseChannelMessageWithSource} from "discord-api-types/v9";
+import {
   ApplicationCommandOptionType,
   InteractionResponseType,
   MessageFlags,
 } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 import Fuse from "fuse.js";
 
 import { embedPink, inviteUrl } from "../../../constants.js";
@@ -18,10 +19,10 @@ import {
   ExpectedFailure,
   InteractionOrRequestFinalStatus,
 } from "../../../errors.js";
-import { GuildSession, NonGuildSession } from "../../../lib/session/index.js";
+import type { GuildSession, NonGuildSession } from "../../../lib/session/index.js";
 import { addTipToEmbed } from "../../../lib/tips/index.js";
-import { InternalInteractionType } from "../../interaction.js";
-import { InteractionReturnData } from "../../types.js";
+import type { InternalInteractionType } from "../../interaction.js";
+import type { InteractionReturnData } from "../../types.js";
 
 const createInfoEmbed = async (
   instance: FastifyInstance,

@@ -1,5 +1,5 @@
-import { EmbedField, MessageEmbed } from "@prisma/client";
-import {
+import type { EmbedField, MessageEmbed } from "@prisma/client";
+import type {
   APIEmbed,
   APIEmbedAuthor,
   APIEmbedFooter,
@@ -11,7 +11,7 @@ import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../../../errors.js";
-import { StoredEmbed } from "./types.js";
+import type { StoredEmbed } from "./types.js";
 
 // Create an internal representation "stored embed" from a discord API message
 const createStoredEmbedFromAPIMessage = (

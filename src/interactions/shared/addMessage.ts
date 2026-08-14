@@ -1,17 +1,18 @@
 // Shared logic for addMessage (migration) command. Shared as it is currently used by both a context menu command
 // and a chat input command. This is because there are currently some mobile devices that do not support
 // context menu commands
-import { Prisma } from "@prisma/client";
-import {
+import type { Prisma } from "@prisma/client";
+import type {
   APIApplicationCommandGuildInteraction,
   APIEmbed,
   APIMessage,
-  APIMessageApplicationCommandGuildInteraction,
+  APIMessageApplicationCommandGuildInteraction} from "discord-api-types/v9";
+import {
   InteractionResponseType,
   MessageFlags,
   MessageType,
 } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 
 import { embedPink } from "../../constants.js";
 import {
@@ -19,9 +20,9 @@ import {
   InteractionOrRequestFinalStatus,
 } from "../../errors.js";
 import { checkSendMessagePossible } from "../../lib/messages/send.js";
-import { GuildSession } from "../../lib/session/index.js";
+import type { GuildSession } from "../../lib/session/index.js";
 import { addTipToEmbed } from "../../lib/tips/index.js";
-import { InteractionReturnData } from "../types.js";
+import type { InteractionReturnData } from "../types.js";
 
 // Function to add a message
 const addMessageLogic = async ({

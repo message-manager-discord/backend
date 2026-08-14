@@ -2,7 +2,7 @@
 // The Prisma Database schema is in /prisma/schema.prisma
 
 import prismaClientImport from "@prisma/client";
-import { FastifyPluginAsync } from "fastify";
+import type { FastifyPluginAsync } from "fastify";
 import fp from "fastify-plugin";
 import { fieldEncryptionMiddleware } from "prisma-field-encryption";
 

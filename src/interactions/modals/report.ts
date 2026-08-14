@@ -1,19 +1,20 @@
 // Currently not implemented - the modal is not generated
 // Code kept for future use
+import type {
+  APIModalSubmitGuildInteraction} from "discord-api-types/v9";
 import {
-  APIModalSubmitGuildInteraction,
   InteractionResponseType,
   MessageFlags,
 } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 
 import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../../errors.js";
-import { GuildSession } from "../../lib/session/index.js";
-import { InternalInteractionType } from "../interaction.js";
-import { InteractionReturnData } from "../types.js";
+import type { GuildSession } from "../../lib/session/index.js";
+import type { InternalInteractionType } from "../interaction.js";
+import type { InteractionReturnData } from "../types.js";
 
 export default async function handleModalReport(
   internalInteraction: InternalInteractionType<APIModalSubmitGuildInteraction>,

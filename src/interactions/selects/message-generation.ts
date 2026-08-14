@@ -1,24 +1,24 @@
 // Handle message generation select menu - this is for embed field editing
 // Returns a modal with the field's current values
-import {
+import type {
   APIMessageComponentGuildInteraction,
   APIMessageSelectMenuInteractionData,
 } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 
 import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../../errors.js";
 import { getMessageFromCache } from "../../lib/messages/cache.js";
-import { GuildSession } from "../../lib/session/index.js";
-import { InternalInteractionType } from "../interaction.js";
+import type { GuildSession } from "../../lib/session/index.js";
+import type { InternalInteractionType } from "../interaction.js";
 import {
   createModal,
   createTextInputWithRow,
 } from "../modals/createStructures.js";
 import { generateMessageGenerationCustomId } from "../shared/message-generation.js";
-import { InteractionReturnData } from "../types.js";
+import type { InteractionReturnData } from "../types.js";
 
 // Function to handle the message generation select menu
 export default async function handleMessageGenerationSelect(

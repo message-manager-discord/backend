@@ -1,5 +1,6 @@
-import { Static, Type } from "@sinclair/typebox";
-import { FastifyInstance } from "fastify";
+import type { Static} from "@sinclair/typebox";
+import { Type } from "@sinclair/typebox";
+import type { FastifyInstance } from "fastify";
 import httpErrors from "http-errors";
 
 import { getUserData } from "../../lib/user.js";

@@ -1,6 +1,7 @@
-import { Snowflake } from "discord-api-types/globals";
-import { RESTGetAPIUserResult, Routes } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { Snowflake } from "discord-api-types/globals";
+import type { RESTGetAPIUserResult} from "discord-api-types/v9";
+import { Routes } from "discord-api-types/v9";
+import type { FastifyInstance } from "fastify";
 
 import {
   ExpectedOauth2Failure,

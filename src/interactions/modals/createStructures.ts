@@ -1,7 +1,8 @@
 // Utility functions for creating modals
-import {
+import type {
   APIModalInteractionResponse,
-  APITextInputComponent,
+  APITextInputComponent} from "discord-api-types/v9";
+import {
   ComponentType,
   InteractionResponseType,
   TextInputStyle,

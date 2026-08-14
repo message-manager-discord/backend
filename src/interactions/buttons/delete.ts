@@ -1,13 +1,14 @@
 // Button to delete a message - will response with a confirmation as this is a destructive action
-import {
+import type {
   APIEmbed,
-  APIMessageComponentGuildInteraction,
+  APIMessageComponentGuildInteraction} from "discord-api-types/v9";
+import {
   ButtonStyle,
   ComponentType,
   InteractionResponseType,
   MessageFlags,
 } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 
 import { embedPink } from "../../constants.js";
 import {
@@ -15,10 +16,10 @@ import {
   UnexpectedFailure,
 } from "../../errors.js";
 import { checkDeletePossible } from "../../lib/messages/delete.js";
-import { GuildSession } from "../../lib/session/index.js";
+import type { GuildSession } from "../../lib/session/index.js";
 import { addTipToEmbed } from "../../lib/tips/index.js";
-import { InternalInteractionType } from "../interaction.js";
-import { InteractionReturnData } from "../types.js";
+import type { InternalInteractionType } from "../interaction.js";
+import type { InteractionReturnData } from "../types.js";
 
 export default async function handleDeleteButton(
   internalInteraction: InternalInteractionType<APIMessageComponentGuildInteraction>,

@@ -1,19 +1,20 @@
 // Shared logic for permissions config embed generation
 // In separate file as it's used in multiple places
-import { Snowflake } from "discord-api-types/globals";
-import {
+import type { Snowflake } from "discord-api-types/globals";
+import type {
   APIActionRowComponent,
   APIEmbed,
   APIMessageActionRowComponent,
-  APISelectMenuOption,
+  APISelectMenuOption} from "discord-api-types/v9";
+import {
   ButtonStyle,
   ComponentType,
 } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 
 import { embedPink } from "../../constants.js";
 import { UsableInternalPermissions } from "../../lib/permissions/consts.js";
-import { PermissionAllowAndDenyData } from "../../lib/permissions/types.js";
+import type { PermissionAllowAndDenyData } from "../../lib/permissions/types.js";
 import { checkInternalPermissionValue } from "../../lib/permissions/utils.js";
 import { addTipToEmbed } from "../../lib/tips/index.js";
 

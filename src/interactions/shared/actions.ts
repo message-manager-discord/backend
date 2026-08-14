@@ -1,23 +1,24 @@
 // Shared logic for actions command. Shared as it is currently used by both a context menu command
 // and a chat input command. This is because there are currently some mobile devices that do not support
 // context menu commands
-import {
+import type {
   APIButtonComponent,
   APIChatInputApplicationCommandGuildInteraction,
   APIMessage,
-  APIMessageApplicationCommandGuildInteraction,
+  APIMessageApplicationCommandGuildInteraction} from "discord-api-types/v9";
+import {
   ButtonStyle,
   ComponentType,
   InteractionResponseType,
   MessageFlags,
 } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 
 import { embedPink } from "../../constants.js";
 import { getMessageActionsPossible } from "../../lib/messages/checks.js";
-import { GuildSession } from "../../lib/session/index.js";
+import type { GuildSession } from "../../lib/session/index.js";
 import { addTipToEmbed } from "../../lib/tips/index.js";
-import { InteractionReturnData } from "../types.js";
+import type { InteractionReturnData } from "../types.js";
 
 // Function to get the actions for a message
 const actionsLogic = async ({

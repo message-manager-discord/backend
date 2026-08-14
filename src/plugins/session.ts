@@ -1,5 +1,5 @@
 // Attaching session manager to instance
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
 
 import SessionManager from "../lib/session/index.js";

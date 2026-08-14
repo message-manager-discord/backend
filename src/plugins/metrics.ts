@@ -2,7 +2,7 @@
  * Metric logging logic - accessed through prometheus
  */
 
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
 import httpErrors from "http-errors";
 import { Counter, register, Summary } from "prom-client";

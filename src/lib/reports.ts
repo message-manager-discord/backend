@@ -1,4 +1,4 @@
-import {
+import type {
   EmbedField,
   Guild,
   GuildBan,
@@ -11,20 +11,21 @@ import {
   UserBan,
   Warning,
 } from "@prisma/client";
-import { Snowflake } from "discord-api-types/globals";
-import { FastifyInstance } from "fastify";
+import type { Snowflake } from "discord-api-types/globals";
+import type { FastifyInstance } from "fastify";
 import httpErrors from "http-errors";
 
 import limits from "../limits.js";
-import {
-  Action,
+import type {
   ReportCloseStatusEnum,
   ReportListingModelType,
   ReportMessageHistoryModelType,
   ReportMessageHistoryResponseType,
   ReportMessageModelType,
   ReportModelType,
-  ReportStatusRequest,
+  ReportStatusRequest} from "../v1/types/reports.js";
+import {
+  Action
 } from "../v1/types/reports.js";
 const { Forbidden, NotFound, BadRequest } = httpErrors;
 import {
@@ -33,7 +34,7 @@ import {
   ShardInactive,
 } from "redis-discord-cache/dist/errors.js";
 
-import { UserRequestData } from "../plugins/authentication.js";
+import type { UserRequestData } from "../plugins/authentication.js";
 import { createStoredEmbedFromDataBaseEmbed } from "./messages/embeds/parser.js";
 
 // TODO fix and use custom errors!!!

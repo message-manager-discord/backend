@@ -1,9 +1,9 @@
 // Checking and getting discord permissions for both users and the bot
 
-import { Snowflake } from "discord-api-types/globals";
-import { Guild } from "redis-discord-cache";
+import type { Snowflake } from "discord-api-types/globals";
+import type { Guild } from "redis-discord-cache";
 
-import { DiscordPermissionResult } from "./types.js";
+import type { DiscordPermissionResult } from "./types.js";
 import {
   checkDiscordPermissionValue,
   tryAndHandleGuildErrors,

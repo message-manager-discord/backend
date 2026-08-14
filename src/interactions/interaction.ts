@@ -16,4 +16,5 @@ const createInternalInteraction = <Interaction>(
   };
 };
 
-export { createInternalInteraction, InternalInteractionType };
+export type { InternalInteractionType };
+export { createInternalInteraction };

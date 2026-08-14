@@ -1,14 +1,15 @@
 // Chat input send command
-import {
+import type {
   APIApplicationCommandInteractionDataBooleanOption,
   APIApplicationCommandInteractionDataChannelOption,
-  APIChatInputApplicationCommandGuildInteraction,
+  APIChatInputApplicationCommandGuildInteraction} from "discord-api-types/v9";
+import {
   ApplicationCommandOptionType,
   ChannelType,
   InteractionResponseType,
   MessageFlags,
 } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 
 import {
   InteractionOrRequestFinalStatus,
@@ -18,18 +19,19 @@ import {
   createMessageCacheKey,
   saveMessageToCache,
 } from "../../../lib/messages/cache.js";
+import type {
+  ThreadOptionObject} from "../../../lib/messages/send.js";
 import {
-  checkSendMessagePossible,
-  ThreadOptionObject,
+  checkSendMessagePossible
 } from "../../../lib/messages/send.js";
-import { GuildSession } from "../../../lib/session/index.js";
-import { InternalInteractionType } from "../../interaction.js";
+import type { GuildSession } from "../../../lib/session/index.js";
+import type { InternalInteractionType } from "../../interaction.js";
 import {
   createModal,
   createTextInputWithRow,
 } from "../../modals/createStructures.js";
 import { createInitialMessageGenerationEmbed } from "../../shared/message-generation.js";
-import { InteractionReturnData } from "../../types.js";
+import type { InteractionReturnData } from "../../types.js";
 
 export default async function handleSendCommand(
   internalInteraction: InternalInteractionType<APIChatInputApplicationCommandGuildInteraction>,

@@ -1,10 +1,11 @@
 // Register a context menu migration command to a specific guild
-import { Snowflake } from "discord-api-types/globals";
+import type { Snowflake } from "discord-api-types/globals";
+import type {
+  RESTGetAPIApplicationGuildCommandsResult} from "discord-api-types/v9";
 import {
-  RESTGetAPIApplicationGuildCommandsResult,
   Routes,
 } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 
 import toSetCommands from "../../discord_commands/guildAddMessage.json" with { type: "json" };
 async function registerAddCommand(

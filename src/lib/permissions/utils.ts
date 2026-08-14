@@ -1,7 +1,7 @@
 // Utility functions for permissions
 
-import { Snowflake } from "discord-api-types/globals";
-import { Guild } from "redis-discord-cache";
+import type { Snowflake } from "discord-api-types/globals";
+import type { Guild } from "redis-discord-cache";
 import {
   ChannelNotFound,
   GuildNotFound,
@@ -14,7 +14,7 @@ import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../../errors.js";
-import { GuildSession } from "../session/index.js";
+import type { GuildSession } from "../session/index.js";
 import { InternalPermissions } from "./consts.js";
 
 // Compare bigint's to see if the permission is present

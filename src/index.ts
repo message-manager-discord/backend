@@ -5,12 +5,14 @@ import "./instrument.js";
  * Includes setup of core plugins for the HTTP server
  */
 import fastifyAuth from "@fastify/auth";
-import fastifyCookie, { FastifyCookieOptions } from "@fastify/cookie";
+import type { FastifyCookieOptions } from "@fastify/cookie";
+import fastifyCookie from "@fastify/cookie";
 import fastifyCors from "@fastify/cors";
-import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import * as Sentry from "@sentry/node";
 import childProcess from "child_process";
-import fastify, { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
+import fastify from "fastify";
 import * as url from "url";
 
 import authRoutePlugin from "./authRoutes.js";

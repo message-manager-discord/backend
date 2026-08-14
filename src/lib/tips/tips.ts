@@ -1,5 +1,5 @@
 // File with all tips
-import { Tip } from "./index.js";
+import type { Tip } from "./index.js";
 
 const allTips: Tip[] = [
   {
