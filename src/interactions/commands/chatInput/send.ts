@@ -13,28 +13,28 @@ import { FastifyInstance } from "fastify";
 import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
-} from "../../../errors";
+} from "../../../errors.js";
 import {
   createMessageCacheKey,
   saveMessageToCache,
-} from "../../../lib/messages/cache";
+} from "../../../lib/messages/cache.js";
 import {
   checkSendMessagePossible,
   ThreadOptionObject,
-} from "../../../lib/messages/send";
-import { GuildSession } from "../../../lib/session";
-import { InternalInteractionType } from "../../interaction";
+} from "../../../lib/messages/send.js";
+import { GuildSession } from "../../../lib/session/index.js";
+import { InternalInteractionType } from "../../interaction.js";
 import {
   createModal,
   createTextInputWithRow,
-} from "../../modals/createStructures";
-import { createInitialMessageGenerationEmbed } from "../../shared/message-generation";
-import { InteractionReturnData } from "../../types";
+} from "../../modals/createStructures.js";
+import { createInitialMessageGenerationEmbed } from "../../shared/message-generation.js";
+import { InteractionReturnData } from "../../types.js";
 
 export default async function handleSendCommand(
   internalInteraction: InternalInteractionType<APIChatInputApplicationCommandGuildInteraction>,
   session: GuildSession,
-  instance: FastifyInstance
+  instance: FastifyInstance,
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   // First option: Channel
@@ -42,20 +42,20 @@ export default async function handleSendCommand(
     interaction.data.options?.find(
       (option) =>
         option.name === "channel" &&
-        option.type === ApplicationCommandOptionType.Channel
+        option.type === ApplicationCommandOptionType.Channel,
     ) as APIApplicationCommandInteractionDataChannelOption
   )?.value;
   const channel = interaction.data.resolved?.channels?.[channelId];
   if (!channelId) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.APPLICATION_COMMAND_MISSING_EXPECTED_OPTION,
-      "No channel option on send command"
+      "No channel option on send command",
     );
   }
   if (!channel) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.APPLICATION_COMMAND_RESOLVED_MISSING_EXPECTED_VALUE,
-      "Channel not found in resolved data"
+      "Channel not found in resolved data",
     );
   }
   // Content only means a message generation flow will not be started and the content modal displayed immediately
@@ -64,7 +64,7 @@ export default async function handleSendCommand(
       interaction.data.options?.find(
         (option) =>
           option.name === "content-only" &&
-          option.type === ApplicationCommandOptionType.Boolean
+          option.type === ApplicationCommandOptionType.Boolean,
       ) as APIApplicationCommandInteractionDataBooleanOption
     )?.value ?? false;
 
@@ -124,7 +124,7 @@ export default async function handleSendCommand(
   const embedData = createInitialMessageGenerationEmbed(
     messageGenerationKey,
     {}, // Empty as this is the start of the process,
-    interaction.guild_id
+    interaction.guild_id,
   );
 
   return {

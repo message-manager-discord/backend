@@ -3,16 +3,15 @@
   "display": "Node 16",
 
   "compilerOptions": {
-    "module": "esnext",
+  "module": "nodenext",
     "target": "es2021",
-
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "rootDir": "src",
     "resolveJsonModule": true,
-    "moduleResolution": "node",
+  "moduleResolution": "nodenext",
     "sourceMap": true,
     "outDir": "dist",
     "noEmitHelpers": true,

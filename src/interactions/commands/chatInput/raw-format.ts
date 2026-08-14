@@ -14,13 +14,13 @@ import {
 import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
-} from "../../../errors";
-import { InternalInteractionType } from "../../interaction";
-import { InteractionReturnData } from "../../types";
+} from "../../../errors.js";
+import { InternalInteractionType } from "../../interaction.js";
+import { InteractionReturnData } from "../../types.js";
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export default async function handleRawFormatCommand(
-  internalInteraction: InternalInteractionType<APIChatInputApplicationCommandGuildInteraction>
+  internalInteraction: InternalInteractionType<APIChatInputApplicationCommandGuildInteraction>,
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   const subcommand = interaction.data.options?.[0];
@@ -30,7 +30,7 @@ export default async function handleRawFormatCommand(
   ) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.APPLICATION_COMMAND_MISSING_EXPECTED_OPTION,
-      "Missing subcommand"
+      "Missing subcommand",
     );
   }
   // Subcommands - so sent them off to different handlers
@@ -47,26 +47,26 @@ export default async function handleRawFormatCommand(
     default:
       throw new UnexpectedFailure(
         InteractionOrRequestFinalStatus.APPLICATION_COMMAND_UNEXPECTED_SUBCOMMAND,
-        `Invalid subcommand: \`${subcommand.name}\``
+        `Invalid subcommand: \`${subcommand.name}\``,
       );
   }
 }
 
 function handleRawFormatUserSubcommand(
   internalInteraction: InternalInteractionType<APIChatInputApplicationCommandGuildInteraction>,
-  subcommand: APIApplicationCommandInteractionDataSubcommandOption
+  subcommand: APIApplicationCommandInteractionDataSubcommandOption,
 ): InteractionReturnData {
   const targetId: string | undefined = (
     subcommand.options?.find(
       (option) =>
         option.name === "user" &&
-        option.type === ApplicationCommandOptionType.User
+        option.type === ApplicationCommandOptionType.User,
     ) as APIApplicationCommandInteractionDataUserOption | undefined
   )?.value;
   if (targetId === undefined) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.APPLICATION_COMMAND_MISSING_EXPECTED_OPTION,
-      "Missing target option"
+      "Missing target option",
     );
   }
 
@@ -80,19 +80,19 @@ function handleRawFormatUserSubcommand(
 }
 function handleRawFormatRoleSubcommand(
   internalInteraction: InternalInteractionType<APIChatInputApplicationCommandGuildInteraction>,
-  subcommand: APIApplicationCommandInteractionDataSubcommandOption
+  subcommand: APIApplicationCommandInteractionDataSubcommandOption,
 ): InteractionReturnData {
   const targetId: string | undefined = (
     subcommand.options?.find(
       (option) =>
         option.name === "role" &&
-        option.type === ApplicationCommandOptionType.Role
+        option.type === ApplicationCommandOptionType.Role,
     ) as APIApplicationCommandInteractionDataRoleOption | undefined
   )?.value;
   if (targetId === undefined) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.APPLICATION_COMMAND_MISSING_EXPECTED_OPTION,
-      "Missing target option"
+      "Missing target option",
     );
   }
 
@@ -107,19 +107,19 @@ function handleRawFormatRoleSubcommand(
 
 function handleRawFormatChannelSubcommand(
   internalInteraction: InternalInteractionType<APIChatInputApplicationCommandGuildInteraction>,
-  subcommand: APIApplicationCommandInteractionDataSubcommandOption
+  subcommand: APIApplicationCommandInteractionDataSubcommandOption,
 ): InteractionReturnData {
   const targetId: string | undefined = (
     subcommand.options?.find(
       (option) =>
         option.name === "channel" &&
-        option.type === ApplicationCommandOptionType.Channel
+        option.type === ApplicationCommandOptionType.Channel,
     ) as APIApplicationCommandInteractionDataChannelOption | undefined
   )?.value;
   if (targetId === undefined) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.APPLICATION_COMMAND_MISSING_EXPECTED_OPTION,
-      "Missing target option"
+      "Missing target option",
     );
   }
   return {

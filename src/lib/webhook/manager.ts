@@ -21,7 +21,7 @@ import {
   ExpectedFailure,
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
-} from "../../errors";
+} from "../../errors.js";
 
 interface MinimalWebhook {
   id: Snowflake;

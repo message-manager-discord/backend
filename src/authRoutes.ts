@@ -12,7 +12,7 @@ import crypto from "crypto";
 import Redis from "ioredis";
 import { v4 as uuidv4 } from "uuid";
 
-import DiscordOauthRequests from "./discordOauth";
+import DiscordOauthRequests from "./discordOauth.js";
 
 // Callback after authorized with discord
 const CallbackQuerystring = Type.Object({
@@ -43,7 +43,7 @@ const addPlugin = async (instance: FastifyInstance) => {
     max: 20, // 20 requests per minute, shouldn't be hit by a user
     timeWindow: 60 * 1000, // 1 minute
     cache: 10000,
-    redis: new Redis({
+    redis: new (Redis as any)({
       connectionName: "my-connection-name",
       host: instance.envVars.BACKEND_REDIS_HOST,
       port: instance.envVars.BACKEND_REDIS_PORT,
@@ -84,7 +84,7 @@ const addPlugin = async (instance: FastifyInstance) => {
         },
       },
       config: {
-        ratelimit: {
+        rateLimit: {
           max: 2,
           timeWindow: 5 * 1000,
           // 2 per 5 seconds
@@ -99,7 +99,7 @@ const addPlugin = async (instance: FastifyInstance) => {
       const redirectUrl = instance.discordOauthRequests.generateAuthUrl(state);
 
       return reply.send({ redirectUrl });
-    }
+    },
   );
   /**
    * Callback route, navigated too after authorized with discord
@@ -128,7 +128,7 @@ const addPlugin = async (instance: FastifyInstance) => {
         },
       },
       config: {
-        ratelimit: {
+        rateLimit: {
           max: 2,
           timeWindow: 5 * 1000,
           // 2 per 5 seconds
@@ -149,9 +149,8 @@ const addPlugin = async (instance: FastifyInstance) => {
       // Delete state so it cannot be used again - again for security
       await instance.redisCache.deleteState(state);
 
-      const tokenResponse = await instance.discordOauthRequests.exchangeToken(
-        code
-      );
+      const tokenResponse =
+        await instance.discordOauthRequests.exchangeToken(code);
       // If the required scopes are not set then the data required might not be accessible
       if (!DiscordOauthRequests.verifyScopes(tokenResponse.scope)) {
         return new Forbidden("Invalid scopes, please try again");
@@ -195,7 +194,7 @@ const addPlugin = async (instance: FastifyInstance) => {
       date.setDate(date.getDate() + 7);
       const redirectPath = cachedState.redirectPath ?? "/";
       return reply.send({ redirectUrl: redirectPath, token: sessionToken });
-    }
+    },
   );
 };
 

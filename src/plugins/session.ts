@@ -2,7 +2,7 @@
 import { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
 
-import SessionManager from "../lib/session";
+import SessionManager from "../lib/session/index.js";
 
 declare module "fastify" {
   interface FastifyInstance {
@@ -17,9 +17,9 @@ const sessionPlugin = fp(
       "sessionManager",
       new SessionManager({
         instance,
-      })
+      }),
     );
-  }
+  },
 );
 
 export default sessionPlugin;

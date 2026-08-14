@@ -1,3 +1,3 @@
-import { reportSchemas } from "./reports";
+import { reportSchemas } from "./reports.js";
 
 export const schemas = reportSchemas;

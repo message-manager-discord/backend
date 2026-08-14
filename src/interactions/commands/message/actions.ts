@@ -8,16 +8,16 @@ import { FastifyInstance } from "fastify";
 import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
-} from "../../../errors";
-import { GuildSession } from "../../../lib/session";
-import { InternalInteractionType } from "../../interaction";
-import { actionsLogic } from "../../shared/actions";
-import { InteractionReturnData } from "../../types";
+} from "../../../errors.js";
+import { GuildSession } from "../../../lib/session/index.js";
+import { InternalInteractionType } from "../../interaction.js";
+import { actionsLogic } from "../../shared/actions.js";
+import { InteractionReturnData } from "../../types.js";
 
 export default function handleActionMessageCommand(
   internalInteraction: InternalInteractionType<APIMessageApplicationCommandGuildInteraction>,
   session: GuildSession,
-  instance: FastifyInstance
+  instance: FastifyInstance,
 ): Promise<InteractionReturnData> {
   // This command will generate a ephemeral message with the action buttons for editing, deleting, or reporting.
   // The command will also check permissions for the invoking user
@@ -30,7 +30,7 @@ export default function handleActionMessageCommand(
   if (message === undefined) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.APPLICATION_COMMAND_RESOLVED_MISSING_EXPECTED_VALUE,
-      "Message not found in resolved data"
+      "Message not found in resolved data",
     );
   }
   return actionsLogic({

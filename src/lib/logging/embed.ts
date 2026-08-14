@@ -1,7 +1,7 @@
 // Generate a logging embed - so that all logging embeds follow a similar format
 import { APIEmbed, APIEmbedField } from "discord-api-types/v9";
 
-import { embedPink, failureRed } from "../../constants";
+import { embedPink, failureRed } from "../../constants.js";
 
 enum ActionType {
   GENERAL = embedPink,

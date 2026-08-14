@@ -13,7 +13,7 @@ import {
   getReportHistory,
   getReportMessage,
   getReports,
-} from "../../lib/reports";
+} from "../../lib/reports.js";
 import {
   ReportCloseStatusEnum,
   ReportListingModelType,
@@ -21,7 +21,7 @@ import {
   ReportMessageModelType,
   ReportModelType,
   ReportStatusRequest,
-} from "../types/reports";
+} from "../types/reports.js";
 const { Forbidden, BadRequest } = httpErrors;
 
 // TODO: Move actions away from status - ie just have a status of actioned and custom actions
@@ -300,7 +300,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
   }>(
     "/reports/can-report",
     {
-      config: { ratelimit: { max: 10, timeWindow: 5 * 1000 } }, // Effectively one request per second, but allows bursts of up to 5
+      config: { rateLimit: { max: 10, timeWindow: 5 * 1000 } }, // Effectively one request per second, but allows bursts of up to 5
       schema: {
         description: "Check if a message can be reported",
         tags: ["reports"],
@@ -338,7 +338,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
   }>(
     `${rootPath}/:id/messages`,
     {
-      config: { ratelimit: { max: 1, timeWindow: 30 * 1000 } }, // One message sent per 30 seconds, as messages should not need to be sent in quick succession
+      config: { rateLimit: { max: 1, timeWindow: 30 * 1000 } }, // One message sent per 30 seconds, as messages should not need to be sent in quick succession
       schema: {
         description: "Create a report message",
         tags: ["reports"],
@@ -395,7 +395,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
   }>(
     `${rootPath}/:id/messages/:message_id`,
     {
-      config: { ratelimit: { max: 5, timeWindow: 5 * 1000 } }, // Effectively one request per second, but allows bursts of up to 5
+      config: { rateLimit: { max: 5, timeWindow: 5 * 1000 } }, // Effectively one request per second, but allows bursts of up to 5
       schema: {
         description: "Get a report message",
         tags: ["reports"],
@@ -452,7 +452,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
   }>(
     `${rootPath}/:id/assign`,
     {
-      config: { ratelimit: { max: 1, timeWindow: 30 * 1000 } }, // Should only really be sent once ever for a route, so can be heavily rate limited
+      config: { rateLimit: { max: 1, timeWindow: 30 * 1000 } }, // Should only really be sent once ever for a route, so can be heavily rate limited
       schema: {
         description: "Assign a report to a staff member",
         tags: ["reports"],
@@ -513,7 +513,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
   }>(
     `${rootPath}/:id/close`,
     {
-      config: { ratelimit: { max: 1, timeWindow: 30 * 1000 } }, // Should only really be sent once ever, so can be heavily rate limited
+      config: { rateLimit: { max: 1, timeWindow: 30 * 1000 } }, // Should only really be sent once ever, so can be heavily rate limited
       schema: {
         description: "Close a report",
         tags: ["reports"],
@@ -569,7 +569,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
   }>(
     `${rootPath}/:id/action`,
     {
-      config: { ratelimit: { max: 1, timeWindow: 30 * 1000 } }, // Should only really be sent once ever, so can be heavily rate limited
+      config: { rateLimit: { max: 1, timeWindow: 30 * 1000 } }, // Should only really be sent once ever, so can be heavily rate limited
       schema: {
         description: "Action a report",
         tags: ["reports"],
@@ -628,7 +628,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
   }>(
     `${rootPath}/:id/history`,
     {
-      config: { ratelimit: { max: 10, timeWindow: 5 * 1000 } }, // Might be clicked through pretty quickly when being used, allows for 10 per 5 seconds
+      config: { rateLimit: { max: 10, timeWindow: 5 * 1000 } }, // Might be clicked through pretty quickly when being used, allows for 10 per 5 seconds
       schema: {
         description: "Get the history of a report",
         tags: ["reports"],

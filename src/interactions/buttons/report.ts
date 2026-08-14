@@ -10,21 +10,24 @@ import {
   MessageFlags,
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
-import { ExpectedFailure, InteractionOrRequestFinalStatus } from "../../errors";
-import { GuildSession } from "../../lib/session";
-import limits from "../../limits";
-import { InternalInteractionType } from "../interaction";
+import {
+  ExpectedFailure,
+  InteractionOrRequestFinalStatus,
+} from "../../errors.js";
+import { GuildSession } from "../../lib/session/index.js";
+import limits from "../../limits.js";
+import { InternalInteractionType } from "../interaction.js";
 
 import {
   createModal,
   createTextInputWithRow,
-} from "../modals/createStructures";
-import { InteractionReturnData } from "../types";
+} from "../modals/createStructures.js";
+import { InteractionReturnData } from "../types.js";
 
 export default async function handleReportButton(
   internalInteraction: InternalInteractionType<APIMessageComponentGuildInteraction>,
   session: GuildSession,
-  instance: FastifyInstance
+  instance: FastifyInstance,
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   // return this isn't happening right now message

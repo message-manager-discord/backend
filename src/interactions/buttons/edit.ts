@@ -9,31 +9,31 @@ import { FastifyInstance } from "fastify";
 import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
-} from "../../errors";
+} from "../../errors.js";
 import {
   MessageSavedInCache,
   saveMessageToCache,
-} from "../../lib/messages/cache";
-import { createMessageCacheKey } from "../../lib/messages/cache";
-import { checkEditPossible } from "../../lib/messages/edit";
-import { createStoredEmbedFromDataBaseEmbed } from "../../lib/messages/embeds/parser";
-import { StoredEmbed } from "../../lib/messages/embeds/types";
-import { GuildSession } from "../../lib/session";
-import { InternalInteractionType } from "../interaction";
-import { createInitialMessageGenerationEmbed } from "../shared/message-generation";
-import { InteractionReturnData } from "../types";
+} from "../../lib/messages/cache.js";
+import { createMessageCacheKey } from "../../lib/messages/cache.js";
+import { checkEditPossible } from "../../lib/messages/edit.js";
+import { createStoredEmbedFromDataBaseEmbed } from "../../lib/messages/embeds/parser.js";
+import { StoredEmbed } from "../../lib/messages/embeds/types.js";
+import { GuildSession } from "../../lib/session/index.js";
+import { InternalInteractionType } from "../interaction.js";
+import { createInitialMessageGenerationEmbed } from "../shared/message-generation.js";
+import { InteractionReturnData } from "../types.js";
 
 export default async function handleEditButton(
   internalInteraction: InternalInteractionType<APIMessageComponentGuildInteraction>,
   session: GuildSession,
-  instance: FastifyInstance
+  instance: FastifyInstance,
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   const messageId = interaction.data.custom_id.split(":")[1];
   if (!messageId) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.COMPONENT_CUSTOM_ID_MALFORMED,
-      "No message id on edit button"
+      "No message id on edit button",
     );
   }
   // Check permissions for editing
@@ -52,7 +52,7 @@ export default async function handleEditButton(
   // Add to cache with key
   const messageGenerationKey = createMessageCacheKey(
     interaction.id,
-    interaction.channel_id
+    interaction.channel_id,
   );
   const cacheData: MessageSavedInCache = {
     content: databaseMessage.content ?? undefined,
@@ -68,7 +68,7 @@ export default async function handleEditButton(
   const embedData = createInitialMessageGenerationEmbed(
     messageGenerationKey,
     cacheData,
-    interaction.guild_id
+    interaction.guild_id,
   );
 
   return {

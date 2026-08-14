@@ -18,28 +18,28 @@ import {
 } from "discord-api-types/v9";
 import { FastifyInstance } from "fastify";
 
-import { discordAPIBaseURL, embedPink } from "../../../constants";
-import { DiscordPermissions } from "../../../consts";
+import { discordAPIBaseURL, embedPink } from "../../../constants.js";
+import { DiscordPermissions } from "../../../consts.js";
 import {
   ExpectedFailure,
   ExpectedPermissionFailure,
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
-} from "../../../errors";
-import { checkIfRoleIsBelowUsersHighestRole } from "../../../lib/permissions/checks";
-import { InternalPermissions } from "../../../lib/permissions/consts";
-import { checkDiscordPermissionValue } from "../../../lib/permissions/utils";
-import { GuildSession } from "../../../lib/session";
-import { addTipToEmbed } from "../../../lib/tips";
-import { InternalInteractionType } from "../../interaction";
-import createPermissionsEmbed from "../../shared/permissions-config";
-import { InteractionReturnData } from "../../types";
+} from "../../../errors.js";
+import { checkIfRoleIsBelowUsersHighestRole } from "../../../lib/permissions/checks.js";
+import { InternalPermissions } from "../../../lib/permissions/consts.js";
+import { checkDiscordPermissionValue } from "../../../lib/permissions/utils.js";
+import { GuildSession } from "../../../lib/session/index.js";
+import { addTipToEmbed } from "../../../lib/tips/index.js";
+import { InternalInteractionType } from "../../interaction.js";
+import createPermissionsEmbed from "../../shared/permissions-config.js";
+import { InteractionReturnData } from "../../types.js";
 
 // Handle top level command
 export default async function handleConfigCommand(
   internalInteraction: InternalInteractionType<APIChatInputApplicationCommandGuildInteraction>,
   session: GuildSession,
-  instance: FastifyInstance
+  instance: FastifyInstance,
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   const subcommand = interaction.data.options?.[0];
@@ -49,7 +49,7 @@ export default async function handleConfigCommand(
   ) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.APPLICATION_COMMAND_MISSING_EXPECTED_OPTION,
-      "Missing subcommand"
+      "Missing subcommand",
     );
   }
   // Send to different handlers for subcommands
@@ -59,7 +59,7 @@ export default async function handleConfigCommand(
         internalInteraction,
         subcommand,
         instance,
-        session
+        session,
       );
 
     case "logging-channel":
@@ -67,13 +67,13 @@ export default async function handleConfigCommand(
         internalInteraction,
         subcommand,
         instance,
-        session
+        session,
       );
 
     default:
       throw new UnexpectedFailure(
         InteractionOrRequestFinalStatus.APPLICATION_COMMAND_UNEXPECTED_SUBCOMMAND,
-        `Invalid subcommand: \`${subcommand.name}\``
+        `Invalid subcommand: \`${subcommand.name}\``,
       );
   }
 }
@@ -83,7 +83,7 @@ async function handlePermissionsSubcommand(
   internalInteraction: InternalInteractionType<APIChatInputApplicationCommandGuildInteraction>,
   subcommandGroup: APIApplicationCommandInteractionDataSubcommandGroupOption,
   instance: FastifyInstance,
-  session: GuildSession
+  session: GuildSession,
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   const subcommand = subcommandGroup.options[0];
@@ -91,7 +91,7 @@ async function handlePermissionsSubcommand(
     subcommand.options?.find(
       (option) =>
         option.name === "channel" &&
-        option.type === ApplicationCommandOptionType.Channel
+        option.type === ApplicationCommandOptionType.Channel,
     ) as APIApplicationCommandInteractionDataChannelOption
   )?.value;
   const channel = interaction.data.resolved?.channels?.[channelId]; // Channel is found here because it is found for all subcommands
@@ -127,7 +127,7 @@ async function handlePermissionsSubcommand(
     default:
       throw new UnexpectedFailure(
         InteractionOrRequestFinalStatus.APPLICATION_COMMAND_UNEXPECTED_SUBCOMMAND,
-        `Invalid subcommand: \`${subcommand.name}\``
+        `Invalid subcommand: \`${subcommand.name}\``,
       );
   }
 }
@@ -153,13 +153,13 @@ async function handlePermissionsListSubcommand({
     description = `Users and roles with permissions on ${channel.name ?? ""}`;
     entitiesWithPermissions =
       await instance.permissionManager.getChannelEntitiesWithPermissions(
-        channel.id
+        channel.id,
       );
   } else {
     description = `Users and roles with permissions`;
     entitiesWithPermissions =
       await instance.permissionManager.getEntitiesWithPermissions(
-        session.guildId
+        session.guildId,
       );
   }
   // Create description with two separate parts for roles and users
@@ -180,11 +180,11 @@ async function handlePermissionsListSubcommand({
     // Guild level so show some extra tips
     const channelsWithPermissions =
       await instance.permissionManager.getChannelsWithPermissions(
-        session.guildId
+        session.guildId,
       );
     if (channelsWithPermissions.length > 0) {
       extraDescription += `\n\n**Channels with permissions:** <#${channelsWithPermissions.join(
-        ">, <#"
+        ">, <#",
       )}>`;
     }
     extraDescription +=
@@ -227,13 +227,13 @@ async function handlePermissionsManageSubcommand({
     subcommand.options?.find(
       (option) =>
         option.name === "target" &&
-        option.type === ApplicationCommandOptionType.Mentionable
+        option.type === ApplicationCommandOptionType.Mentionable,
     ) as APIApplicationCommandInteractionDataMentionableOption | undefined
   )?.value;
   if (targetId === undefined) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.APPLICATION_COMMAND_MISSING_EXPECTED_OPTION,
-      "Missing target option"
+      "Missing target option",
     );
   }
 
@@ -254,7 +254,7 @@ async function handlePermissionsManageSubcommand({
     if (targetUser.bot ?? false) {
       throw new ExpectedFailure(
         InteractionOrRequestFinalStatus.BOT_FOUND_WHEN_USER_EXPECTED,
-        "The target cannot be a bot"
+        "The target cannot be a bot",
       );
     }
     // If the user is in the guild, then it will be in the members resolved data
@@ -267,7 +267,7 @@ async function handlePermissionsManageSubcommand({
   } else {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.APPLICATION_COMMAND_RESOLVED_MISSING_EXPECTED_VALUE,
-      "Target not found in resolved data"
+      "Target not found in resolved data",
     );
   }
   // Permissions are checked here, just so that users cannot view a settings config that they cannot then change
@@ -275,13 +275,13 @@ async function handlePermissionsManageSubcommand({
     !(
       await session.hasBotPermissions(
         InternalPermissions.MANAGE_PERMISSIONS,
-        undefined
+        undefined,
       )
     ).allPresent
   ) {
     throw new ExpectedPermissionFailure(
       InteractionOrRequestFinalStatus.USER_MISSING_INTERNAL_BOT_PERMISSION,
-      "You need the MANAGE_PERMISSIONS permission to manage permissions"
+      "You need the MANAGE_PERMISSIONS permission to manage permissions",
     );
   }
   if (targetType === "role") {
@@ -293,7 +293,7 @@ async function handlePermissionsManageSubcommand({
     ) {
       throw new ExpectedPermissionFailure(
         InteractionOrRequestFinalStatus.USER_ROLES_NOT_HIGH_ENOUGH,
-        "The role you are trying to manage permissions for is not below your highest role"
+        "The role you are trying to manage permissions for is not below your highest role",
       );
     }
   }
@@ -303,7 +303,7 @@ async function handlePermissionsManageSubcommand({
     targetPermissions !== undefined &&
     checkDiscordPermissionValue(
       BigInt(targetPermissions),
-      DiscordPermissions.ADMINISTRATOR
+      DiscordPermissions.ADMINISTRATOR,
     );
 
   // create embed representation for permissions viewing / editing
@@ -370,13 +370,13 @@ async function handlePermissionsQuickstartSubcommand({
     subcommand.options?.find(
       (option) =>
         option.name === "target" &&
-        option.type === ApplicationCommandOptionType.Mentionable
+        option.type === ApplicationCommandOptionType.Mentionable,
     ) as APIApplicationCommandInteractionDataMentionableOption | undefined
   )?.value;
   if (targetId === undefined) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.APPLICATION_COMMAND_MISSING_EXPECTED_OPTION,
-      "Missing target option"
+      "Missing target option",
     );
   }
   let targetType: "role" | "user";
@@ -395,7 +395,7 @@ async function handlePermissionsQuickstartSubcommand({
     if (targetUser.bot ?? false) {
       throw new ExpectedFailure(
         InteractionOrRequestFinalStatus.BOT_FOUND_WHEN_USER_EXPECTED,
-        "The target cannot be a bot"
+        "The target cannot be a bot",
       );
     }
     // If the user is in the guild, then it will be in the members resolved data
@@ -408,7 +408,7 @@ async function handlePermissionsQuickstartSubcommand({
   } else {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.APPLICATION_COMMAND_RESOLVED_MISSING_EXPECTED_VALUE,
-      "Target not found in resolved data"
+      "Target not found in resolved data",
     );
   }
 
@@ -416,14 +416,14 @@ async function handlePermissionsQuickstartSubcommand({
     subcommand.options?.find(
       (option) =>
         option.name === "preset" &&
-        option.type === ApplicationCommandOptionType.String
+        option.type === ApplicationCommandOptionType.String,
     ) as APIApplicationCommandInteractionDataStringOption | undefined
   )?.value as "message-access" | "management-access" | undefined;
 
   if (preset === "management-access" && channel !== undefined) {
     throw new ExpectedFailure(
       InteractionOrRequestFinalStatus.MANAGEMENT_PERMISSIONS_CANNOT_BE_SET_ON_CHANNEL_LEVEL,
-      "The management preset can only be set on guild level"
+      "The management preset can only be set on guild level",
     );
   }
 
@@ -501,7 +501,7 @@ async function handlePermissionsQuickstartSubcommand({
             (targetPermissions !== undefined
               ? checkDiscordPermissionValue(
                   BigInt(targetPermissions),
-                  DiscordPermissions.ADMINISTRATOR
+                  DiscordPermissions.ADMINISTRATOR,
                 )
                 ? "\n\nNote: The target has the discord `ADMINISTRATOR` permission. Any user with this permission will bypass bot permission checks (all will be allowed)"
                 : ""
@@ -520,7 +520,7 @@ async function handleLoggingChannelSubcommandGroup(
   internalInteraction: InternalInteractionType<APIChatInputApplicationCommandGuildInteraction>,
   subcommandGroup: APIApplicationCommandInteractionDataSubcommandGroupOption,
   instance: FastifyInstance,
-  session: GuildSession
+  session: GuildSession,
 ): Promise<InteractionReturnData> {
   const subcommand = subcommandGroup.options[0];
   // 2nd level subcommands for logging channels
@@ -549,7 +549,7 @@ async function handleLoggingChannelSubcommandGroup(
     default:
       throw new UnexpectedFailure(
         InteractionOrRequestFinalStatus.APPLICATION_COMMAND_UNEXPECTED_SUBCOMMAND,
-        `Invalid subcommand: \`${subcommand.name}\``
+        `Invalid subcommand: \`${subcommand.name}\``,
       );
   }
 }
@@ -572,13 +572,13 @@ async function handleLoggingChannelSetSubcommand({
     subcommand.options?.find(
       (option) =>
         option.type === ApplicationCommandOptionType.Channel &&
-        option.name === "channel"
+        option.name === "channel",
     ) as APIApplicationCommandInteractionDataChannelOption | undefined
   )?.value;
   if (channelId === undefined) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.APPLICATION_COMMAND_MISSING_EXPECTED_OPTION,
-      "Missing channel option"
+      "Missing channel option",
     );
   }
   // Webhook permissions are not checked here for the bot, since they are checked before setting the logging channel
@@ -692,7 +692,7 @@ async function handleLoggingChannelRemoveSubcommand({
         embeds: [logEmbed],
         username: "Message Manager Logging",
         avatar_url: instance.envVars.AVATAR_URL,
-      }
+      },
     );
   }
 
@@ -716,7 +716,7 @@ async function handleLoggingChannelGetSubcommand({
   // No target as there is only one logging channel per guild
 
   const logChannelId = await instance.loggingManager.getGuildLoggingChannel(
-    interaction.guild_id
+    interaction.guild_id,
   );
   const embed: APIEmbed = {
     title: "Current logging channel",

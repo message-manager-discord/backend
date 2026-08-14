@@ -10,12 +10,12 @@ import {
 import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
-} from "../../../errors";
-import { StoredEmbed } from "./types";
+} from "../../../errors.js";
+import { StoredEmbed } from "./types.js";
 
 // Create an internal representation "stored embed" from a discord API message
 const createStoredEmbedFromAPIMessage = (
-  message: APIMessage
+  message: APIMessage,
 ): StoredEmbed | null => {
   const embed = message.embeds[0];
   if (embed === undefined) {
@@ -24,7 +24,7 @@ const createStoredEmbedFromAPIMessage = (
   if (message.embeds.length > 1) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.TOO_MANY_EMBEDS,
-      "Only one embed is expected on that message."
+      "Only one embed is expected on that message.",
     );
   }
   return {
@@ -43,7 +43,7 @@ const createStoredEmbedFromAPIMessage = (
 const createStoredEmbedFromDataBaseEmbed = (
   embed: MessageEmbed & {
     fields: EmbedField[] | null | undefined;
-  }
+  },
 ): StoredEmbed => {
   let footer: APIEmbedFooter | undefined = undefined;
   if (embed.footerText !== null) {
