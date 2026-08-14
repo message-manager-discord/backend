@@ -32,7 +32,7 @@ const { Forbidden } = httpErrors;
 import axios from "axios";
 import { verifyKey } from "discord-interactions";
 import type { FastifyRequest } from "fastify";
-import { ShardInactive } from "redis-discord-cache/dist/errors.js";
+import { ShardInactive } from "redis-discord-cache";
 
 import { discordAPIBaseURL } from "../constants.js";
 import {

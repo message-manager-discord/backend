@@ -6,7 +6,7 @@ import {
   ChannelNotFound,
   GuildNotFound,
   GuildUnavailable,
-} from "redis-discord-cache/dist/errors.js";
+} from "redis-discord-cache";
 
 import { DiscordPermissions } from "../../consts.js";
 import {

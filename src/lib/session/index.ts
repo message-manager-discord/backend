@@ -12,10 +12,7 @@ import type {
 } from "discord-api-types/v9";
 import type { FastifyInstance } from "fastify";
 import type { Guild, GuildManager } from "redis-discord-cache";
-import {
-  GuildNotFound,
-  GuildUnavailable,
-} from "redis-discord-cache/dist/errors.js";
+import { GuildNotFound, GuildUnavailable } from "redis-discord-cache";
 
 import {
   ExpectedPermissionFailure,

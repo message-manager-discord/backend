@@ -4,25 +4,22 @@
 // Reports are not currently accepted but the starting infrastructure is in place
 import prismaClient from "@prisma/client";
 const { ReportStatus } = prismaClient;
-import {
-  APIMessageComponentGuildInteraction,
-  InteractionResponseType,
-  MessageFlags,
-} from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { APIMessageComponentGuildInteraction } from "discord-api-types/v9";
+import { InteractionResponseType, MessageFlags } from "discord-api-types/v9";
+import type { FastifyInstance } from "fastify";
 import {
   ExpectedFailure,
   InteractionOrRequestFinalStatus,
 } from "../../errors.js";
 import { GuildSession } from "../../lib/session/index.js";
 import limits from "../../limits.js";
-import { InternalInteractionType } from "../interaction.js";
+import type { InternalInteractionType } from "../interaction.js";
 
 import {
   createModal,
   createTextInputWithRow,
 } from "../modals/createStructures.js";
-import { InteractionReturnData } from "../types.js";
+import type { InteractionReturnData } from "../types.js";
 
 export default async function handleReportButton(
   internalInteraction: InternalInteractionType<APIMessageComponentGuildInteraction>,
