@@ -7,18 +7,21 @@
     ".": "./dist/index.js",
     "./v1": "./dist/v1"
   },
+  "engines": {
+    "node": ">=24.0.0"
+  },
   "author": "AnotherCat <anothercat1259@gmail.com>",
   "license": "AGPL-3.0-or-later",
   "scripts": {
     "build": "tsc",
     "build:production": "tsc -p ./tsconfig.production.json",
-    "start": "node --experimental-specifier-resolution=node .",
-    "dev": " tsc-watch --noClear --onSuccess \"node --experimental-specifier-resolution=node ./dist/index.js\"",
+    "start": "node ./dist/index.js",
+    "dev": "tsc-watch --noClear --onSuccess \"node ./dist/index.js\"",
     "go": "npm run build && npm run start",
     "test": "tap --ts --test-ignore=dist",
     "migrate": "prisma migrate deploy",
     "generate": "prisma generate",
-    "lint": "eslint  --ext .js,.jsx,.ts,.tsx .",
+    "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
@@ -53,20 +56,20 @@
     "uuid": "^11.1.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/http-errors": "^2.0.1",
-    "@types/node": "^22.13.13",
+    "@types/node": "^24.13.3",
     "@types/uuid": "^10.0.0",
-    "@typescript-eslint/eslint-plugin": "^8.28.0",
-    "@typescript-eslint/parser": "^8.28.0",
     "discord-api-types": "^0.37.25",
-    "eslint": "^9.23.0",
+    "eslint": "^10.8.1",
     "eslint-config-prettier": "^10.1.1",
     "eslint-plugin-simple-import-sort": "^12.1.1",
     "prettier": "^3.5.3",
     "prisma": "^6.5.0",
     "ts-node": "^10.9.1",
     "tsc-watch": "^6.2.1",
-    "typescript": "^5.8.2"
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.65.0"
   },
   "type": "module"
 }
