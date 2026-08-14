@@ -135,7 +135,7 @@ instance.listen(
   },
   function (err, address) {
     // This seems to by typed incorrectly
-     
+
     if (err) {
       console.error(err);
       process.exit(1);

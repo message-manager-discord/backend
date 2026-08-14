@@ -17,7 +17,8 @@ import type {
   APIMessageComponentGuildInteraction,
   APIMessageComponentInteraction,
   APIModalSubmitGuildInteraction,
-  APIModalSubmitInteraction} from "discord-api-types/v9";
+  APIModalSubmitInteraction,
+} from "discord-api-types/v9";
 import {
   ApplicationCommandType,
   InteractionResponseType,
@@ -59,17 +60,13 @@ import handleSendCommand from "./commands/chatInput/send.js";
 import handleActionMessageCommand from "./commands/message/actions.js";
 import handleAddMessageMessageCommand from "./commands/message/addMessage.js";
 import handleFetchMessageCommand from "./commands/message/fetch.js";
-import type {
-  InternalInteractionType} from "./interaction.js";
-import {
-  createInternalInteraction
-} from "./interaction.js";
+import type { InternalInteractionType } from "./interaction.js";
+import { createInternalInteraction } from "./interaction.js";
 import handleModalMessageGeneration from "./modals/message-generation.js";
 import handleModalReport from "./modals/report.js";
 import handleModalSend from "./modals/send.js";
 import handleManagePermissionsSelect from "./selects/manage-permissions-select.js";
-import type {
-  InteractionReturnData} from "./types.js";
+import type { InteractionReturnData } from "./types.js";
 import {
   isFormDataReturnData,
   isInteractionReturnDataDeferred,
@@ -629,7 +626,7 @@ const interactionsPlugin = async (instance: FastifyInstance) => {
         rawBody: true,
       },
       // Verify the interaction first
-      // eslint-disable-next-line @typescript-eslint/no-misused-promises
+
       preHandler: async (request, reply) => {
         if (!handler.verify(request)) {
           return reply.send(new Forbidden("Invalid signature"));
@@ -731,7 +728,6 @@ const interactionsPlugin = async (instance: FastifyInstance) => {
           // Also a type of outage - but from the gateway library - so not from a custom error
           errorMessage =
             `:exclamation: There is currently an outage! Please check <https://status--message.anothercat.me> for updates - or join the support server` +
-             
             `\nOutage error: ${error.message}` +
             `\nOutage error code: \`${InteractionOrRequestFinalStatus.GATEWAY_CACHE_SHARD_OUTAGE}\``;
           instance.metrics.interactionsReceived.inc({

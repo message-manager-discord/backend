@@ -2,7 +2,7 @@
  * Routes to access various user data and edit some user data
  */
 
-import type { Static} from "@sinclair/typebox";
+import type { Static } from "@sinclair/typebox";
 import { Type } from "@sinclair/typebox";
 import httpErrors from "http-errors";
 const { Forbidden, NotFound, BadRequest } = httpErrors;
@@ -74,7 +74,7 @@ const userPlugin = async (instance: FastifyInstance) => {
     },
     async (request) => {
       // Request.user must be present since the require authentication plugin is used
-       
+
       const requestUser = request.user!;
       const userId = request.params.id;
       let user: UserRequestData;
@@ -167,7 +167,7 @@ const userPlugin = async (instance: FastifyInstance) => {
     },
     async (request, reply) => {
       // Can be disabled as these routes are under authentication, and therefore will have a user
-       
+
       const requestUser = request.user!;
       const userId = request.params.id;
       if (userId === "@me") {
@@ -230,7 +230,7 @@ const userPlugin = async (instance: FastifyInstance) => {
     },
     async (request) => {
       // Can be disabled as these routes are under authentication, and therefore will have a user
-       
+
       const user = request.user!;
       const guilds = await instance.discordOauthRequests.fetchUserGuilds(user);
       const filteredGuilds = [];

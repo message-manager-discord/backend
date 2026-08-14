@@ -1,7 +1,8 @@
 // Button to delete a message - will response with a confirmation as this is a destructive action
 import type {
   APIEmbed,
-  APIMessageComponentGuildInteraction} from "discord-api-types/v9";
+  APIMessageComponentGuildInteraction,
+} from "discord-api-types/v9";
 import {
   ButtonStyle,
   ComponentType,

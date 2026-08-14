@@ -3,7 +3,7 @@
 import type { RawFile } from "@discordjs/rest";
 import { DiscordAPIError } from "@discordjs/rest";
 import type { Snowflake } from "discord-api-types/globals";
-import type { APIEmbed, APIMessage} from "discord-api-types/v9";
+import type { APIEmbed, APIMessage } from "discord-api-types/v9";
 import { RESTJSONErrorCodes } from "discord-api-types/v9";
 import type { FastifyInstance } from "fastify";
 

@@ -5,11 +5,9 @@ import type {
   APIActionRowComponent,
   APIEmbed,
   APIMessageActionRowComponent,
-  APISelectMenuOption} from "discord-api-types/v9";
-import {
-  ButtonStyle,
-  ComponentType,
+  APISelectMenuOption,
 } from "discord-api-types/v9";
+import { ButtonStyle, ComponentType } from "discord-api-types/v9";
 import type { FastifyInstance } from "fastify";
 
 import { embedPink } from "../../constants.js";

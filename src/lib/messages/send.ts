@@ -6,10 +6,9 @@ import type {
   APIEmbed,
   APIMessage,
   ChannelType,
-  RESTPostAPIChannelMessageResult} from "discord-api-types/v9";
-import {
-  Routes,
+  RESTPostAPIChannelMessageResult,
 } from "discord-api-types/v9";
+import { Routes } from "discord-api-types/v9";
 import type { FastifyInstance } from "fastify";
 
 import { embedPink } from "../../constants.js";
@@ -198,13 +197,12 @@ async function sendMessage({
     const sentEmbed = createStoredEmbedFromAPIMessage(messageResult);
     // Query is the query to provide to the database create method for the embed
     let embedQuery:
-      | Prisma.MessageEmbedCreateNestedOneWithoutMessageInput
-      | undefined = undefined;
+      Prisma.MessageEmbedCreateNestedOneWithoutMessageInput | undefined =
+      undefined;
 
     if (sentEmbed !== null) {
       let fieldQuery:
-        | Prisma.EmbedFieldCreateNestedManyWithoutEmbedInput
-        | undefined;
+        Prisma.EmbedFieldCreateNestedManyWithoutEmbedInput | undefined;
       // Generate query for fields
       if (sentEmbed.fields && sentEmbed.fields.length > 0) {
         fieldQuery = {

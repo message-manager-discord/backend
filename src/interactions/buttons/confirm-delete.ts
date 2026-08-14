@@ -3,7 +3,8 @@ import type {
   APIActionRowComponent,
   APIInteractionResponseUpdateMessage,
   APIMessageActionRowComponent,
-  APIMessageComponentGuildInteraction} from "discord-api-types/v9";
+  APIMessageComponentGuildInteraction,
+} from "discord-api-types/v9";
 import {
   ComponentType,
   InteractionResponseType,

@@ -2,11 +2,9 @@
 import type {
   APIEmbed,
   APIInteractionResponse,
-  APIMessageComponentGuildInteraction} from "discord-api-types/v9";
-import {
-  InteractionResponseType,
-  MessageFlags,
+  APIMessageComponentGuildInteraction,
 } from "discord-api-types/v9";
+import { InteractionResponseType, MessageFlags } from "discord-api-types/v9";
 import type { FastifyInstance } from "fastify";
 
 import { embedPink } from "../../constants.js";
@@ -15,8 +13,7 @@ import {
   LimitHit,
   UnexpectedFailure,
 } from "../../errors.js";
-import type {
-  MessageSavedInCache} from "../../lib/messages/cache.js";
+import type { MessageSavedInCache } from "../../lib/messages/cache.js";
 import {
   getMessageFromCache,
   splitMessageCacheKey,
@@ -33,10 +30,11 @@ import {
 import handleMessageGenerationSelect from "../selects/message-generation.js";
 import type {
   CreateMessageGenerationEmbedResult,
-  MessageGenerationButtonTypes} from "../shared/message-generation.js";
+  MessageGenerationButtonTypes,
+} from "../shared/message-generation.js";
 import {
   createEmbedMessageGenerationEmbed,
-  createInitialMessageGenerationEmbed
+  createInitialMessageGenerationEmbed,
 } from "../shared/message-generation.js";
 import type { InteractionReturnData } from "../types.js";
 
@@ -47,11 +45,9 @@ export default async function handleMessageGenerationButton(
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   const messageGenerationKey = interaction.data.custom_id.split(":")[1] as
-    | string
-    | undefined;
+    string | undefined;
   const messageGenerationType = interaction.data.custom_id.split(":")[2] as
-    | MessageGenerationButtonTypes
-    | undefined;
+    MessageGenerationButtonTypes | undefined;
   if (
     messageGenerationKey === undefined ||
     messageGenerationType === undefined

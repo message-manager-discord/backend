@@ -5,18 +5,13 @@ import type {
   APIActionRowComponent,
   APIEmbed,
   APIMessageActionRowComponent,
-  APISelectMenuComponent} from "discord-api-types/v9";
-import {
-  ButtonStyle,
-  ComponentType,
+  APISelectMenuComponent,
 } from "discord-api-types/v9";
+import { ButtonStyle, ComponentType } from "discord-api-types/v9";
 
 import { embedPink } from "../../constants.js";
-import type {
-  MessageSavedInCache} from "../../lib/messages/cache.js";
-import {
-  splitMessageCacheKey,
-} from "../../lib/messages/cache.js";
+import type { MessageSavedInCache } from "../../lib/messages/cache.js";
+import { splitMessageCacheKey } from "../../lib/messages/cache.js";
 import { addTipToEmbed } from "../../lib/tips/index.js";
 
 type MessageGenerationButtonTypes =
@@ -264,5 +259,12 @@ const createEmbedMessageGenerationEmbed = (
   };
 };
 
-export type { CreateMessageGenerationEmbedResult, MessageGenerationButtonTypes };
-export { createEmbedMessageGenerationEmbed, createInitialMessageGenerationEmbed, generateMessageGenerationCustomId };
+export type {
+  CreateMessageGenerationEmbedResult,
+  MessageGenerationButtonTypes,
+};
+export {
+  createEmbedMessageGenerationEmbed,
+  createInitialMessageGenerationEmbed,
+  generateMessageGenerationCustomId,
+};

@@ -330,8 +330,7 @@ class PermissionManager {
       InternalPermissions.NONE,
     );
     const userPermissionData = guildPermissions.users[userId] as
-      | PermissionAllowAndDenyData
-      | undefined;
+      PermissionAllowAndDenyData | undefined;
 
     // The user's permissions are the role permissions, excluding the user's deny permissions, and then the user's allow permissions
     let total = userRolePermissions;
@@ -413,8 +412,7 @@ class PermissionManager {
     const channelRoleDenyPermissions = userRoles.reduce(
       (permissions: number, roleId: Snowflake) => {
         const rolePermissions = channelPermissions.roles[roleId] as
-          | PermissionAllowAndDenyData
-          | undefined;
+          PermissionAllowAndDenyData | undefined;
         if (rolePermissions === undefined || !rolePermissions.deny)
           return permissions;
         return permissions | rolePermissions.deny;
@@ -436,8 +434,7 @@ class PermissionManager {
     // And then finally user deny, allow overrides
     // Then the user's permissions, excluding the channel user deny, including the channel user allow
     const userPermissionData = channelPermissions.users[userId] as
-      | PermissionAllowAndDenyData
-      | undefined;
+      PermissionAllowAndDenyData | undefined;
     if (userPermissionData) {
       if (userPermissionData.deny) {
         total &= ~userPermissionData.deny;

@@ -2,7 +2,8 @@
 import type {
   APIApplicationCommandInteractionDataBooleanOption,
   APIApplicationCommandInteractionDataChannelOption,
-  APIChatInputApplicationCommandGuildInteraction} from "discord-api-types/v9";
+  APIChatInputApplicationCommandGuildInteraction,
+} from "discord-api-types/v9";
 import {
   ApplicationCommandOptionType,
   ChannelType,
@@ -19,11 +20,8 @@ import {
   createMessageCacheKey,
   saveMessageToCache,
 } from "../../../lib/messages/cache.js";
-import type {
-  ThreadOptionObject} from "../../../lib/messages/send.js";
-import {
-  checkSendMessagePossible
-} from "../../../lib/messages/send.js";
+import type { ThreadOptionObject } from "../../../lib/messages/send.js";
+import { checkSendMessagePossible } from "../../../lib/messages/send.js";
 import type { GuildSession } from "../../../lib/session/index.js";
 import type { InternalInteractionType } from "../../interaction.js";
 import {

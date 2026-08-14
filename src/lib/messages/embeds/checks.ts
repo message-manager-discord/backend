@@ -38,7 +38,7 @@ function checkEmbedMeetsLimits(embed: StoredEmbed): boolean {
         return true;
       }
       totalCheckableLength +=
-        field.name?.length ?? 0 + field.value?.length ?? 0;
+        (field.name?.length ?? 0) + (field.value?.length ?? 0);
     }
   }
   // Finally check the total length of all embed parts

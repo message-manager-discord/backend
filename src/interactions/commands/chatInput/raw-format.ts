@@ -5,7 +5,8 @@ import type {
   APIApplicationCommandInteractionDataRoleOption,
   APIApplicationCommandInteractionDataSubcommandOption,
   APIApplicationCommandInteractionDataUserOption,
-  APIChatInputApplicationCommandGuildInteraction} from "discord-api-types/v9";
+  APIChatInputApplicationCommandGuildInteraction,
+} from "discord-api-types/v9";
 import {
   ApplicationCommandOptionType,
   InteractionResponseType,

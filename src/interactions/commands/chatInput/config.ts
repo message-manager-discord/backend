@@ -11,11 +11,12 @@ import type {
   APIEmbed,
   APIInteractionDataResolvedChannel,
   APIInteractionResponseChannelMessageWithSource,
-  RESTGetAPIInteractionOriginalResponseResult} from "discord-api-types/v9";
+  RESTGetAPIInteractionOriginalResponseResult,
+} from "discord-api-types/v9";
 import {
   ApplicationCommandOptionType,
   InteractionResponseType,
-  MessageFlags
+  MessageFlags,
 } from "discord-api-types/v9";
 import type { FastifyInstance } from "fastify";
 

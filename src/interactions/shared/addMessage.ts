@@ -6,7 +6,8 @@ import type {
   APIApplicationCommandGuildInteraction,
   APIEmbed,
   APIMessage,
-  APIMessageApplicationCommandGuildInteraction} from "discord-api-types/v9";
+  APIMessageApplicationCommandGuildInteraction,
+} from "discord-api-types/v9";
 import {
   InteractionResponseType,
   MessageFlags,
@@ -92,12 +93,11 @@ const addMessageLogic = async ({
   });
   // Generate embed creation query (database)
   let embedQuery:
-    | Prisma.MessageEmbedCreateNestedOneWithoutMessageInput
-    | undefined = undefined;
+    Prisma.MessageEmbedCreateNestedOneWithoutMessageInput | undefined =
+    undefined;
   if (embed !== null && embed !== undefined) {
     let fieldQuery:
-      | Prisma.EmbedFieldCreateNestedManyWithoutEmbedInput
-      | undefined;
+      Prisma.EmbedFieldCreateNestedManyWithoutEmbedInput | undefined;
 
     if (embed.fields && embed.fields.length > 0) {
       fieldQuery = {

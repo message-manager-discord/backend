@@ -1,5 +1,5 @@
 import type { Snowflake } from "discord-api-types/globals";
-import type { RESTGetAPIUserResult} from "discord-api-types/v9";
+import type { RESTGetAPIUserResult } from "discord-api-types/v9";
 import { Routes } from "discord-api-types/v9";
 import type { FastifyInstance } from "fastify";
 
@@ -34,12 +34,10 @@ const getUserData = async (
         userId: userId,
       });
     } catch (error) {
-      if (
-        !(
-          error instanceof ExpectedOauth2Failure &&
-          error.status === InteractionOrRequestFinalStatus.OAUTH_TOKEN_EXPIRED
-        )
-      ) {
+      if (!(
+        error instanceof ExpectedOauth2Failure &&
+        error.status === InteractionOrRequestFinalStatus.OAUTH_TOKEN_EXPIRED
+      )) {
         throw error;
       }
     }

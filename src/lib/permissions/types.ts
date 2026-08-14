@@ -41,8 +41,7 @@ interface MissingBotPermissionsResult {
 }
 
 type BotPermissionResult =
-  | PresentBotPermissionResult
-  | MissingBotPermissionsResult;
+  PresentBotPermissionResult | MissingBotPermissionsResult;
 
 // Result after discord permissions calculation - only difference from above it bigint instead of number
 interface PresentDiscordPermissionResult {
@@ -57,8 +56,7 @@ interface MissingDiscordPermissionsResult {
 }
 
 type DiscordPermissionResult =
-  | PresentDiscordPermissionResult
-  | MissingDiscordPermissionsResult;
+  PresentDiscordPermissionResult | MissingDiscordPermissionsResult;
 
 export type {
   BotPermissionResult,
