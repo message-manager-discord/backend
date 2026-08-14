@@ -11,7 +11,7 @@ import fastifyCors from "@fastify/cors";
 import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import * as Sentry from "@sentry/node";
 import childProcess from "child_process";
-import type { FastifyInstance } from "fastify";
+import type { FastifyError, FastifyInstance } from "fastify";
 import fastify from "fastify";
 import * as url from "url";
 
@@ -56,7 +56,7 @@ const gitRevision = childProcess
 
 // Handles errors thrown by requests that do not have their own error handlers
 // NOTE: Does not handle errors if an un-awaited promise is used in a request handling
-instance.setErrorHandler(async (error, request, reply) => {
+instance.setErrorHandler(async (error: FastifyError, request, reply) => {
   if (
     (error.statusCode !== undefined && error.statusCode < 500) ||
     error.validation !== undefined

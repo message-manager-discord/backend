@@ -30,7 +30,6 @@ import FastifyRawBody from "fastify-raw-body";
 import httpErrors from "http-errors";
 const { Forbidden } = httpErrors;
 import axios from "axios";
-import { verifyKey } from "discord-interactions";
 import type { FastifyRequest } from "fastify";
 import { ShardInactive } from "redis-discord-cache";
 
@@ -71,6 +70,7 @@ import {
   isFormDataReturnData,
   isInteractionReturnDataDeferred,
 } from "./types.js";
+import { verifyDiscordSignature } from "./verifySignature.js";
 
 // Interaction handler class
 class InteractionHandler {
@@ -203,7 +203,7 @@ class InteractionHandler {
     ) {
       return false;
     }
-    return await verifyKey(
+    return await verifyDiscordSignature(
       request.rawBody,
       signature,
       timestamp,
