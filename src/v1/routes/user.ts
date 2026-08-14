@@ -73,7 +73,7 @@ const userPlugin = async (instance: FastifyInstance) => {
     },
     async (request) => {
       // Request.user must be present since the require authentication plugin is used
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+       
       const requestUser = request.user!;
       const userId = request.params.id;
       let user: UserRequestData;
@@ -166,7 +166,7 @@ const userPlugin = async (instance: FastifyInstance) => {
     },
     async (request, reply) => {
       // Can be disabled as these routes are under authentication, and therefore will have a user
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+       
       const requestUser = request.user!;
       const userId = request.params.id;
       if (userId === "@me") {
@@ -229,7 +229,7 @@ const userPlugin = async (instance: FastifyInstance) => {
     },
     async (request) => {
       // Can be disabled as these routes are under authentication, and therefore will have a user
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+       
       const user = request.user!;
       const guilds = await instance.discordOauthRequests.fetchUserGuilds(user);
       const filteredGuilds = [];

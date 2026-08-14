@@ -1,5 +1,5 @@
-/* eslint-disable @typescript-eslint/no-floating-promises */
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+ 
+ 
 
 // Whole file commented because these checks will require spinning up a fake redis cache instance
 /*

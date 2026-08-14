@@ -23,7 +23,7 @@ async function registerAddCommand(
   for (const command of toSetCommands) {
     if (
       !commands.find((c) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+         
         c.name === command.name && c.type === command.type;
       })
     ) {

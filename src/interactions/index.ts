@@ -30,6 +30,7 @@ const { Forbidden } = httpErrors;
 import axios from "axios";
 import { verifyKey } from "discord-interactions";
 import { FastifyRequest } from "fastify";
+import { ShardInactive } from "redis-discord-cache/dist/errors.js";
 
 import { discordAPIBaseURL } from "../constants.js";
 import {
@@ -70,7 +71,6 @@ import {
   isFormDataReturnData,
   isInteractionReturnDataDeferred,
 } from "./types.js";
-import { ShardInactive } from "redis-discord-cache/dist/errors.js";
 
 // Interaction handler class
 class InteractionHandler {
@@ -254,7 +254,7 @@ class InteractionHandler {
           InteractionOrRequestFinalStatus.INTERACTION_TYPE_MISSING_HANDLER,
 
           // eslint doesn't like this because it thinks that there are no other types. However the types are subject to change from discord's api
-          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
           `No handler for interaction type \`${(interaction as any).type}\``,
         );
     }
@@ -728,7 +728,7 @@ const interactionsPlugin = async (instance: FastifyInstance) => {
           // Also a type of outage - but from the gateway library - so not from a custom error
           errorMessage =
             `:exclamation: There is currently an outage! Please check <https://status--message.anothercat.me> for updates - or join the support server` +
-            // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+             
             `\nOutage error: ${error.message}` +
             `\nOutage error code: \`${InteractionOrRequestFinalStatus.GATEWAY_CACHE_SHARD_OUTAGE}\``;
           instance.metrics.interactionsReceived.inc({

@@ -174,7 +174,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
       const { status, assigned_to, guild, limit, skip } = request.query;
 
       // Can be disabled as these routes are under authentication, and therefore will have a user
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+       
       const user = request.user!;
 
       let filterByUser: string | undefined;
@@ -230,7 +230,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
     async (request) => {
       const body = request.body;
       // Can be disabled as these routes are under authentication, and therefore will have a user
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+       
       const user = request.user!;
       return await createReport({
         title: body.title,
@@ -282,7 +282,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
       const { id } = request.params;
       verifyId(id);
       // Can be disabled as these routes are under authentication, and therefore will have a user
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+       
       const user = request.user!;
       const staff = user.staff;
       return await getReport({
@@ -373,7 +373,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
       verifyId(id);
       const body = request.body;
       // Can be disabled as these routes are under authentication, and therefore will have a user
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+       
       const user = request.user!;
       return await createReportMessage({
         instance,
@@ -431,7 +431,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
       verifyId(id);
       verifyId(message_id);
       // Can be disabled as these routes are under authentication, and therefore will have a user
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+       
       const user = request.user!;
       const staff = user.staff;
       return await getReportMessage({
@@ -487,7 +487,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
       const { assigned_staff_id } = request.body;
       verifyId(assigned_staff_id);
       // Can be disabled as these routes are under authentication, and therefore will have a user
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+       
       const user = request.user!;
       const staff = user.staff;
       if (staff !== true) {
@@ -548,7 +548,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
       const { staff_report_reason, message_to_reporting_user, status } =
         request.body;
       // Can be disabled as these routes are under authentication, and therefore will have a user
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+       
       const user = request.user!;
 
       return await closeReport({
@@ -603,7 +603,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
       verifyId(id);
       request.body.user_ban_ids.forEach((user_id) => verifyId(user_id.id));
       // Can be disabled as these routes are under authentication, and therefore will have a user
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+       
       const user = request.user!;
       const report = await actionReport({
         instance,
@@ -660,7 +660,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
     },
     async (request) => {
       // Can be disabled as these routes are under authentication, and therefore will have a user
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+       
       const user = request.user!;
       if (!user.staff) {
         throw new Forbidden("You are not a staff member");

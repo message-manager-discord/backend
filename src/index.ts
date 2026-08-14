@@ -1,9 +1,9 @@
 import "./instrument.js";
+
 /**
  * Entry point file
  * Includes setup of core plugins for the HTTP server
  */
-
 import fastifyAuth from "@fastify/auth";
 import fastifyCookie, { FastifyCookieOptions } from "@fastify/cookie";
 import fastifyCors from "@fastify/cors";
@@ -133,7 +133,7 @@ instance.listen(
   },
   function (err, address) {
     // This seems to by typed incorrectly
-    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+     
     if (err) {
       console.error(err);
       process.exit(1);
