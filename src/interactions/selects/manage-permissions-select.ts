@@ -3,11 +3,9 @@ import type { Snowflake } from "discord-api-types/globals";
 import type {
   APIMessageComponentGuildInteraction,
   APIMessageSelectMenuInteractionData,
-  APIStringSelectComponent} from "discord-api-types/v9";
-import {
-  ComponentType,
-  InteractionResponseType,
+  APIStringSelectComponent,
 } from "discord-api-types/v9";
+import { ComponentType, InteractionResponseType } from "discord-api-types/v9";
 import type { FastifyInstance } from "fastify";
 
 import { getInternalPermissionByName } from "../../lib/permissions/consts.js";

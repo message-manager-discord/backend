@@ -78,7 +78,6 @@ const versionOnePlugin = async (instance: FastifyInstance) => {
 
   schemas.forEach((schema) => instance.addSchema(schema));
   // Swagger is an automatic documentation generator using OpenAPI
-   
 
   await instance.register(fastifySwagger, {
     openapi: {

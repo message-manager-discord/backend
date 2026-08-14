@@ -5,11 +5,9 @@ import type {
   APIInteractionResponseChannelMessageWithSource,
   APIMessage,
   APIMessageApplicationCommandGuildInteraction,
-  APIMessageComponent} from "discord-api-types/v9";
-import {
-  InteractionResponseType,
-  MessageFlags,
+  APIMessageComponent,
 } from "discord-api-types/v9";
+import { InteractionResponseType, MessageFlags } from "discord-api-types/v9";
 import type { FastifyInstance } from "fastify";
 import { FormDataEncoder } from "form-data-encoder";
 import { Blob, FormData } from "formdata-node";
@@ -35,8 +33,7 @@ export default async function handleFetchMessageCommand(
   // Returns the content of the message in a txt file format
   const messageId = interaction.data.target_id;
   const message = interaction.data.resolved.messages[messageId] as
-    | APIMessage
-    | undefined;
+    APIMessage | undefined;
   if (message === undefined) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.APPLICATION_COMMAND_RESOLVED_MISSING_EXPECTED_VALUE,

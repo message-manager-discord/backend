@@ -23,10 +23,9 @@ import type {
   ReportMessageHistoryResponseType,
   ReportMessageModelType,
   ReportModelType,
-  ReportStatusRequest} from "../v1/types/reports.js";
-import {
-  Action
+  ReportStatusRequest,
 } from "../v1/types/reports.js";
+import { Action } from "../v1/types/reports.js";
 const { Forbidden, NotFound, BadRequest } = httpErrors;
 import {
   GuildNotFound,
@@ -125,13 +124,11 @@ const createReportFromData = async (
     extraGuildData.icon = await guild.icon;
     extraGuildData.name = await guild.name;
   } catch (error) {
-    if (
-      !(
-        error instanceof GuildNotFound ||
-        error instanceof GuildUnavailable ||
-        error instanceof ShardInactive
-      )
-    ) {
+    if (!(
+      error instanceof GuildNotFound ||
+      error instanceof GuildUnavailable ||
+      error instanceof ShardInactive
+    )) {
       throw error;
     }
   }

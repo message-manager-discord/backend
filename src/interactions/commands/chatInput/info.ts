@@ -5,7 +5,8 @@ import type {
   APIApplicationCommandInteractionDataStringOption,
   APIChatInputApplicationCommandInteraction,
   APIEmbed,
-  APIInteractionResponseChannelMessageWithSource} from "discord-api-types/v9";
+  APIInteractionResponseChannelMessageWithSource,
+} from "discord-api-types/v9";
 import {
   ApplicationCommandOptionType,
   InteractionResponseType,
@@ -19,7 +20,10 @@ import {
   ExpectedFailure,
   InteractionOrRequestFinalStatus,
 } from "../../../errors.js";
-import type { GuildSession, NonGuildSession } from "../../../lib/session/index.js";
+import type {
+  GuildSession,
+  NonGuildSession,
+} from "../../../lib/session/index.js";
 import { addTipToEmbed } from "../../../lib/tips/index.js";
 import type { InternalInteractionType } from "../../interaction.js";
 import type { InteractionReturnData } from "../../types.js";

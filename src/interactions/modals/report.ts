@@ -1,11 +1,7 @@
 // Currently not implemented - the modal is not generated
 // Code kept for future use
-import type {
-  APIModalSubmitGuildInteraction} from "discord-api-types/v9";
-import {
-  InteractionResponseType,
-  MessageFlags,
-} from "discord-api-types/v9";
+import type { APIModalSubmitGuildInteraction } from "discord-api-types/v9";
+import { InteractionResponseType, MessageFlags } from "discord-api-types/v9";
 import type { FastifyInstance } from "fastify";
 
 import {

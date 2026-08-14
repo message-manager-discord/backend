@@ -1,21 +1,14 @@
 // Edit button - start a message generation flow with the edit type from it
-import type {
-  APIMessageComponentGuildInteraction} from "discord-api-types/v9";
-import {
-  InteractionResponseType,
-  MessageFlags,
-} from "discord-api-types/v9";
+import type { APIMessageComponentGuildInteraction } from "discord-api-types/v9";
+import { InteractionResponseType, MessageFlags } from "discord-api-types/v9";
 import type { FastifyInstance } from "fastify";
 
 import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../../errors.js";
-import type {
-  MessageSavedInCache} from "../../lib/messages/cache.js";
-import {
-  saveMessageToCache,
-} from "../../lib/messages/cache.js";
+import type { MessageSavedInCache } from "../../lib/messages/cache.js";
+import { saveMessageToCache } from "../../lib/messages/cache.js";
 import { createMessageCacheKey } from "../../lib/messages/cache.js";
 import { checkEditPossible } from "../../lib/messages/edit.js";
 import { createStoredEmbedFromDataBaseEmbed } from "../../lib/messages/embeds/parser.js";

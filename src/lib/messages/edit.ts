@@ -208,12 +208,11 @@ async function editMessage({
     const sentEmbed = createStoredEmbedFromAPIMessage(response);
     // setup the embed storing database query
     let embedQuery:
-      | Prisma.MessageEmbedCreateNestedOneWithoutMessageInput
-      | undefined = undefined;
+      Prisma.MessageEmbedCreateNestedOneWithoutMessageInput | undefined =
+      undefined;
     if (sentEmbed !== null) {
       let fieldQuery:
-        | Prisma.EmbedFieldCreateNestedManyWithoutEmbedInput
-        | undefined;
+        Prisma.EmbedFieldCreateNestedManyWithoutEmbedInput | undefined;
 
       if (sentEmbed.fields && sentEmbed.fields.length > 0) {
         fieldQuery = {

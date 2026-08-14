@@ -7,7 +7,7 @@ import type { FastifyInstance } from "fastify";
 import httpErrors from "http-errors";
 const { Forbidden } = httpErrors;
 import fastifyRateLimit from "@fastify/rate-limit";
-import type { Static} from "@sinclair/typebox";
+import type { Static } from "@sinclair/typebox";
 import { Type } from "@sinclair/typebox";
 import crypto from "crypto";
 import Redis from "ioredis";
@@ -37,7 +37,7 @@ type StoredStateResponse = {
 const rootPath = "/auth";
 
 // Since this is a plugin async should be used
- 
+
 const addPlugin = async (instance: FastifyInstance) => {
   await instance.register(fastifyRateLimit, {
     global: true,
@@ -51,7 +51,7 @@ const addPlugin = async (instance: FastifyInstance) => {
       connectTimeout: 500,
       maxRetriesPerRequest: 1,
     }),
-     
+
     keyGenerator: (request) => {
       console.log(request.ip);
       console.log(request.user);

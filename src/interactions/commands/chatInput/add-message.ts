@@ -4,11 +4,9 @@ import { DiscordAPIError } from "@discordjs/rest";
 import type {
   APIApplicationCommandInteractionDataStringOption,
   APIChatInputApplicationCommandGuildInteraction,
-  RESTGetAPIChannelMessageResult} from "discord-api-types/v9";
-import {
-  ApplicationCommandOptionType,
-  Routes,
+  RESTGetAPIChannelMessageResult,
 } from "discord-api-types/v9";
+import { ApplicationCommandOptionType, Routes } from "discord-api-types/v9";
 import type { FastifyInstance } from "fastify";
 
 import {

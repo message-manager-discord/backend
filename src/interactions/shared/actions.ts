@@ -5,7 +5,8 @@ import type {
   APIButtonComponent,
   APIChatInputApplicationCommandGuildInteraction,
   APIMessage,
-  APIMessageApplicationCommandGuildInteraction} from "discord-api-types/v9";
+  APIMessageApplicationCommandGuildInteraction,
+} from "discord-api-types/v9";
 import {
   ButtonStyle,
   ComponentType,

@@ -16,14 +16,11 @@ interface FormDataReturnData {
 
 // Response if the interaction has been deferred
 type InteractionReturnDataAfterDeferred =
-  | RESTPatchAPIInteractionOriginalResponseJSONBody
-  | FormDataReturnData;
+  RESTPatchAPIInteractionOriginalResponseJSONBody | FormDataReturnData;
 
 // Any possible responses to an interaction
 type InteractionReturnData =
-  | InteractionReturnDataDeferred
-  | FormDataReturnData
-  | APIInteractionResponse;
+  InteractionReturnDataDeferred | FormDataReturnData | APIInteractionResponse;
 
 // This is for the response to defer an interaction - the callback is the thing to be called after the initial response has been sent
 
@@ -48,5 +45,9 @@ const isInteractionReturnDataDeferred = (
   (data as InteractionReturnDataDeferred).callback !== undefined &&
   (data as InteractionReturnDataDeferred).returnData !== undefined;
 
-export type { FormDataReturnData, InteractionReturnData, InteractionReturnDataAfterDeferred };
+export type {
+  FormDataReturnData,
+  InteractionReturnData,
+  InteractionReturnDataAfterDeferred,
+};
 export { isFormDataReturnData, isInteractionReturnDataDeferred };

@@ -1,11 +1,9 @@
 // Handle all message generation modal interactions
 import type {
   APIInteractionResponse,
-  APIModalSubmitGuildInteraction} from "discord-api-types/v9";
-import {
-  InteractionResponseType,
-  MessageFlags,
+  APIModalSubmitGuildInteraction,
 } from "discord-api-types/v9";
+import { InteractionResponseType, MessageFlags } from "discord-api-types/v9";
 import type { FastifyInstance } from "fastify";
 
 import {
@@ -13,8 +11,7 @@ import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../../errors.js";
-import type {
-  MessageSavedInCache} from "../../lib/messages/cache.js";
+import type { MessageSavedInCache } from "../../lib/messages/cache.js";
 import {
   getMessageFromCache,
   saveMessageToCache,
@@ -22,11 +19,10 @@ import {
 import { isIsoDate } from "../../lib/messages/embeds/utils.js";
 import type { GuildSession } from "../../lib/session/index.js";
 import type { InternalInteractionType } from "../interaction.js";
-import type {
-  MessageGenerationButtonTypes} from "../shared/message-generation.js";
+import type { MessageGenerationButtonTypes } from "../shared/message-generation.js";
 import {
   createEmbedMessageGenerationEmbed,
-  createInitialMessageGenerationEmbed
+  createInitialMessageGenerationEmbed,
 } from "../shared/message-generation.js";
 import type { InteractionReturnData } from "../types.js";
 
@@ -37,11 +33,9 @@ export default async function handleModalMessageGeneration(
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   const messageGenerationKey = interaction.data.custom_id.split(":")[1] as
-    | string
-    | undefined;
+    string | undefined;
   const messageGenerationType = interaction.data.custom_id.split(":")[2] as
-    | MessageGenerationButtonTypes
-    | undefined; // Type used to determine which modal this is
+    MessageGenerationButtonTypes | undefined; // Type used to determine which modal this is
   if (
     messageGenerationKey === undefined ||
     messageGenerationType === undefined

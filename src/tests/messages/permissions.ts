@@ -1,6 +1,3 @@
- 
- 
-
 // Whole file commented because these checks will require spinning up a fake redis cache instance
 /*
 

@@ -90,4 +90,9 @@ const getMessageFromCache = async ({
 };
 
 export type { MessageSavedInCache };
-export { createMessageCacheKey, getMessageFromCache, saveMessageToCache, splitMessageCacheKey };
+export {
+  createMessageCacheKey,
+  getMessageFromCache,
+  saveMessageToCache,
+  splitMessageCacheKey,
+};

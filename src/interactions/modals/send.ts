@@ -1,11 +1,9 @@
 // Modal after send - from the chat input command
 import type {
   APIEmbed,
-  APIModalSubmitGuildInteraction} from "discord-api-types/v9";
-import {
-  InteractionResponseType,
-  MessageFlags,
+  APIModalSubmitGuildInteraction,
 } from "discord-api-types/v9";
+import { InteractionResponseType, MessageFlags } from "discord-api-types/v9";
 import type { FastifyInstance } from "fastify";
 
 import { embedPink } from "../../constants.js";

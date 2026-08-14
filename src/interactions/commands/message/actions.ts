@@ -25,8 +25,7 @@ export default function handleActionMessageCommand(
   const interaction = internalInteraction.interaction;
   const messageId = interaction.data.target_id;
   const message = interaction.data.resolved.messages[messageId] as
-    | APIMessage
-    | undefined;
+    APIMessage | undefined;
   if (message === undefined) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.APPLICATION_COMMAND_RESOLVED_MISSING_EXPECTED_VALUE,

@@ -12,11 +12,9 @@ import type {
   RESTGetAPIChannelWebhooksResult,
   RESTPostAPIChannelWebhookResult,
   RESTPostAPIWebhookWithTokenJSONBody,
-  RESTPostAPIWebhookWithTokenWaitResult} from "discord-api-types/v9";
-import {
-  RESTJSONErrorCodes,
-  Routes,
+  RESTPostAPIWebhookWithTokenWaitResult,
 } from "discord-api-types/v9";
+import { RESTJSONErrorCodes, Routes } from "discord-api-types/v9";
 import type { FastifyInstance } from "fastify";
 
 import {
