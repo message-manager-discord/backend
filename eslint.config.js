@@ -12,23 +12,26 @@ export default tseslint.config(
 
   {
     files: ["**/*.{ts,tsx}"],
+
     extends: [
       tseslint.configs.recommended,
       tseslint.configs.recommendedTypeChecked,
     ],
+
     languageOptions: {
       parserOptions: {
         projectService: true,
         tsconfigRootDir: import.meta.dirname,
       },
     },
+
     plugins: {
       "simple-import-sort": simpleImportSort,
     },
+
     rules: {
-      "@typescript-eslint/strict-boolean-expressions": "warn",
-      "simple-import-sort/imports": "warn",
-      "simple-import-sort/exports": "warn",
+      // TypeScript correctness
+      "@typescript-eslint/no-deprecated": "error",
       "@typescript-eslint/consistent-type-imports": [
         "error",
         {
@@ -37,6 +40,38 @@ export default tseslint.config(
         },
       ],
       "@typescript-eslint/consistent-type-exports": "error",
+      "@typescript-eslint/strict-boolean-expressions": "warn",
+
+      // Promise safety
+      "@typescript-eslint/no-floating-promises": "error",
+      "@typescript-eslint/no-misused-promises": [
+        "error",
+        {
+          checksVoidReturn: {
+            arguments: false,
+            attributes: false,
+          },
+        },
+      ],
+      "@typescript-eslint/await-thenable": "error",
+
+      // Type safety
+      "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/no-unsafe-argument": "error",
+      "@typescript-eslint/no-unsafe-assignment": "error",
+      "@typescript-eslint/no-unsafe-call": "error",
+      "@typescript-eslint/no-unsafe-member-access": "error",
+      "@typescript-eslint/no-unsafe-return": "error",
+
+      // Useful but potentially noisy
+      "@typescript-eslint/no-unnecessary-condition": "warn",
+      "@typescript-eslint/no-unnecessary-type-assertion": "warn",
+      "@typescript-eslint/prefer-nullish-coalescing": "warn",
+      "@typescript-eslint/prefer-optional-chain": "warn",
+
+      // Imports
+      "simple-import-sort/imports": "warn",
+      "simple-import-sort/exports": "warn",
     },
   },
 

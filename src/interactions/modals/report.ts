@@ -11,6 +11,7 @@ import {
 import type { GuildSession } from "../../lib/session/index.js";
 import type { InternalInteractionType } from "../interaction.js";
 import type { InteractionReturnData } from "../types.js";
+import { getModalValue } from "./utils.js";
 
 export default async function handleModalReport(
   internalInteraction: InternalInteractionType<APIModalSubmitGuildInteraction>,
@@ -40,9 +41,7 @@ export default async function handleModalReport(
     );
   }
 
-  const reason = interaction.data.components?.find(
-    (component) => component.components[0].custom_id === "reason",
-  )?.components[0].value;
+  const reason = getModalValue(interaction.data.components, "reason");
 
   if (reason === undefined) {
     throw new UnexpectedFailure(

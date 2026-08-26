@@ -3,8 +3,8 @@
 import type { Snowflake } from "discord-api-types/globals";
 import type {
   APIActionRowComponent,
+  APIComponentInMessageActionRow,
   APIEmbed,
-  APIMessageActionRowComponent,
   APISelectMenuComponent,
 } from "discord-api-types/v9";
 import { ButtonStyle, ComponentType } from "discord-api-types/v9";
@@ -42,7 +42,7 @@ const generateMessageGenerationCustomId = (
 // Return interface
 interface CreateMessageGenerationEmbedResult {
   embed: APIEmbed;
-  components: APIActionRowComponent<APIMessageActionRowComponent>[];
+  components: APIActionRowComponent<APIComponentInMessageActionRow>[];
 }
 // This will create an embed for the first screen - for editing either the content or the embed
 // Also has a finish button (either send or edit)
@@ -136,7 +136,7 @@ const createEmbedMessageGenerationEmbed = (
       type: ComponentType.ActionRow,
       components: [
         {
-          type: ComponentType.SelectMenu,
+          type: ComponentType.StringSelect,
           placeholder: "Select a field to edit",
           custom_id: generateMessageGenerationCustomId(
             messageGenerationKey,
@@ -160,7 +160,7 @@ const createEmbedMessageGenerationEmbed = (
       type: ComponentType.ActionRow,
       components: [
         {
-          type: ComponentType.SelectMenu,
+          type: ComponentType.StringSelect,
           placeholder: "Select a field to edit",
           custom_id: generateMessageGenerationCustomId(
             messageGenerationKey,

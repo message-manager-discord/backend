@@ -54,7 +54,7 @@ export default async function handleAddMessageCommand(
   // Fetch message from api
   try {
     const message = (await instance.restClient.get(
-      Routes.channelMessage(interaction.channel_id, messageId),
+      Routes.channelMessage(interaction.channel.id, messageId),
     )) as RESTGetAPIChannelMessageResult;
     return await addMessageLogic({
       // Execute add message logic

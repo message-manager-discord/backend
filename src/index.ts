@@ -10,10 +10,8 @@ import fastifyCookie from "@fastify/cookie";
 import fastifyCors from "@fastify/cors";
 import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import * as Sentry from "@sentry/node";
-import childProcess from "child_process";
 import type { FastifyError, FastifyInstance } from "fastify";
 import fastify from "fastify";
-import * as url from "url";
 
 import authRoutePlugin from "./authRoutes.js";
 import interactionsPlugin from "./interactions/index.js";
@@ -45,14 +43,6 @@ await instance.register(envPlugin);
  * Here it is initiated before most other plugins so it can catch those errors
  * if the plugins throw errors in their creation
  */
-
-const rootDir =
-  url.fileURLToPath(new URL(".", import.meta.url)) || process.cwd();
-
-const gitRevision = childProcess
-  .execSync("git rev-parse HEAD")
-  .toString()
-  .trim();
 
 // Handles errors thrown by requests that do not have their own error handlers
 // NOTE: Does not handle errors if an un-awaited promise is used in a request handling

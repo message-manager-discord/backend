@@ -127,7 +127,7 @@ const verifyId = (id: string): true => {
   try {
     BigInt(id);
     return true;
-  } catch (e) {
+  } catch {
     throw new BadRequest("report id must be a valid bitint");
   }
 };

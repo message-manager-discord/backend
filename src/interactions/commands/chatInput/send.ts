@@ -71,9 +71,9 @@ export default async function handleSendCommand(
   let threadData: undefined | ThreadOptionObject = undefined;
 
   if (
-    channel.type === ChannelType.GuildNewsThread ||
-    channel.type === ChannelType.GuildPrivateThread ||
-    channel.type === ChannelType.GuildPublicThread
+    channel.type === ChannelType.AnnouncementThread ||
+    channel.type === ChannelType.PrivateThread ||
+    channel.type === ChannelType.PublicThread
   ) {
     // Get thread data for message checks
     threadData = {

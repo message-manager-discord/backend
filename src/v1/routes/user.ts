@@ -247,7 +247,7 @@ const userPlugin = async (instance: FastifyInstance) => {
             permissions: guild.permissions,
             connected: true,
           });
-        } catch (e) {
+        } catch {
           if (
             (request.query.include_disconnected ?? false) &&
             ((BigInt(guild.permissions) & DiscordPermissions.MANAGE_GUILD) ===
