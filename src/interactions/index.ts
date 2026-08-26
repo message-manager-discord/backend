@@ -203,7 +203,7 @@ class InteractionHandler {
     ) {
       return false;
     }
-    return await verifyDiscordSignature(
+    return verifyDiscordSignature(
       request.rawBody,
       signature,
       timestamp,
@@ -628,7 +628,7 @@ const interactionsPlugin = async (instance: FastifyInstance) => {
       // Verify the interaction first
 
       preHandler: async (request, reply) => {
-        if (!handler.verify(request)) {
+        if (!(await handler.verify(request))) {
           return reply.send(new Forbidden("Invalid signature"));
         }
       },

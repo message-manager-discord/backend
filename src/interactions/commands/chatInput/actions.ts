@@ -55,7 +55,7 @@ export default async function handleActionsCommand(
   // Fetch message from api
   try {
     const message = (await instance.restClient.get(
-      Routes.channelMessage(interaction.channel_id, messageId),
+      Routes.channelMessage(interaction.channel.id, messageId),
     )) as RESTGetAPIChannelMessageResult;
     return await actionsLogic({
       // Execute actions logic

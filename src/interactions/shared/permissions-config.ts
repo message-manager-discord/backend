@@ -3,8 +3,8 @@
 import type { Snowflake } from "discord-api-types/globals";
 import type {
   APIActionRowComponent,
+  APIComponentInMessageActionRow,
   APIEmbed,
-  APIMessageActionRowComponent,
   APISelectMenuOption,
 } from "discord-api-types/v9";
 import { ButtonStyle, ComponentType } from "discord-api-types/v9";
@@ -29,7 +29,7 @@ interface CreatePermissionsEmbedOptions {
 
 interface CreatePermissionsEmbedResult {
   embed: APIEmbed;
-  components: APIActionRowComponent<APIMessageActionRowComponent>[];
+  components: APIActionRowComponent<APIComponentInMessageActionRow>[];
 }
 
 /*
@@ -97,7 +97,7 @@ const createPermissionsEmbed = async ({
           type: ComponentType.ActionRow,
           components: [
             {
-              type: ComponentType.SelectMenu,
+              type: ComponentType.StringSelect,
               custom_id: `manage-permissions-select:null:${targetType}:${targetId}:null:${hasAdminPermission.toString()}`,
               options,
               max_values: options.length,
@@ -220,7 +220,7 @@ const createPermissionsEmbed = async ({
           type: ComponentType.ActionRow,
           components: [
             {
-              type: ComponentType.SelectMenu,
+              type: ComponentType.StringSelect,
               custom_id: `manage-permissions-select:allow:${targetType}:${targetId}:${JSON.stringify(
                 channelId,
               )}:${hasAdminPermission.toString()}`,
@@ -250,7 +250,7 @@ const createPermissionsEmbed = async ({
           type: ComponentType.ActionRow,
           components: [
             {
-              type: ComponentType.SelectMenu,
+              type: ComponentType.StringSelect,
               custom_id: `manage-permissions-select:deny:${targetType}:${targetId}:${JSON.stringify(
                 channelId,
               )}:${hasAdminPermission.toString()}`,

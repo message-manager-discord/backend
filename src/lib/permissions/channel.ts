@@ -17,9 +17,9 @@ const getParentIdIfParentIdExists = async (
     guild,
   });
   if (
-    channel.type === ChannelType.GuildNewsThread ||
-    channel.type === ChannelType.GuildPublicThread ||
-    channel.type === ChannelType.GuildPrivateThread
+    channel.type === ChannelType.AnnouncementThread ||
+    channel.type === ChannelType.PublicThread ||
+    channel.type === ChannelType.PrivateThread
   ) {
     return channel.parent_id as Snowflake; // This must exist on all thread channels
   }

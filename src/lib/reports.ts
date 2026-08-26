@@ -16,13 +16,13 @@ import type { FastifyInstance } from "fastify";
 import httpErrors from "http-errors";
 
 import limits from "../limits.js";
-import type {
-  ReportCloseStatusEnum,
-  ReportListingModelType,
-  ReportMessageHistoryModelType,
-  ReportMessageHistoryResponseType,
-  ReportMessageModelType,
-  ReportModelType,
+import {
+  type ReportCloseStatusEnum,
+  type ReportListingModelType,
+  type ReportMessageHistoryModelType,
+  type ReportMessageHistoryResponseType,
+  type ReportMessageModelType,
+  type ReportModelType,
   ReportStatusRequest,
 } from "../v1/types/reports.js";
 import { Action } from "../v1/types/reports.js";
@@ -248,18 +248,18 @@ const getReports = async ({
   const statusFilter: ReportStatus[] | undefined =
     filterStatus === undefined || filterStatus === null
       ? undefined
-      : filterStatus === "open"
+      : filterStatus === ReportStatusRequest.OPEN
         ? ["pending"]
-        : filterStatus === "closed"
+        : filterStatus === ReportStatusRequest.CLOSED
           ? ["invalid", "actioned", "spam"]
-          : filterStatus === "assigned"
-            ? ["pending"] // As assigned is only for pending and review - and the assigned staff id will be set on closed reports
+          : filterStatus === ReportStatusRequest.ASSIGNED
+            ? ["pending"]
             : [filterStatus];
 
   const assignedFilter =
     assigned_to !== undefined
       ? BigInt(assigned_to)
-      : filterStatus === "assigned"
+      : filterStatus === ReportStatusRequest.ASSIGNED
         ? { not: null }
         : undefined;
   const reports = await instance.prisma.report.findMany({
@@ -292,14 +292,9 @@ const getReports = async ({
 
   return {
     reports: reports.map((report) => {
-      let messageCount = 0;
-      if (staff) {
-        messageCount = report.ReportMessages.length;
-      } else {
-        messageCount = report.ReportMessages.filter(
-          (message) => !message.staffOnly,
-        ).length;
-      }
+      const messageCount = staff
+        ? report.ReportMessages.length
+        : report.ReportMessages.filter((message) => !message.staffOnly).length;
       // get data from extradata by guild id key
       const guildData = extraGuildData[report.guildId.toString()];
 

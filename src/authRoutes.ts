@@ -10,7 +10,7 @@ import fastifyRateLimit from "@fastify/rate-limit";
 import type { Static } from "@sinclair/typebox";
 import { Type } from "@sinclair/typebox";
 import crypto from "crypto";
-import Redis from "ioredis";
+import { Redis } from "ioredis";
 import { v4 as uuidv4 } from "uuid";
 
 import DiscordOauthRequests from "./discordOauth.js";
@@ -44,7 +44,7 @@ const addPlugin = async (instance: FastifyInstance) => {
     max: 20, // 20 requests per minute, shouldn't be hit by a user
     timeWindow: 60 * 1000, // 1 minute
     cache: 10000,
-    redis: new (Redis as any)({
+    redis: new Redis({
       connectionName: "my-connection-name",
       host: instance.envVars.BACKEND_REDIS_HOST,
       port: instance.envVars.BACKEND_REDIS_PORT,

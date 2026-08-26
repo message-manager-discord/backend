@@ -47,9 +47,9 @@ interface ThreadOptionObject {
   parentId?: string | null;
   locked?: boolean;
   type:
-    | ChannelType.GuildNewsThread
-    | ChannelType.GuildPublicThread
-    | ChannelType.GuildPrivateThread;
+    | ChannelType.AnnouncementThread
+    | ChannelType.PublicThread
+    | ChannelType.PrivateThread;
 }
 interface CheckSendMessageOptions {
   channelId: string;

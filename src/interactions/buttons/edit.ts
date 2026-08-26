@@ -34,7 +34,7 @@ export default async function handleEditButton(
   // Check permissions for editing
   const databaseMessage = await checkEditPossible({
     session,
-    channelId: interaction.channel_id,
+    channelId: interaction.channel.id,
     instance,
     messageId,
   });
@@ -47,7 +47,7 @@ export default async function handleEditButton(
   // Add to cache with key
   const messageGenerationKey = createMessageCacheKey(
     interaction.id,
-    interaction.channel_id,
+    interaction.channel.id,
   );
   const cacheData: MessageSavedInCache = {
     content: databaseMessage.content ?? undefined,

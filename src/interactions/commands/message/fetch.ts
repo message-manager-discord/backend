@@ -45,13 +45,12 @@ export default async function handleFetchMessageCommand(
   // JSON if more than just content on the message
   // otherwise TXT
   const form = new FormData();
-  let isJson = false;
-  if (
-    message.content.length < 1 &&
-    message.embeds.length < 1 &&
-    (message.components?.length ?? 0) < 1
-  ) {
-    // Message doesn't have anything that we can return
+
+  const hasEmbeds = message.embeds.length > 0;
+  const hasComponents = (message.components?.length ?? 0) > 0;
+  const hasContent = message.content.length > 0;
+
+  if (!hasContent && !hasEmbeds && !hasComponents) {
     return {
       type: InteractionResponseType.ChannelMessageWithSource,
       data: {
@@ -59,28 +58,31 @@ export default async function handleFetchMessageCommand(
         flags: MessageFlags.Ephemeral,
       },
     };
-  } else if (
-    message.embeds.length > 0 ||
-    (message.components?.length ?? 0) < 1
-  ) {
-    // Message has embeds or components in addition to possibly content
-    // JSON format
+  }
+
+  const isJson = hasEmbeds || hasComponents;
+
+  if (isJson) {
     interface FileData {
       content?: string;
       embeds?: APIEmbed[];
       components?: APIMessageComponent[];
     }
+
     const fileData: FileData = {};
-    if (message.content.length > 0) {
+
+    if (hasContent) {
       fileData.content = message.content;
     }
-    if ((message.components?.length ?? 0) < 1) {
-      fileData.components = message.components;
-    }
-    if (message.embeds.length > 0) {
+
+    if (hasEmbeds) {
       fileData.embeds = message.embeds;
     }
-    // Add file to formdata
+
+    if (hasComponents) {
+      fileData.components = message.components;
+    }
+
     form.set(
       "files[0]",
       new Blob([JSON.stringify(fileData, undefined, 2)], {
@@ -88,11 +90,7 @@ export default async function handleFetchMessageCommand(
       }),
       "message.json",
     );
-    isJson = true;
   } else {
-    // Message has content and no embeds or components
-    // TXT format
-    // Add file to formdata
     form.set(
       "files[0]",
       new Blob([message.content], {
@@ -100,7 +98,6 @@ export default async function handleFetchMessageCommand(
       }),
       "message.txt",
     );
-    isJson = false;
   }
 
   // Message to send with file
@@ -114,7 +111,7 @@ export default async function handleFetchMessageCommand(
         {
           id: "0",
           filename: `message.${isJson ? "json" : "txt"}`,
-          description: "A representation of the message", // Accessible to screen readers
+          description: "A representation of the message",
         },
       ],
       flags: MessageFlags.Ephemeral,

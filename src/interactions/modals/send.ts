@@ -16,6 +16,7 @@ import type { GuildSession } from "../../lib/session/index.js";
 import { addTipToEmbed } from "../../lib/tips/index.js";
 import type { InternalInteractionType } from "../interaction.js";
 import type { InteractionReturnData } from "../types.js";
+import { getModalValue } from "./utils.js";
 // This modal is guild only (check in interaction handler)
 export default async function handleModalSend(
   internalInteraction: InternalInteractionType<APIModalSubmitGuildInteraction>,
@@ -34,9 +35,7 @@ export default async function handleModalSend(
   }
 
   // Find content component
-  const content = interaction.data.components?.find(
-    (component) => component.components[0].custom_id === "content",
-  )?.components[0].value;
+  const content = getModalValue(interaction.data.components, "content");
 
   if (content === undefined) {
     throw new UnexpectedFailure(

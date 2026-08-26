@@ -5,7 +5,7 @@
 import type { Snowflake } from "discord-api-types/v9";
 import type { FastifyInstance, FastifyPluginOptions } from "fastify";
 import fp from "fastify-plugin";
-import Redis from "ioredis";
+import { Redis } from "ioredis";
 
 import type { StoredStateResponse } from "../authRoutes.js";
 import type { MessageSavedInCache } from "../lib/messages/cache.js";
@@ -14,11 +14,11 @@ type ArgType = Array<string | number>;
 
 // Class to be added to instance
 class RedisCache {
-  private _client: any;
+  private _client: Redis;
   constructor(host: string, port: number) {
     // ioredis typings can be awkward with ESM interop across Node/TS versions;
     // cast to any to avoid construct signature mismatches at build time.
-    this._client = new (Redis as any)(port, host);
+    this._client = new Redis(port, host);
   }
 
   // Add logging to sending the redis command

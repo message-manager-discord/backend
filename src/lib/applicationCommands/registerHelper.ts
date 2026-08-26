@@ -20,9 +20,10 @@ async function registerAddCommand(
   let shouldRegister = false;
   for (const command of toSetCommands) {
     if (
-      !commands.find((c) => {
-        c.name === command.name && c.type === command.type;
-      })
+      !commands.some(
+        (c) =>
+          c.name === command.name && Number(c.type) === Number(command.type),
+      )
     ) {
       shouldRegister = true;
     }

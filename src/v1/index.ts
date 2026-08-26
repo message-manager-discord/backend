@@ -5,7 +5,7 @@ import fastifyRateLimit from "@fastify/rate-limit";
 import fastifySwagger from "@fastify/swagger";
 import fastifySwaggerUi from "@fastify/swagger-ui";
 import type { FastifyInstance } from "fastify";
-import Redis from "ioredis";
+import { Redis } from "ioredis";
 
 import internalPlugin from "./routes/internal.js";
 import reportPlugin from "./routes/reports.js";
@@ -125,7 +125,7 @@ const versionOnePlugin = async (instance: FastifyInstance) => {
     max: 80, // 80 requests per minute
     timeWindow: 60 * 1000, // 1 minute
     cache: 10000,
-    redis: new (Redis as any)({
+    redis: new Redis({
       connectionName: "my-connection-name",
       host: instance.envVars.BACKEND_REDIS_HOST,
       port: instance.envVars.BACKEND_REDIS_PORT,

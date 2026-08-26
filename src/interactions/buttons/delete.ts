@@ -38,7 +38,7 @@ export default async function handleDeleteButton(
   // Check if message can be deleted
   const databaseMessage = await checkDeletePossible({
     session,
-    channelId: interaction.channel_id,
+    channelId: interaction.channel.id,
     instance,
     messageId,
   });

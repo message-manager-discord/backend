@@ -25,6 +25,7 @@ import {
   createInitialMessageGenerationEmbed,
 } from "../shared/message-generation.js";
 import type { InteractionReturnData } from "../types.js";
+import { getModalValue } from "./utils.js";
 
 export default async function handleModalMessageGeneration(
   internalInteraction: InternalInteractionType<APIModalSubmitGuildInteraction>,
@@ -125,14 +126,12 @@ const handleContent = async ({
   messageGenerationKey: string;
   instance: FastifyInstance;
 }): Promise<APIInteractionResponse> => {
-  const content = interaction.data.components?.find(
-    (component) => component.components[0].custom_id === "content",
-  )?.components[0].value; // find content
+  const content = getModalValue(interaction.data.components, "content");
 
-  if (interaction.channel_id === undefined) {
+  if (interaction.channel === undefined) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.GENERIC_UNEXPECTED_FAILURE,
-      "Missing channel_id on modal submit",
+      "Missing channel on modal submit",
     ); // Not sure why this might happen (discord typing says it could, but docs do not indicate why)
     // Hasn't thrown in tests yet
     // Will change if it happens
@@ -174,18 +173,10 @@ const handleEmbedMetadata = async ({
   instance: FastifyInstance;
 }): Promise<APIInteractionResponse> => {
   // Get the different fields
-  const color = interaction.data.components?.find(
-    (component) => component.components[0].custom_id === "color",
-  )?.components[0].value;
-  const timestamp = interaction.data.components?.find(
-    (component) => component.components[0].custom_id === "timestamp",
-  )?.components[0].value;
-  const url = interaction.data.components?.find(
-    (component) => component.components[0].custom_id === "url",
-  )?.components[0].value;
-  const thumbnailUrl = interaction.data.components?.find(
-    (component) => component.components[0].custom_id === "thumbnail",
-  )?.components[0].value;
+  const color = getModalValue(interaction.data.components, "color");
+  const timestamp = getModalValue(interaction.data.components, "timestamp");
+  const url = getModalValue(interaction.data.components, "url");
+  const thumbnailUrl = getModalValue(interaction.data.components, "thumbnail");
 
   // If any are set, and embed is undefined define embed
 
@@ -297,12 +288,8 @@ const handleEmbedFooter = async ({
   instance: FastifyInstance;
 }): Promise<APIInteractionResponse> => {
   // Get the different fields
-  const text = interaction.data.components?.find(
-    (component) => component.components[0].custom_id === "text",
-  )?.components[0].value;
-  const iconUrl = interaction.data.components?.find(
-    (component) => component.components[0].custom_id === "icon",
-  )?.components[0].value;
+  const text = getModalValue(interaction.data.components, "text");
+  const iconUrl = getModalValue(interaction.data.components, "icon");
   if (
     (text !== undefined && text !== "") ||
     (iconUrl !== undefined && iconUrl !== "") ||
@@ -383,12 +370,8 @@ const handleEmbedContent = async ({
   instance: FastifyInstance;
 }): Promise<APIInteractionResponse> => {
   // Get the different fields
-  const title = interaction.data.components?.find(
-    (component) => component.components[0].custom_id === "title",
-  )?.components[0].value;
-  const description = interaction.data.components?.find(
-    (component) => component.components[0].custom_id === "description",
-  )?.components[0].value;
+  const title = getModalValue(interaction.data.components, "title");
+  const description = getModalValue(interaction.data.components, "description");
   if (
     (title !== undefined && title !== "") ||
     (description !== undefined && description !== "") ||
@@ -468,16 +451,10 @@ const handleEmbedAddField = async ({
   instance: FastifyInstance;
 }): Promise<APIInteractionResponse> => {
   // Get the different fields
-  const fieldName = interaction.data.components?.find(
-    (component) => component.components[0].custom_id === "name",
-  )?.components[0].value;
-  const fieldValue = interaction.data.components?.find(
-    (component) => component.components[0].custom_id === "value",
-  )?.components[0].value;
+  const fieldName = getModalValue(interaction.data.components, "name");
+  const fieldValue = getModalValue(interaction.data.components, "value");
   const inline = parseTrueLikeValues(
-    interaction.data.components?.find(
-      (component) => component.components[0].custom_id === "inline",
-    )?.components[0].value,
+    getModalValue(interaction.data.components, "inline"),
   );
   if (
     fieldName === undefined ||
@@ -542,16 +519,10 @@ const handleEditEmbedField = async ({
   instance: FastifyInstance;
 }): Promise<APIInteractionResponse> => {
   // Get the different fields
-  const fieldName = interaction.data.components?.find(
-    (component) => component.components[0].custom_id === "name",
-  )?.components[0].value;
-  const fieldValue = interaction.data.components?.find(
-    (component) => component.components[0].custom_id === "value",
-  )?.components[0].value;
+  const fieldName = getModalValue(interaction.data.components, "name");
+  const fieldValue = getModalValue(interaction.data.components, "value");
   const inline = parseTrueLikeValues(
-    interaction.data.components?.find(
-      (component) => component.components[0].custom_id === "inline",
-    )?.components[0].value,
+    getModalValue(interaction.data.components, "inline"),
   );
   const fieldIndex = Number(interaction.data.custom_id.split(":")[3]); // Index in the current list - used identify which field
 
@@ -637,15 +608,9 @@ const handleEmbedAuthor = async ({
   // Author name **must be set** if any values are set
 
   // Get the different fields
-  const authorName = interaction.data.components?.find(
-    (component) => component.components[0].custom_id === "name",
-  )?.components[0].value;
-  const authorUrl = interaction.data.components?.find(
-    (component) => component.components[0].custom_id === "url",
-  )?.components[0].value;
-  const authorIconUrl = interaction.data.components?.find(
-    (component) => component.components[0].custom_id === "icon",
-  )?.components[0].value;
+  const authorName = getModalValue(interaction.data.components, "name");
+  const authorUrl = getModalValue(interaction.data.components, "url");
+  const authorIconUrl = getModalValue(interaction.data.components, "icon");
   if (
     (authorName !== undefined && authorName !== "") ||
     (authorUrl !== undefined && authorUrl !== "") ||

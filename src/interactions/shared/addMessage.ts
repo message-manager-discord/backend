@@ -59,7 +59,7 @@ const addMessageLogic = async ({
     );
   }
   // Message type must be a normal message - and not from an interaction
-  if (message.type !== MessageType.Default || message.interaction) {
+  if (message.type !== MessageType.Default) {
     throw new ExpectedFailure(
       InteractionOrRequestFinalStatus.MIGRATION_ATTEMPTED_ON_NON_STANDARD_MESSAGE,
       "Message must be a normal message (not an interaction response, system message, etc) to be able to be added!",
@@ -143,11 +143,11 @@ const addMessageLogic = async ({
       channel: {
         connectOrCreate: {
           where: {
-            id: BigInt(interaction.channel_id),
+            id: BigInt(interaction.channel.id),
           },
 
           create: {
-            id: BigInt(interaction.channel_id),
+            id: BigInt(interaction.channel.id),
             guildId: BigInt(interaction.guild_id),
           },
         },
