@@ -6,7 +6,7 @@ Backend service for [message.anothercat.me](https://message.anothercat.me)
 
 ### Prerequisites
 
-Node 22.14 (see .nvmrc)
+Node 24 (see .nvmrc)
 Postgresql 13 with user with write permissions
 Redis with REJSON
 
