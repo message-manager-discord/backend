@@ -163,7 +163,7 @@ async function editMessage({
         );
       }
       if (
-        embed?.color !== undefined &&
+        embed.color !== undefined &&
         (embed.color > 16777215 || embed.color < 0)
       ) {
         throw new ExpectedFailure(
@@ -325,13 +325,9 @@ async function editMessage({
               : ""
         }` +
         `${
-          response.content !== undefined &&
-          response.content !== null &&
           response.content !== ""
             ? `\n**New Content:**\n${response.content}`
-            : response.content === ""
-              ? "\n**New Content is empty**"
-              : ""
+            : "\n**New Content is empty**"
         }`,
       fields: [
         { name: "Action By:", value: `<@${session.userId}>`, inline: true },
@@ -347,11 +343,7 @@ async function editMessage({
     }
 
     const files: RawFile[] = [];
-    if (
-      sentEmbed !== null &&
-      sentEmbed !== undefined &&
-      embedBefore !== undefined
-    ) {
+    if (sentEmbed !== null && embedBefore !== undefined) {
       files.push({
         name: "embed-before.json",
         data: JSON.stringify(embedBefore, undefined, 2),
@@ -362,7 +354,7 @@ async function editMessage({
       });
       logEmbed.description +=
         "\n\nEmbed representation can be found in the attachment.";
-    } else if (sentEmbed !== null && sentEmbed !== undefined) {
+    } else if (sentEmbed !== null) {
       files.push({
         name: "embed-after.json",
         data: JSON.stringify(sentEmbed, undefined, 2),

@@ -163,7 +163,7 @@ async function sendMessage({
       );
     }
     if (
-      embed?.color !== undefined &&
+      embed.color !== undefined &&
       (embed.color > 16777215 || embed.color < 0)
     ) {
       throw new ExpectedFailure(
@@ -277,9 +277,7 @@ async function sendMessage({
       description:
         `Message (${messageResult.id}) sent` +
         `${
-          messageResult.content !== undefined &&
-          messageResult.content !== "" &&
-          messageResult.content !== null
+          messageResult.content !== ""
             ? `\n**Content:**\n${messageResult.content}`
             : ""
         }`,

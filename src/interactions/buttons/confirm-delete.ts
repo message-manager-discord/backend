@@ -30,6 +30,8 @@ export default async function handleConfirmDeleteButton(
   // Not deferred as no logic is 'heavy'
 
   const interaction = internalInteraction.interaction;
+  // Discord payloads may omit the channel despite the guild interaction type.
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const channelId = interaction.channel?.id;
   const messageId = interaction.data.custom_id.split(":")[1];
   if (!messageId) {

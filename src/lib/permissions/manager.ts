@@ -270,16 +270,13 @@ class PermissionManager {
       users: Object.keys(permissions.users).filter((userId) => {
         const permission = permissions.users[userId];
         return (
-          permission !== undefined &&
-          (permission.allow !== InternalPermissions.NONE ||
-            permission.deny !== InternalPermissions.NONE)
+          permission.allow !== InternalPermissions.NONE ||
+          permission.deny !== InternalPermissions.NONE
         );
       }),
       roles: Object.keys(permissions.roles).filter((roleId) => {
         const permission = permissions.roles[roleId];
-        return (
-          permission !== undefined && permission !== InternalPermissions.NONE
-        );
+        return permission !== InternalPermissions.NONE;
       }),
     };
   }
@@ -295,17 +292,15 @@ class PermissionManager {
       users: Object.keys(permissions.users).filter((userId) => {
         const permission = permissions.users[userId];
         return (
-          permission !== undefined &&
-          (permission.allow !== InternalPermissions.NONE ||
-            permission.deny !== InternalPermissions.NONE)
+          permission.allow !== InternalPermissions.NONE ||
+          permission.deny !== InternalPermissions.NONE
         );
       }),
       roles: Object.keys(permissions.roles).filter((roleId) => {
         const permission = permissions.roles[roleId];
         return (
-          permission !== undefined &&
-          (permission.allow !== InternalPermissions.NONE ||
-            permission.deny !== InternalPermissions.NONE)
+          permission.allow !== InternalPermissions.NONE ||
+          permission.deny !== InternalPermissions.NONE
         );
       }),
     };
@@ -427,7 +422,8 @@ class PermissionManager {
     const channelRoleAllowPermissions = userRoles.reduce(
       (permissions: number, roleId: Snowflake) => {
         const rolePermissions = channelPermissions.roles[roleId];
-        if (!rolePermissions?.allow) return permissions;
+        if (rolePermissions.allow === InternalPermissions.NONE)
+          return permissions;
         return permissions | rolePermissions.allow;
       },
       InternalPermissions.NONE,
@@ -601,10 +597,12 @@ class PermissionManager {
   ): GuildPermissionData {
     const fixedPermissions = this._parseAndFixBasePermissionData(permissions);
     // Could potentially be undefined
-    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+    // Persisted JSON may be incomplete even though the TypeScript model requires this field.
+    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions, @typescript-eslint/no-unnecessary-condition
     if (!fixedPermissions.roles) {
       fixedPermissions.roles = {};
     }
+    // Persisted JSON may be incomplete even though the TypeScript model requires this field.
     if (!fixedPermissions.roles[roleId]) {
       fixedPermissions.roles[roleId] = InternalPermissions.NONE;
     }
@@ -618,12 +616,14 @@ class PermissionManager {
   ): ChannelPermissionData {
     const fixedPermissions = this._parseAndFixBasePermissionData(permissions);
     // Could potentially be undefined
-    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+    // Persisted JSON may be incomplete even though the TypeScript model requires this field.
+    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions, @typescript-eslint/no-unnecessary-condition
     if (!fixedPermissions.roles) {
       fixedPermissions.roles = {};
     }
     // Could potentially be undefined
-    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+    // Persisted JSON may be incomplete even though the TypeScript model requires this field.
+    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions, @typescript-eslint/no-unnecessary-condition
     if (!fixedPermissions.roles[roleId]) {
       fixedPermissions.roles[roleId] = {
         allow: InternalPermissions.NONE,
@@ -656,12 +656,14 @@ class PermissionManager {
   ): GuildPermissionData | ChannelPermissionData {
     const fixedPermissions = this._parseAndFixBasePermissionData(permissions);
     // Could potentially be undefined
-    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+    // Persisted JSON may be incomplete even though the TypeScript model requires this field.
+    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions, @typescript-eslint/no-unnecessary-condition
     if (!fixedPermissions.users) {
       fixedPermissions.users = {};
     }
     // Could potentially be undefined
-    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+    // Persisted JSON may be incomplete even though the TypeScript model requires this field.
+    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions, @typescript-eslint/no-unnecessary-condition
     if (!fixedPermissions.users[userId]) {
       fixedPermissions.users[userId] = {
         allow: InternalPermissions.NONE,
@@ -815,7 +817,7 @@ class PermissionManager {
   ): number {
     // Could potentially be undefined
     // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-    if (!permissions?.roles?.[roleId]) {
+    if (!permissions?.roles[roleId]) {
       return InternalPermissions.NONE;
     } else {
       return permissions.roles[roleId];
@@ -959,6 +961,8 @@ class PermissionManager {
     let existingDeny: number;
     // Could potentially be undefined
 
+    // Runtime JSON may omit a user despite the static index signature.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!permissions?.users?.[userId]) {
       existingAllow = InternalPermissions.NONE;
       existingDeny = InternalPermissions.NONE;
@@ -1137,7 +1141,7 @@ class PermissionManager {
     let existingDeny: number;
     // Could potentially be undefined
 
-    if (!permissions?.roles?.[roleId]) {
+    if (!permissions?.roles[roleId]) {
       existingAllow = InternalPermissions.NONE;
       existingDeny = InternalPermissions.NONE;
     } else {

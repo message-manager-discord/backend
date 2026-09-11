@@ -31,9 +31,9 @@ export default async function handleAddMessageCommand(
       (option) =>
         option.name === "message-id" &&
         option.type === ApplicationCommandOptionType.String,
-    ) as APIApplicationCommandInteractionDataStringOption
+    ) as APIApplicationCommandInteractionDataStringOption | undefined
   )?.value;
-  if (!messageId) {
+  if (messageId === undefined || messageId === "") {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.APPLICATION_COMMAND_MISSING_EXPECTED_OPTION,
       "No message id option on add message command",

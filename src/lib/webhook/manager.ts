@@ -215,7 +215,7 @@ export default class WebhookManager {
     });
     if (
       storedChannel?.webhookId == null ||
-      storedChannel?.webhookToken == null
+      storedChannel.webhookToken == null
     ) {
       return await this._getWebhookFromDiscord(channelId, guildId);
     }

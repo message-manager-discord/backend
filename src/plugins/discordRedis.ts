@@ -25,16 +25,14 @@ interface DiscordRedisCachePluginOptions extends FastifyPluginOptions {
 const discordRedisCachePlugin = fp(
   // eslint-disable-next-line @typescript-eslint/require-await
   async (server: FastifyInstance, options?: DiscordRedisCachePluginOptions) => {
-    if (
-      options?.redis?.port === undefined ||
-      options?.redis?.host === undefined
-    ) {
+    const redis = options?.redis;
+    if (redis?.port === undefined || redis.host === undefined) {
       throw new Error("Host or port not set");
     }
     server.log.info(
-      `Connecting to redis discord gateway cache at ${options.redis.host}:${options.redis.port}`,
+      `Connecting to redis discord gateway cache at ${redis.host}:${redis.port}`,
     );
-    const redisGuildManager = createRedisClient(options.redis);
+    const redisGuildManager = createRedisClient(redis);
 
     server.decorate("redisGuildManager", redisGuildManager);
   },

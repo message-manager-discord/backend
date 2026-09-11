@@ -78,7 +78,7 @@ class InteractionHandler {
   private readonly _publicKey: string;
   // _commands and _messageCommands are a way to register commands without building them into the handler
   // unfortunately it's not worth it for the other types of interactions
-  private _commands: {
+  private _commands: Partial<{
     [name: string]: {
       handler: (
         interaction: InternalInteractionType<
@@ -97,8 +97,8 @@ class InteractionHandler {
         instance: FastifyInstance,
       ) => Promise<APIApplicationCommandAutocompleteResponse>;
     };
-  } = {};
-  private _messageCommands: {
+  }> = {};
+  private _messageCommands: Partial<{
     [name: string]: {
       handler: (
         interaction: InternalInteractionType<
@@ -110,7 +110,7 @@ class InteractionHandler {
       ) => Promise<InteractionReturnData>;
       guildOnly?: boolean;
     };
-  } = {};
+  }> = {};
   constructor(client: FastifyInstance, publicKey: string) {
     this._client = client;
     this._publicKey = publicKey; // Public key is the public key from discord to verify interactions are valid
@@ -266,14 +266,12 @@ class InteractionHandler {
     const interaction = internalInteraction.interaction;
     const name = interaction.data.name.toLowerCase();
     // Find if the message command is registered - if it is then send it to it's handler
-    if (this._messageCommands[name] !== undefined) {
+    const command = this._messageCommands[name];
+    if (command !== undefined) {
       this._client.metrics.commandsUsed.inc({
         command: name,
       });
-      if (
-        (this._messageCommands[name].guildOnly ?? false) &&
-        interaction.guild_id === undefined
-      ) {
+      if ((command.guildOnly ?? false) && interaction.guild_id === undefined) {
         throw new ExpectedFailure(
           InteractionOrRequestFinalStatus.DM_INTERACTION_RECEIVED_WHEN_SHOULD_BE_GUILD_ONLY,
           ":exclamation: This command is only available in guilds",
@@ -291,11 +289,7 @@ class InteractionHandler {
         );
       }
       // Execute the handler
-      const data = this._messageCommands[name].handler(
-        internalInteraction,
-        session,
-        this._client,
-      );
+      const data = command.handler(internalInteraction, session, this._client);
       internalInteraction.responded = true;
       return data;
     }
@@ -312,12 +306,10 @@ class InteractionHandler {
     const interaction = internalInteraction.interaction;
 
     // Find if the command is registered - if it is then send it to it's handler
-    if (this._commands[interaction.data.name] !== undefined) {
+    const command = this._commands[interaction.data.name];
+    if (command !== undefined) {
       this._client.metrics.commandsUsed.inc({ command: interaction.data.name });
-      if (
-        (this._commands[interaction.data.name].guildOnly ?? false) &&
-        interaction.guild_id === undefined
-      ) {
+      if ((command.guildOnly ?? false) && interaction.guild_id === undefined) {
         throw new ExpectedFailure(
           InteractionOrRequestFinalStatus.DM_INTERACTION_RECEIVED_WHEN_SHOULD_BE_GUILD_ONLY,
           ":exclamation: This command is only available in guilds",
@@ -334,11 +326,7 @@ class InteractionHandler {
           interaction as APIDMInteraction,
         );
       }
-      const data = this._commands[interaction.data.name].handler(
-        internalInteraction,
-        session,
-        this._client,
-      );
+      const data = command.handler(internalInteraction, session, this._client);
       internalInteraction.responded = true;
       return data;
     }

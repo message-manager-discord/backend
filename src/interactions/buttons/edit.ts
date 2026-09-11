@@ -40,7 +40,7 @@ export default async function handleEditButton(
   });
   // Create stored embed from the message (from the database message as the message is not included in the interaction)
   let embed: StoredEmbed | undefined = undefined;
-  if (databaseMessage?.embed !== null && databaseMessage?.embed !== undefined) {
+  if (databaseMessage.embed !== null) {
     embed = createStoredEmbedFromDataBaseEmbed(databaseMessage.embed);
   }
 
