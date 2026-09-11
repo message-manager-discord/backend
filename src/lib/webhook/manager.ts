@@ -124,7 +124,7 @@ export default class WebhookManager {
       (webhook) => webhook.id === storedChannel?.webhookId?.toString(),
     );
     // if the webhook is found, and it has a token, return it
-    if (existingWebhook && existingWebhook.token !== undefined) {
+    if (existingWebhook?.token !== undefined) {
       await this._updateStoredWebhook(channelId, guildId, {
         token: existingWebhook.token,
         id: existingWebhook.id,
@@ -139,7 +139,7 @@ export default class WebhookManager {
       (webhook) => webhook.token !== undefined,
     );
 
-    if (firstWebhook && firstWebhook.token !== undefined) {
+    if (firstWebhook?.token !== undefined) {
       await this._updateStoredWebhook(channelId, guildId, {
         token: firstWebhook.token,
         id: firstWebhook.id,
@@ -214,9 +214,8 @@ export default class WebhookManager {
       where: { id: BigInt(channelId) },
     });
     if (
-      !storedChannel ||
-      storedChannel.webhookId === null ||
-      storedChannel.webhookToken === null
+      storedChannel?.webhookId == null ||
+      storedChannel?.webhookToken == null
     ) {
       return await this._getWebhookFromDiscord(channelId, guildId);
     }

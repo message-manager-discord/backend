@@ -294,14 +294,12 @@ const handleEmbedFooter = async ({
     (text !== undefined && text !== "") ||
     (iconUrl !== undefined && iconUrl !== "") ||
     (currentStatus.embed?.footer?.text !== undefined &&
-      currentStatus.embed?.footer?.text !== "") ||
+      currentStatus.embed.footer.text !== "") ||
     (currentStatus.embed?.footer?.icon_url !== undefined &&
-      currentStatus.embed?.footer?.icon_url !== "")
+      currentStatus.embed.footer.icon_url !== "")
     // Only "edit" the embed if new values will be set, or they already have been set (either setting or removing)
   ) {
-    if (currentStatus.embed === undefined) {
-      currentStatus.embed = {};
-    }
+    currentStatus.embed ??= {};
     if (
       (text === undefined || text === "") &&
       iconUrl !== undefined &&
@@ -376,15 +374,13 @@ const handleEmbedContent = async ({
     (title !== undefined && title !== "") ||
     (description !== undefined && description !== "") ||
     (currentStatus.embed?.title !== undefined &&
-      currentStatus.embed?.title !== "") ||
+      currentStatus.embed.title !== "") ||
     (currentStatus.embed?.description !== undefined &&
-      currentStatus.embed?.description !== "")
+      currentStatus.embed.description !== "")
   ) {
     // Only "edit" the embed if new values will be set, or they already have been set (either setting or removing)
-    if (currentStatus.embed === undefined) {
-      // ensure embed is defined
-      currentStatus.embed = {};
-    }
+    // ensure embed is defined
+    currentStatus.embed ??= {};
     if (title !== undefined && title !== "") {
       // If title is set set it - if not remove
       currentStatus.embed.title = title;
@@ -469,14 +465,10 @@ const handleEmbedAddField = async ({
     );
   }
 
-  if (currentStatus.embed === undefined) {
-    // Ensure embed is defined
-    currentStatus.embed = {};
-  }
-  if (currentStatus.embed.fields === undefined) {
-    // Ensure fields is defined
-    currentStatus.embed.fields = [];
-  }
+  // Ensure embed is defined
+  currentStatus.embed ??= {};
+  // Ensure fields is defined
+  currentStatus.embed.fields ??= [];
 
   currentStatus.embed.fields.push({
     name: fieldName,
@@ -549,12 +541,8 @@ const handleEditEmbedField = async ({
       );
     }
     // ensure embed and fields is defined
-    if (currentStatus.embed === undefined) {
-      currentStatus.embed = {};
-    }
-    if (currentStatus.embed.fields === undefined) {
-      currentStatus.embed.fields = [];
-    }
+    currentStatus.embed ??= {};
+    currentStatus.embed.fields ??= [];
     // add field if field doesn't exist yet (shouldn't happen but just in case)
     if (currentStatus.embed.fields[fieldIndex] === undefined) {
       currentStatus.embed.fields.push({
@@ -632,9 +620,7 @@ const handleEmbedAuthor = async ({
       }
     } else {
       // otherwise, update the author
-      if (currentStatus.embed === undefined) {
-        currentStatus.embed = {};
-      }
+      currentStatus.embed ??= {};
       if (currentStatus.embed.author === undefined) {
         currentStatus.embed.author = { name: authorName };
       } else {

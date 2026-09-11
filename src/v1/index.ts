@@ -133,8 +133,7 @@ const versionOnePlugin = async (instance: FastifyInstance) => {
       maxRetriesPerRequest: 1,
     }),
 
-    keyGenerator: (request) =>
-      request.user?.userId !== undefined ? request.user.userId : request.ip,
+    keyGenerator: (request) => request.user?.userId ?? request.ip,
     enableDraftSpec: true,
   });
 

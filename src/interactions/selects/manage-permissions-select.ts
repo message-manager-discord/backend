@@ -152,7 +152,7 @@ export default async function handleManagePermissionsSelect(
         permissionsToReset,
         permissionsToDeny,
         session,
-        channelId: channelId !== null ? channelId : undefined, // Handles both channel user and guild user perms with this field
+        channelId: channelId ?? undefined, // Handles both channel user and guild user perms with this field
 
         messageId: interaction.message.id,
       });
@@ -202,7 +202,7 @@ export default async function handleManagePermissionsSelect(
         permissionsToReset: permissionsToReset,
         permissionsToDeny: [],
         session,
-        channelId: channelId !== null ? channelId : undefined, // Handles both channel user and guild user perms with this field
+        channelId: channelId ?? undefined, // Handles both channel user and guild user perms with this field
 
         messageId: interaction.message.id,
       });

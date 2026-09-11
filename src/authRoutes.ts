@@ -57,9 +57,7 @@ const addPlugin = async (instance: FastifyInstance) => {
       console.log(request.user);
       console.log(request.user?.userId);
 
-      return request.user?.userId !== undefined
-        ? request.user.userId
-        : request.ip;
+      return request.user?.userId ?? request.ip;
     },
     enableDraftSpec: true,
   });

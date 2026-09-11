@@ -29,7 +29,7 @@ export default class LoggingManager {
     const guild = await this._instance.prisma.guild.findUnique({
       where: { id: BigInt(guildId) },
     });
-    if (!guild || guild.logChannelId === null) {
+    if (guild?.logChannelId == null) {
       return null;
     }
     return guild.logChannelId.toString();

@@ -350,15 +350,15 @@ const handleSend = async ({
   // Check embed for any set values. If none set embed to undefined
   if (currentStatus.embed !== undefined) {
     const hasAnySet =
-      (currentStatus.embed?.fields?.length ?? 0) > 0 ||
-      currentStatus.embed?.author?.name !== undefined ||
-      currentStatus.embed?.footer?.text !== undefined ||
-      currentStatus.embed?.description !== undefined ||
-      currentStatus.embed?.title !== undefined ||
-      currentStatus.embed?.url !== undefined ||
-      currentStatus.embed?.thumbnail?.url !== undefined ||
-      currentStatus.embed?.timestamp !== undefined ||
-      currentStatus.embed?.color !== undefined;
+      (currentStatus.embed.fields?.length ?? 0) > 0 ||
+      currentStatus.embed.author?.name !== undefined ||
+      currentStatus.embed.footer?.text !== undefined ||
+      currentStatus.embed.description !== undefined ||
+      currentStatus.embed.title !== undefined ||
+      currentStatus.embed.url !== undefined ||
+      currentStatus.embed.thumbnail?.url !== undefined ||
+      currentStatus.embed.timestamp !== undefined ||
+      currentStatus.embed.color !== undefined;
     if (!hasAnySet) {
       currentStatus.embed = undefined;
     }
@@ -402,15 +402,15 @@ const handleEdit = async ({
   // Check embed for any set values. If none set embed to undefined
   if (currentStatus.embed !== undefined) {
     const hasAnySet =
-      (currentStatus.embed?.fields?.length ?? 0) > 0 ||
-      currentStatus.embed?.author?.name !== undefined ||
-      currentStatus.embed?.footer?.text !== undefined ||
-      currentStatus.embed?.description !== undefined ||
-      currentStatus.embed?.title !== undefined ||
-      currentStatus.embed?.url !== undefined ||
-      currentStatus.embed?.thumbnail?.url !== undefined ||
-      currentStatus.embed?.timestamp !== undefined ||
-      currentStatus.embed?.color !== undefined;
+      (currentStatus.embed.fields?.length ?? 0) > 0 ||
+      currentStatus.embed.author?.name !== undefined ||
+      currentStatus.embed.footer?.text !== undefined ||
+      currentStatus.embed.description !== undefined ||
+      currentStatus.embed.title !== undefined ||
+      currentStatus.embed.url !== undefined ||
+      currentStatus.embed.thumbnail?.url !== undefined ||
+      currentStatus.embed.timestamp !== undefined ||
+      currentStatus.embed.color !== undefined;
     if (!hasAnySet) {
       currentStatus.embed = undefined;
     }

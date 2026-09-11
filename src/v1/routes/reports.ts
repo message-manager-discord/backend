@@ -672,7 +672,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
       verifyId(id);
       const { position } = request.query;
       let { limit } = request.query;
-      if (limit === undefined) limit = 10;
+      limit ??= 10;
       return await getReportHistory({
         instance,
         reportId: id,

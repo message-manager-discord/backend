@@ -93,7 +93,7 @@ const userPlugin = async (instance: FastifyInstance) => {
           where: { id: BigInt(userId) },
         });
         // oauthToken is also required for the user to be considered valid - if it is not present the user cannot be fetched
-        if (!userStored || userStored.oauthToken === null) {
+        if (userStored?.oauthToken == null) {
           throw new NotFound("User not found");
         }
         user = {
