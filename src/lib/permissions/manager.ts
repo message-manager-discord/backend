@@ -416,7 +416,7 @@ class PermissionManager {
           PermissionAllowAndDenyData | undefined;
         if (
           rolePermissions === undefined ||
-          rolePermissions.deny === InternalPermissions.NONE
+          rolePermissions.deny === InternalPermissions.NONE // TODO - not sure why this was added
         ) {
           return permissions;
         }
@@ -427,8 +427,7 @@ class PermissionManager {
     const channelRoleAllowPermissions = userRoles.reduce(
       (permissions: number, roleId: Snowflake) => {
         const rolePermissions = channelPermissions.roles[roleId];
-        if (!rolePermissions?.allow)
-          return permissions;
+        if (!rolePermissions?.allow) return permissions;
         return permissions | rolePermissions.allow;
       },
       InternalPermissions.NONE,
@@ -959,7 +958,7 @@ class PermissionManager {
     let existingAllow: number;
     let existingDeny: number;
     // Could potentially be undefined
-     
+
     if (!permissions?.users?.[userId]) {
       existingAllow = InternalPermissions.NONE;
       existingDeny = InternalPermissions.NONE;
@@ -1137,7 +1136,7 @@ class PermissionManager {
     let existingAllow: number;
     let existingDeny: number;
     // Could potentially be undefined
-     
+
     if (!permissions?.roles?.[roleId]) {
       existingAllow = InternalPermissions.NONE;
       existingDeny = InternalPermissions.NONE;
