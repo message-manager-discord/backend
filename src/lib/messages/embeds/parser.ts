@@ -17,7 +17,7 @@ import type { StoredEmbed } from "./types.js";
 const createStoredEmbedFromAPIMessage = (
   message: APIMessage,
 ): StoredEmbed | null => {
-  const embed = message.embeds[0];
+  const embed = message.embeds.at(0);
   if (embed === undefined) {
     return null;
   }

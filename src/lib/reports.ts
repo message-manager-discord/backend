@@ -246,7 +246,7 @@ const getReports = async ({
   staff: boolean;
 }): Promise<ReportListingModelType> => {
   const statusFilter: ReportStatus[] | undefined =
-    filterStatus === undefined || filterStatus === null
+    filterStatus === undefined
       ? undefined
       : filterStatus === ReportStatusRequest.OPEN
         ? ["pending"]
@@ -720,6 +720,8 @@ const actionReport = async ({
     throw new Forbidden("this report is already closed");
   }
 
+  // Keep the runtime guard for malformed request payloads.
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (messageToReportingUser !== undefined) {
     await createReportMessage({
       instance,
@@ -732,6 +734,8 @@ const actionReport = async ({
       },
     });
   }
+  // Keep the runtime guard for malformed request payloads.
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (staffReportReason !== undefined) {
     await createReportMessage({
       instance,
@@ -754,7 +758,7 @@ const actionReport = async ({
       closeStaffId: BigInt(user.userId),
       action: {
         create: {
-          ...(guildBan?.ban && {
+          ...(guildBan.ban && {
             guildBan: {
               create: {
                 guild: {
@@ -998,7 +1002,7 @@ const getReportHistory = async ({
       id: message.id.toString(),
       content: message.content ?? undefined,
       embed:
-        message.embed !== undefined && message.embed !== null
+        message.embed !== null
           ? createStoredEmbedFromDataBaseEmbed(message.embed)
           : undefined,
       acting_user_id: message.editedBy.toString(),

@@ -34,16 +34,13 @@ interface InteractionReturnDataDeferred {
 // Type guard to discern between a JSON response and a FormData response
 const isFormDataReturnData = (
   data: InteractionReturnData | InteractionReturnDataAfterDeferred,
-): data is FormDataReturnData =>
-  (data as FormDataReturnData).headers !== undefined &&
-  (data as FormDataReturnData).body !== undefined;
+): data is FormDataReturnData => "headers" in data && "body" in data;
 
 // Type guard to discern between a deferred response and a non-deferred response
 const isInteractionReturnDataDeferred = (
   data: InteractionReturnData,
 ): data is InteractionReturnDataDeferred =>
-  (data as InteractionReturnDataDeferred).callback !== undefined &&
-  (data as InteractionReturnDataDeferred).returnData !== undefined;
+  "callback" in data && "returnData" in data;
 
 export type {
   FormDataReturnData,

@@ -100,11 +100,10 @@ class RedisCache {
   }
   async getState(state: string): Promise<StoredStateResponse | undefined> {
     const data = await this._get({ key: `state:${state}` });
-    // We do not know what the data is, so we use falsy values
+    // We do not know what the data is, so we check explicitly
     // Also an empty string should be returned as undefined anyways
-    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-    if (data) {
-      return { redirectPath: JSON.parse(data as string) as string };
+    if (typeof data === "string" && data !== "") {
+      return { redirectPath: JSON.parse(data) as string };
     }
     return undefined;
   }
@@ -125,11 +124,10 @@ class RedisCache {
   async getMessageCache(key: string): Promise<MessageSavedInCache | null> {
     const data = await this._get({ key: `message:${key}` });
 
-    // We do not know what the data is, so we use falsy values
+    // We do not know what the data is, so we check explicitly
     // Also an empty string should be returned as undefined anyways
-    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-    if (data) {
-      return JSON.parse(data as string) as MessageSavedInCache;
+    if (typeof data === "string" && data !== "") {
+      return JSON.parse(data) as MessageSavedInCache;
     }
     return null;
   }
@@ -252,16 +250,14 @@ interface RedisPluginOptions extends FastifyPluginOptions {
 const redisRestPlugin = fp(
   // eslint-disable-next-line @typescript-eslint/require-await
   async (server: FastifyInstance, options?: RedisPluginOptions) => {
-    if (
-      options?.redis?.port === undefined ||
-      options?.redis?.host === undefined
-    ) {
+    const redis = options?.redis;
+    if (redis?.port === undefined || redis.host === undefined) {
       throw new Error("Host or port not set");
     }
     server.log.info(
-      `Connecting to redis general cache at ${options.redis.host}:${options.redis.port}`,
+      `Connecting to redis general cache at ${redis.host}:${redis.port}`,
     );
-    const redisClient = new RedisCache(options.redis.host, options.redis.port);
+    const redisClient = new RedisCache(redis.host, redis.port);
 
     server.decorate("redisCache", redisClient);
   },

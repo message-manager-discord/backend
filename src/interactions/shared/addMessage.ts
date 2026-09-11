@@ -4,7 +4,6 @@
 import type { Prisma } from "@prisma/client";
 import type {
   APIApplicationCommandGuildInteraction,
-  APIEmbed,
   APIMessage,
   APIMessageApplicationCommandGuildInteraction,
 } from "discord-api-types/v9";
@@ -83,7 +82,7 @@ const addMessageLogic = async ({
       "Message must have only one embed to be added!",
     );
   }
-  const embed: APIEmbed | undefined = message.embeds[0];
+  const embed = message.embeds.at(0);
 
   // Check if the user attempting to migrate the message has the correct permissions
   await checkSendMessagePossible({
@@ -95,7 +94,7 @@ const addMessageLogic = async ({
   let embedQuery:
     Prisma.MessageEmbedCreateNestedOneWithoutMessageInput | undefined =
     undefined;
-  if (embed !== null && embed !== undefined) {
+  if (embed !== undefined) {
     let fieldQuery:
       Prisma.EmbedFieldCreateNestedManyWithoutEmbedInput | undefined;
 

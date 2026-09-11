@@ -544,7 +544,9 @@ const handleEditEmbedField = async ({
     currentStatus.embed ??= {};
     currentStatus.embed.fields ??= [];
     // add field if field doesn't exist yet (shouldn't happen but just in case)
-    if (currentStatus.embed.fields[fieldIndex] === undefined) {
+    // The index can be stale if the field was changed by another interaction.
+    // `.at()` is used instead of `[fieldIndex]` so the undefined check is type-honest.
+    if (currentStatus.embed.fields.at(fieldIndex) === undefined) {
       currentStatus.embed.fields.push({
         name: fieldName,
         value: fieldValue,

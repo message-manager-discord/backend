@@ -17,18 +17,22 @@ import { addTipToEmbed } from "../../lib/tips/index.js";
 
 class PermissionInteractionCache {
   private _interactionCache: {
-    [messageId: Snowflake]: {
-      interactionId: Snowflake;
-      interactionToken: Snowflake;
-      timeoutId: NodeJS.Timeout;
-      createAt: Date;
-    };
+    [messageId: Snowflake]:
+      | {
+          interactionId: Snowflake;
+          interactionToken: Snowflake;
+          timeoutId: NodeJS.Timeout;
+          createAt: Date;
+        }
+      | undefined;
   };
   private _permissionsToMessageIdMapping: {
-    [permissionId: string]: {
-      targetType: "user" | "role";
-      messageIds: Snowflake[];
-    };
+    [permissionId: string]:
+      | {
+          targetType: "user" | "role";
+          messageIds: Snowflake[];
+        }
+      | undefined;
   };
   private _instance: FastifyInstance;
   constructor(instance: FastifyInstance) {
@@ -126,10 +130,11 @@ class PermissionInteractionCache {
     const messageWasInCacheBefore =
       this._interactionCache[messageCacheId] !== undefined;
 
-    if (messageWasInCacheBefore) {
+    const existingInteraction = this._interactionCache[messageCacheId];
+    if (messageWasInCacheBefore && existingInteraction !== undefined) {
       // Then cancel the timeout otherwise the interaction will be removed before it is needed to be removed
       // Receiving another interaction extends the time limit for that message
-      clearTimeout(this._interactionCache[messageCacheId].timeoutId);
+      clearTimeout(existingInteraction.timeoutId);
     }
 
     // Set a timeout to remove and disable the interaction after 10 mins

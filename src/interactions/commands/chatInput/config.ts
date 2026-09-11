@@ -91,9 +91,10 @@ async function handlePermissionsSubcommand(
       (option) =>
         option.name === "channel" &&
         option.type === ApplicationCommandOptionType.Channel,
-    ) as APIApplicationCommandInteractionDataChannelOption
+    ) as APIApplicationCommandInteractionDataChannelOption | undefined
   )?.value;
-  const channel = interaction.data.resolved?.channels?.[channelId]; // Channel is found here because it is found for all subcommands
+  const channel = interaction.data.resolved?.channels?.[channelId as string]; // Channel is found here because it is found for all subcommands
+  // The resolved channel is expected for this command, but malformed Discord payloads can omit it.
 
   // Send to different handlers for 2nd level subcommand (for example /config permissions list)
   switch (subcommand.name) {
@@ -244,9 +245,7 @@ async function handlePermissionsManageSubcommand({
   if (resolvedData?.roles?.[targetId] !== undefined) {
     targetType = "role";
     targetPermissions = resolvedData.roles[targetId].permissions;
-  } else if (
-    resolvedData?.users?.[targetId] !== undefined
-  ) {
+  } else if (resolvedData?.users?.[targetId] !== undefined) {
     targetType = "user";
     const targetUser = resolvedData.users[targetId];
     if (targetUser.bot ?? false) {
@@ -258,9 +257,9 @@ async function handlePermissionsManageSubcommand({
     // If the user is in the guild, then it will be in the members resolved data
     // Otherwise not
     // If the user is in the guild, set the permissions value to it's permissions
-    if (resolvedData?.members?.[targetId] !== undefined) {
-      targetPermissions =
-        resolvedData.members[targetId].permissions ?? undefined;
+    // Discord may omit resolved member data for users outside the guild.
+    if (resolvedData.members?.[targetId] !== undefined) {
+      targetPermissions = resolvedData.members[targetId].permissions;
     }
   } else {
     throw new UnexpectedFailure(
@@ -384,9 +383,7 @@ async function handlePermissionsQuickstartSubcommand({
   if (resolvedData?.roles?.[targetId] !== undefined) {
     targetType = "role";
     targetPermissions = resolvedData.roles[targetId].permissions;
-  } else if (
-    resolvedData?.users?.[targetId] !== undefined
-  ) {
+  } else if (resolvedData?.users?.[targetId] !== undefined) {
     targetType = "user";
     const targetUser = resolvedData.users[targetId];
     if (targetUser.bot ?? false) {
@@ -398,9 +395,9 @@ async function handlePermissionsQuickstartSubcommand({
     // If the user is in the guild, then it will be in the members resolved data
     // Otherwise not
     // If the user is in the guild, set the permissions value to it's permissions
-    if (resolvedData?.members?.[targetId] !== undefined) {
-      targetPermissions =
-        resolvedData.members[targetId].permissions ?? undefined;
+    // Discord may omit resolved member data for users outside the guild.
+    if (resolvedData.members?.[targetId] !== undefined) {
+      targetPermissions = resolvedData.members[targetId].permissions;
     }
   } else {
     throw new UnexpectedFailure(

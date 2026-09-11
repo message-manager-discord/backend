@@ -60,7 +60,7 @@ const saveMessageToCache = ({
       );
     }
     if (
-      data.embed?.color !== undefined &&
+      data.embed.color !== undefined &&
       (data.embed.color > 16777215 || data.embed.color < 0)
     ) {
       throw new ExpectedFailure(

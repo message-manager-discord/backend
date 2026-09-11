@@ -202,7 +202,7 @@ async function deleteMessage({
     };
     // Generate embed representation if embed was present before
     let embedBefore: StoredEmbed | undefined = undefined;
-    if (messageBefore?.embed !== null && messageBefore?.embed !== undefined) {
+    if (messageBefore.embed !== null) {
       embedBefore = createStoredEmbedFromDataBaseEmbed(messageBefore.embed);
     }
 

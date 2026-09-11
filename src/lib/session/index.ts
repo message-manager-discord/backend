@@ -168,7 +168,7 @@ class NonGuildSession {}
 const interactionIsFromGuild = (
   interaction: APIDMInteraction | APIGuildInteraction,
 ): interaction is APIGuildInteraction => {
-  return (interaction as APIGuildInteraction).guild_id !== undefined;
+  return "guild_id" in interaction;
 };
 
 // Manager for sessions - only one instance of this is created

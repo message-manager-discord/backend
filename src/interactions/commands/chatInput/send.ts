@@ -43,16 +43,19 @@ export default async function handleSendCommand(
       (option) =>
         option.name === "channel" &&
         option.type === ApplicationCommandOptionType.Channel,
-    ) as APIApplicationCommandInteractionDataChannelOption
+    ) as APIApplicationCommandInteractionDataChannelOption | undefined
   )?.value;
-  const channel = interaction.data.resolved?.channels?.[channelId];
-  if (!channelId) {
+  const channel =
+    channelId === undefined
+      ? undefined
+      : interaction.data.resolved?.channels?.[channelId];
+  if (channelId === undefined || channelId === "") {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.APPLICATION_COMMAND_MISSING_EXPECTED_OPTION,
       "No channel option on send command",
     );
   }
-  if (!channel) {
+  if (channel === undefined) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.APPLICATION_COMMAND_RESOLVED_MISSING_EXPECTED_VALUE,
       "Channel not found in resolved data",
@@ -65,7 +68,7 @@ export default async function handleSendCommand(
         (option) =>
           option.name === "content-only" &&
           option.type === ApplicationCommandOptionType.Boolean,
-      ) as APIApplicationCommandInteractionDataBooleanOption
+      ) as APIApplicationCommandInteractionDataBooleanOption | undefined
     )?.value ?? false;
 
   let threadData: undefined | ThreadOptionObject = undefined;
@@ -98,7 +101,7 @@ export default async function handleSendCommand(
       title: `Sending a message to ${
         channel.name !== null
           ? `#${
-              channel.name && channel.name.length > 23
+              channel.name.length > 23
                 ? `${channel.name.substring(0, 20)}...`
                 : channel.name
             }`
