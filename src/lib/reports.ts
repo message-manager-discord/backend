@@ -498,7 +498,7 @@ const getReportMessage = async ({
       report: true,
     },
   });
-  if (message === null || message.reportId !== BigInt(reportId)) {
+  if (message?.reportId !== BigInt(reportId)) {
     throw new NotFound("message not found");
   }
 

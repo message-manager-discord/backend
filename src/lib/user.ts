@@ -43,12 +43,10 @@ const getUserData = async (
     }
   }
   // if that didn't work, try the bot token
-  if (user === undefined) {
-    // Fetch user from discord API
-    user = (await instance.restClient.get(
-      Routes.user(userId),
-    )) as RESTGetAPIUserResult;
-  }
+  // Fetch user from discord API
+  user ??= (await instance.restClient.get(
+    Routes.user(userId),
+  )) as RESTGetAPIUserResult;
   // Store hash in cache
   await instance.redisCache.setUserData(user.id, {
     avatar:

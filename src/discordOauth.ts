@@ -153,8 +153,8 @@ class DiscordOauthRequests {
         InteractionOrRequestFinalStatus.OAUTH_REQUEST_FAILED,
         `Oauth request to ${
           // TODO: Fix this type mess. Most likely by changing request libs
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/strict-boolean-expressions
-          response.request.path || "Unknown path"
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          response.request.path ?? "Unknown path"
         } failed with the status ${statusCode}`,
       );
     }

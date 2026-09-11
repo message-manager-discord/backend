@@ -45,10 +45,7 @@ export default async function handleConfigCommand(
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   const subcommand = interaction.data.options?.[0];
-  if (
-    !subcommand ||
-    subcommand.type !== ApplicationCommandOptionType.SubcommandGroup
-  ) {
+  if (subcommand?.type !== ApplicationCommandOptionType.SubcommandGroup) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.APPLICATION_COMMAND_MISSING_EXPECTED_OPTION,
       "Missing subcommand",
@@ -244,12 +241,11 @@ async function handlePermissionsManageSubcommand({
   let targetPermissions: Snowflake | undefined;
   // find target in data
 
-  if (resolvedData?.roles && resolvedData.roles[targetId] !== undefined) {
+  if (resolvedData?.roles?.[targetId] !== undefined) {
     targetType = "role";
     targetPermissions = resolvedData.roles[targetId].permissions;
   } else if (
-    resolvedData?.users &&
-    resolvedData.users[targetId] !== undefined
+    resolvedData?.users?.[targetId] !== undefined
   ) {
     targetType = "user";
     const targetUser = resolvedData.users[targetId];
@@ -262,7 +258,7 @@ async function handlePermissionsManageSubcommand({
     // If the user is in the guild, then it will be in the members resolved data
     // Otherwise not
     // If the user is in the guild, set the permissions value to it's permissions
-    if (resolvedData?.members && resolvedData.members[targetId] !== undefined) {
+    if (resolvedData?.members?.[targetId] !== undefined) {
       targetPermissions =
         resolvedData.members[targetId].permissions ?? undefined;
     }
@@ -385,12 +381,11 @@ async function handlePermissionsQuickstartSubcommand({
   let targetPermissions: Snowflake | undefined;
   const resolvedData = interaction.data.resolved;
 
-  if (resolvedData?.roles && resolvedData.roles[targetId] !== undefined) {
+  if (resolvedData?.roles?.[targetId] !== undefined) {
     targetType = "role";
     targetPermissions = resolvedData.roles[targetId].permissions;
   } else if (
-    resolvedData?.users &&
-    resolvedData.users[targetId] !== undefined
+    resolvedData?.users?.[targetId] !== undefined
   ) {
     targetType = "user";
     const targetUser = resolvedData.users[targetId];
@@ -403,7 +398,7 @@ async function handlePermissionsQuickstartSubcommand({
     // If the user is in the guild, then it will be in the members resolved data
     // Otherwise not
     // If the user is in the guild, set the permissions value to it's permissions
-    if (resolvedData?.members && resolvedData.members[targetId] !== undefined) {
+    if (resolvedData?.members?.[targetId] !== undefined) {
       targetPermissions =
         resolvedData.members[targetId].permissions ?? undefined;
     }

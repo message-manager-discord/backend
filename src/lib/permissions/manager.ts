@@ -207,7 +207,7 @@ class PermissionManager {
     });
     //Any falsy values return null
     // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-    if (guild === null || !guild.permissions) return null;
+    if (!guild?.permissions) return null;
     return guild.permissions as unknown as GuildPermissionData;
   }
 
@@ -221,7 +221,7 @@ class PermissionManager {
     });
     // Any falsy values return null
     // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-    if (!channel || !channel.permissions) return null;
+    if (!channel?.permissions) return null;
     return channel.permissions as unknown as ChannelPermissionData;
   }
 
@@ -414,8 +414,12 @@ class PermissionManager {
       (permissions: number, roleId: Snowflake) => {
         const rolePermissions = channelPermissions.roles[roleId] as
           PermissionAllowAndDenyData | undefined;
-        if (rolePermissions === undefined || !rolePermissions.deny)
+        if (
+          rolePermissions === undefined ||
+          rolePermissions.deny === InternalPermissions.NONE
+        ) {
           return permissions;
+        }
         return permissions | rolePermissions.deny;
       },
       InternalPermissions.NONE,
@@ -423,7 +427,7 @@ class PermissionManager {
     const channelRoleAllowPermissions = userRoles.reduce(
       (permissions: number, roleId: Snowflake) => {
         const rolePermissions = channelPermissions.roles[roleId];
-        if (rolePermissions === undefined || !rolePermissions.allow)
+        if (!rolePermissions?.allow)
           return permissions;
         return permissions | rolePermissions.allow;
       },
@@ -812,7 +816,7 @@ class PermissionManager {
   ): number {
     // Could potentially be undefined
     // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-    if (!permissions || !permissions.roles || !permissions.roles[roleId]) {
+    if (!permissions?.roles?.[roleId]) {
       return InternalPermissions.NONE;
     } else {
       return permissions.roles[roleId];
@@ -955,8 +959,8 @@ class PermissionManager {
     let existingAllow: number;
     let existingDeny: number;
     // Could potentially be undefined
-    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-    if (!permissions || !permissions.users || !permissions.users[userId]) {
+     
+    if (!permissions?.users?.[userId]) {
       existingAllow = InternalPermissions.NONE;
       existingDeny = InternalPermissions.NONE;
     } else {
@@ -1133,8 +1137,8 @@ class PermissionManager {
     let existingAllow: number;
     let existingDeny: number;
     // Could potentially be undefined
-    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-    if (!permissions || !permissions.roles || !permissions.roles[roleId]) {
+     
+    if (!permissions?.roles?.[roleId]) {
       existingAllow = InternalPermissions.NONE;
       existingDeny = InternalPermissions.NONE;
     } else {

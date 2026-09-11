@@ -357,7 +357,7 @@ class InteractionHandler {
 
     const command = this._commands[interaction.data.name];
 
-    if (command !== undefined && command.autocompleteHandler) {
+    if (command?.autocompleteHandler) {
       // If the command has an autocomplete handler
       if ((command.guildOnly ?? false) && interaction.guild_id === undefined) {
         throw new ExpectedFailure(

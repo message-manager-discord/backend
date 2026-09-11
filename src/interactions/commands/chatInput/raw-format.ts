@@ -26,10 +26,7 @@ export default async function handleRawFormatCommand(
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   const subcommand = interaction.data.options?.[0];
-  if (
-    !subcommand ||
-    subcommand.type !== ApplicationCommandOptionType.Subcommand
-  ) {
+  if (subcommand?.type !== ApplicationCommandOptionType.Subcommand) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.APPLICATION_COMMAND_MISSING_EXPECTED_OPTION,
       "Missing subcommand",
