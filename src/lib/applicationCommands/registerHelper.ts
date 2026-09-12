@@ -1,28 +1,29 @@
 // Register a context menu migration command to a specific guild
-import { Snowflake } from "discord-api-types/globals";
-import {
-  RESTGetAPIApplicationGuildCommandsResult,
-  Routes,
-} from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { Snowflake } from "discord-api-types/globals";
+import type { RESTGetAPIApplicationGuildCommandsResult } from "discord-api-types/v9";
+import { Routes } from "discord-api-types/v9";
+import type { FastifyInstance } from "fastify";
 
-import toSetCommands from "../../discord_commands/guildAddMessage.json" assert { type: "json" };
+import toSetCommands from "../../discord_commands/guildAddMessage.json" with { type: "json" };
 async function registerAddCommand(
   guildId: Snowflake,
-  instance: FastifyInstance
+  instance: FastifyInstance,
 ) {
   const commands = (await instance.restClient.get(
-    Routes.applicationGuildCommands(instance.envVars.DISCORD_CLIENT_ID, guildId)
+    Routes.applicationGuildCommands(
+      instance.envVars.DISCORD_CLIENT_ID,
+      guildId,
+    ),
   )) as RESTGetAPIApplicationGuildCommandsResult;
   // For each command in required commands, ensure that it is already registered
   // as it's better to check and not do anything in this case
   let shouldRegister = false;
   for (const command of toSetCommands) {
     if (
-      !commands.find((c) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        c.name === command.name && c.type === command.type;
-      })
+      !commands.some(
+        (c) =>
+          c.name === command.name && Number(c.type) === Number(command.type),
+      )
     ) {
       shouldRegister = true;
     }
@@ -32,9 +33,9 @@ async function registerAddCommand(
     await instance.restClient.put(
       Routes.applicationGuildCommands(
         instance.envVars.DISCORD_CLIENT_ID,
-        guildId
+        guildId,
       ),
-      { body: toSetCommands }
+      { body: toSetCommands },
     );
   }
 }

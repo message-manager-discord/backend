@@ -6,7 +6,7 @@
  * and some just send a response back to the user (ie permission errors)
  */
 
-import { APIMessageComponent } from "discord-api-types/v9";
+import type { APIMessageComponent } from "discord-api-types/v9";
 
 enum InteractionOrRequestFinalStatus {
   /*
@@ -86,6 +86,7 @@ enum InteractionOrRequestFinalStatus {
   EMBED_EDITING_MISSING_DISCORD_REQUIRED_VALUE,
   MESSAGE_ID_MISSING_ON_MESSAGE_EDIT_CACHE,
   INTERACTION_TIMED_OUT_HTTP,
+  INTERACTIONS_CHANNEL_OBJECT_MISSING, // TODO will this happen
   GENERIC_OUTAGE = 7000,
   GATEWAY_CACHE_SHARD_OUTAGE,
 }
@@ -96,7 +97,7 @@ class CustomError extends Error {
   constructor(
     status: InteractionOrRequestFinalStatus,
     message: string,
-    components: APIMessageComponent[] = []
+    components: APIMessageComponent[] = [],
   ) {
     super(message);
     this.status = status;

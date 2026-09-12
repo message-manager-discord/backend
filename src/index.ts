@@ -1,31 +1,31 @@
+import "./instrument.js";
+
 /**
  * Entry point file
  * Includes setup of core plugins for the HTTP server
  */
-
 import fastifyAuth from "@fastify/auth";
-import fastifyCookie, { FastifyCookieOptions } from "@fastify/cookie";
+import type { FastifyCookieOptions } from "@fastify/cookie";
+import fastifyCookie from "@fastify/cookie";
 import fastifyCors from "@fastify/cors";
-import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-import { RewriteFrames } from "@sentry/integrations";
-import Sentry from "@sentry/node";
-import childProcess from "child_process";
-import fastify, { FastifyInstance } from "fastify";
-import * as url from "url";
+import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+import * as Sentry from "@sentry/node";
+import type { FastifyError, FastifyInstance } from "fastify";
+import fastify from "fastify";
 
-import authRoutePlugin from "./authRoutes";
-import interactionsPlugin from "./interactions/index";
-import authPlugin from "./plugins/authentication";
-import discordRestPlugin from "./plugins/discord-rest";
-import discordRedisCachePlugin from "./plugins/discordRedis";
-import envPlugin from "./plugins/envCheck";
-import webhookAndLoggingPlugin from "./plugins/logging";
-import metricsPlugin from "./plugins/metrics";
-import permissionPlugin from "./plugins/permissions";
-import prismaPlugin from "./plugins/prisma";
-import redisRestPlugin from "./plugins/redis";
-import sessionPlugin from "./plugins/session";
-import versionOnePlugin from "./v1";
+import authRoutePlugin from "./authRoutes.js";
+import interactionsPlugin from "./interactions/index.js";
+import authPlugin from "./plugins/authentication.js";
+import discordRestPlugin from "./plugins/discord-rest.js";
+import discordRedisCachePlugin from "./plugins/discordRedis.js";
+import envPlugin from "./plugins/envCheck.js";
+import webhookAndLoggingPlugin from "./plugins/logging.js";
+import metricsPlugin from "./plugins/metrics.js";
+import permissionPlugin from "./plugins/permissions.js";
+import prismaPlugin from "./plugins/prisma.js";
+import redisRestPlugin from "./plugins/redis.js";
+import sessionPlugin from "./plugins/session.js";
+import versionOnePlugin from "./v1/index.js";
 
 const productionEnv = process.env.PRODUCTION === "true";
 
@@ -44,29 +44,9 @@ await instance.register(envPlugin);
  * if the plugins throw errors in their creation
  */
 
-const rootDir =
-  url.fileURLToPath(new URL(".", import.meta.url)) || process.cwd();
-
-const gitRevision = childProcess
-  .execSync("git rev-parse HEAD")
-  .toString()
-  .trim();
-
-Sentry.init({
-  dsn: instance.envVars.SENTRY_DSN,
-  integrations: [
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-    new RewriteFrames({
-      root: rootDir,
-    }),
-  ],
-  //release: "my-project-name@" + (process.env.npm_package_version ?? ""),
-  release: gitRevision,
-});
-
 // Handles errors thrown by requests that do not have their own error handlers
 // NOTE: Does not handle errors if an un-awaited promise is used in a request handling
-instance.setErrorHandler(async (error, request, reply) => {
+instance.setErrorHandler(async (error: FastifyError, request, reply) => {
   if (
     (error.statusCode !== undefined && error.statusCode < 500) ||
     error.validation !== undefined
@@ -114,7 +94,7 @@ await instance.register(fastifyCookie, {
   parseOptions: {},
 } as FastifyCookieOptions);
 await instance.register(fastifyCors, {
-  origin: true,
+  origin: instance.envVars.SITE_URL,
   methods: ["GET", "PUT", "POST", "DELETE", "PATCH"],
   credentials: true,
 });
@@ -145,11 +125,11 @@ instance.listen(
   },
   function (err, address) {
     // This seems to by typed incorrectly
-    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+
     if (err) {
       console.error(err);
       process.exit(1);
     }
     instance.log.info(`Server is now listening on ${address}`);
-  }
+  },
 );

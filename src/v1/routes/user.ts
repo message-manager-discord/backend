@@ -2,15 +2,16 @@
  * Routes to access various user data and edit some user data
  */
 
-import { Static, Type } from "@sinclair/typebox";
+import type { Static } from "@sinclair/typebox";
+import { Type } from "@sinclair/typebox";
 import httpErrors from "http-errors";
 const { Forbidden, NotFound, BadRequest } = httpErrors;
-import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
-import { FastifyInstance } from "fastify";
+import { Prisma } from "@prisma/client";
+import type { FastifyInstance } from "fastify";
 
-import { DiscordPermissions } from "../../consts";
-import { UserRequestData } from "../../plugins/authentication";
-import { errors401to404ResponseSchema } from "../types";
+import { DiscordPermissions } from "../../consts.js";
+import type { UserRequestData } from "../../plugins/authentication.js";
+import { errors401to404ResponseSchema } from "../types.js";
 const rootPath = "/users";
 
 const UserParams = Type.Object({
@@ -24,7 +25,7 @@ type PatchUserBodyType = Static<typeof PatchUserBody>;
 
 const GetUserGuildsQuerystring = Type.Object({
   include_disconnected: Type.Optional(
-    Type.Boolean({ description: "Include disconnected guilds" })
+    Type.Boolean({ description: "Include disconnected guilds" }),
   ),
 });
 type GetUserGuildsQuerystringType = Static<typeof GetUserGuildsQuerystring>;
@@ -34,14 +35,14 @@ const userPlugin = async (instance: FastifyInstance) => {
   // Authorization is handled by the authentication plugin - this will throw FORBIDDEN if the user is not authorized
   instance.addHook(
     "preHandler",
-    instance.auth([instance.requireAuthentication])
+    instance.auth([instance.requireAuthentication]),
   );
 
   // Get a user - only staff members may provide an id other than @me
   instance.get<{ Params: UserParamsType }>(
     `${rootPath}/:id`,
     {
-      config: { ratelimit: { max: 9, timeWindow: 3 * 1000 } },
+      config: { rateLimit: { max: 9, timeWindow: 3 * 1000 } },
       // This route can be called pretty often by the website, so allows for more than other, 3/second with allowing for bursts up to 9
       // Also shorter time window so resets more often
       schema: {
@@ -73,7 +74,7 @@ const userPlugin = async (instance: FastifyInstance) => {
     },
     async (request) => {
       // Request.user must be present since the require authentication plugin is used
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
       const requestUser = request.user!;
       const userId = request.params.id;
       let user: UserRequestData;
@@ -92,7 +93,7 @@ const userPlugin = async (instance: FastifyInstance) => {
           where: { id: BigInt(userId) },
         });
         // oauthToken is also required for the user to be considered valid - if it is not present the user cannot be fetched
-        if (!userStored || userStored.oauthToken === null) {
+        if (userStored?.oauthToken == null) {
           throw new NotFound("User not found");
         }
         user = {
@@ -100,7 +101,7 @@ const userPlugin = async (instance: FastifyInstance) => {
           token: userStored.oauthToken,
           staff: userStored.staff,
           admin: instance.envVars.API_ADMIN_IDS.includes(
-            userStored.id.toString()
+            userStored.id.toString(),
           )
             ? true
             : undefined,
@@ -131,7 +132,7 @@ const userPlugin = async (instance: FastifyInstance) => {
         staff: user.staff,
         admin: user.admin,
       };
-    }
+    },
   );
   // Edit a user - only staff members may do this. The only thing that can be edited is the staff field
   instance.patch<{
@@ -140,7 +141,7 @@ const userPlugin = async (instance: FastifyInstance) => {
   }>(
     `${rootPath}/:id`,
     {
-      config: { ratelimit: { max: 1, timeWindow: 5 * 1000 } }, // Not used often, shouldn't be tried often
+      config: { rateLimit: { max: 1, timeWindow: 5 * 1000 } }, // Not used often, shouldn't be tried often
       schema: {
         description: "Update a user - requires staff privileges",
         tags: ["user"],
@@ -166,7 +167,7 @@ const userPlugin = async (instance: FastifyInstance) => {
     },
     async (request, reply) => {
       // Can be disabled as these routes are under authentication, and therefore will have a user
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
       const requestUser = request.user!;
       const userId = request.params.id;
       if (userId === "@me") {
@@ -183,12 +184,12 @@ const userPlugin = async (instance: FastifyInstance) => {
           where: { id: BigInt(userId) },
         });
       } catch (e) {
-        if (e instanceof PrismaClientKnownRequestError) {
+        if (e instanceof Prisma.PrismaClientKnownRequestError) {
           throw new NotFound("User not found");
         }
       }
       return reply.send(204);
-    }
+    },
   );
   // Get a user's guilds
   instance.get<{
@@ -197,7 +198,7 @@ const userPlugin = async (instance: FastifyInstance) => {
   }>(
     `${rootPath}/@me/guilds`,
     {
-      config: { ratelimit: { max: 3, timeWindow: 5 * 1000 } }, // Called often(ish), but resource heavy, so limit to 3/5s
+      config: { rateLimit: { max: 3, timeWindow: 5 * 1000 } }, // Called often(ish), but resource heavy, so limit to 3/5s
       schema: {
         description:
           "Get user's mutual guilds - only for own guilds, filtered by connected or user has the `MANAGE_SERVER` discord permission",
@@ -229,7 +230,7 @@ const userPlugin = async (instance: FastifyInstance) => {
     },
     async (request) => {
       // Can be disabled as these routes are under authentication, and therefore will have a user
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
       const user = request.user!;
       const guilds = await instance.discordOauthRequests.fetchUserGuilds(user);
       const filteredGuilds = [];
@@ -246,7 +247,7 @@ const userPlugin = async (instance: FastifyInstance) => {
             permissions: guild.permissions,
             connected: true,
           });
-        } catch (e) {
+        } catch {
           if (
             (request.query.include_disconnected ?? false) &&
             ((BigInt(guild.permissions) & DiscordPermissions.MANAGE_GUILD) ===
@@ -267,7 +268,7 @@ const userPlugin = async (instance: FastifyInstance) => {
       }
 
       return filteredGuilds;
-    }
+    },
   );
 };
 

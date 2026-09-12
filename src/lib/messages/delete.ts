@@ -1,26 +1,28 @@
 // Delete a message that was sent by the bot
-import { DiscordAPIError, RawFile } from "@discordjs/rest";
-import { EmbedField, Message, MessageEmbed } from "@prisma/client";
-import { APIEmbed, Routes, Snowflake } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { RawFile } from "@discordjs/rest";
+import { DiscordAPIError } from "@discordjs/rest";
+import type { EmbedField, Message, MessageEmbed } from "@prisma/client";
+import type { APIEmbed, Snowflake } from "discord-api-types/v9";
+import { Routes } from "discord-api-types/v9";
+import type { FastifyInstance } from "fastify";
 
-import { embedPink } from "../../constants";
-import { parseDiscordPermissionValuesToStringNames } from "../../consts";
+import { embedPink } from "../../constants.js";
+import { parseDiscordPermissionValuesToStringNames } from "../../consts.js";
 import {
   ExpectedPermissionFailure,
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
-} from "../../errors";
-import { InternalPermissions } from "../permissions/consts";
-import { GuildSession } from "../session";
-import { checkDatabaseMessage } from "./checks";
-import { requiredPermissionsDelete } from "./consts";
-import { createStoredEmbedFromDataBaseEmbed } from "./embeds/parser";
-import { StoredEmbed } from "./embeds/types";
+} from "../../errors.js";
+import { InternalPermissions } from "../permissions/consts.js";
+import type { GuildSession } from "../session/index.js";
+import { checkDatabaseMessage } from "./checks.js";
+import { requiredPermissionsDelete } from "./consts.js";
+import { createStoredEmbedFromDataBaseEmbed } from "./embeds/parser.js";
+import type { StoredEmbed } from "./embeds/types.js";
 import {
   missingBotDiscordPermissionMessage,
   missingUserDiscordPermissionMessage,
-} from "./utils";
+} from "./utils.js";
 
 // Options interface for function
 interface DeleteOptions {
@@ -51,7 +53,7 @@ const checkDeletePossible = async ({
   // Check if the user has the discord permission to delete messages
   const userHasViewChannel = await session.hasDiscordPermissions(
     requiredPermissionsDelete,
-    channelId
+    channelId,
   );
   if (!userHasViewChannel.allPresent) {
     throw new ExpectedPermissionFailure(
@@ -59,22 +61,22 @@ const checkDeletePossible = async ({
 
       missingUserDiscordPermissionMessage(
         parseDiscordPermissionValuesToStringNames(userHasViewChannel.missing),
-        channelId
-      )
+        channelId,
+      ),
     );
   }
   // Check if the bot has the discord permission to delete messages
   const botHasViewChannel = await session.botHasDiscordPermissions(
     requiredPermissionsDelete,
-    channelId
+    channelId,
   );
   if (!botHasViewChannel.allPresent) {
     throw new ExpectedPermissionFailure(
       InteractionOrRequestFinalStatus.BOT_MISSING_DISCORD_PERMISSION,
       missingBotDiscordPermissionMessage(
         parseDiscordPermissionValuesToStringNames(botHasViewChannel.missing),
-        channelId
-      )
+        channelId,
+      ),
     );
   }
   // Check if the message is in database and it is valid
@@ -92,19 +94,19 @@ const checkDeletePossible = async ({
   if (!checkDatabaseMessage(databaseMessage)) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.GENERIC_UNEXPECTED_FAILURE,
-      "Message check returned falsy like value when it should only return true"
+      "Message check returned falsy like value when it should only return true",
     );
   }
 
   // Check if the user has the internal permission to delete messages
   const userHasDeleteMessagesBotPermission = await session.hasBotPermissions(
     InternalPermissions.DELETE_MESSAGES,
-    channelId
+    channelId,
   );
   if (!userHasDeleteMessagesBotPermission.allPresent) {
     throw new ExpectedPermissionFailure(
       InteractionOrRequestFinalStatus.USER_MISSING_INTERNAL_BOT_PERMISSION,
-      missingAccessMessage
+      missingAccessMessage,
     );
   }
 
@@ -123,7 +125,7 @@ async function deleteMessage({
   try {
     // Delete the message through the API
     await instance.restClient.delete(
-      Routes.channelMessage(channelId, messageId)
+      Routes.channelMessage(channelId, messageId),
     );
     // Get message before - this is for logging
     const messageBefore = await instance.prisma.message.findFirst({
@@ -142,7 +144,7 @@ async function deleteMessage({
       // Shouldn't happen - as should have been checked in checkDeletePossible
       throw new UnexpectedFailure(
         InteractionOrRequestFinalStatus.MESSAGE_NOT_FOUND_IN_DATABASE_AFTER_CHECKS_DONE,
-        "MESSAGE_NOT_FOUND_IN_DATABASE_AFTER_CHECKS_DONE"
+        "MESSAGE_NOT_FOUND_IN_DATABASE_AFTER_CHECKS_DONE",
       );
     }
     // This is also a create call, as messages entries will form a message history
@@ -189,8 +191,8 @@ async function deleteMessage({
           messageBefore.content !== null && messageBefore.content !== ""
             ? `\n\n**Message Content:**\n${messageBefore.content}`
             : messageBefore.content === ""
-            ? "\n**Message Content was empty**"
-            : ""
+              ? "\n**Message Content was empty**"
+              : ""
         }`,
       fields: [
         { name: "Action By:", value: `<@${session.userId}>`, inline: true },
@@ -200,7 +202,7 @@ async function deleteMessage({
     };
     // Generate embed representation if embed was present before
     let embedBefore: StoredEmbed | undefined = undefined;
-    if (messageBefore?.embed !== null && messageBefore?.embed !== undefined) {
+    if (messageBefore.embed !== null) {
       embedBefore = createStoredEmbedFromDataBaseEmbed(messageBefore.embed);
     }
 
@@ -225,12 +227,12 @@ async function deleteMessage({
       if (error.code === 404) {
         throw new UnexpectedFailure(
           InteractionOrRequestFinalStatus.CHANNEL_NOT_FOUND_DISCORD_HTTP,
-          "Channel not found"
+          "Channel not found",
         );
       } else if (error.code === 403 || error.code === 50013) {
         throw new UnexpectedFailure(
           InteractionOrRequestFinalStatus.MISSING_PERMISSIONS_DISCORD_HTTP_SEND_MESSAGE,
-          error.message
+          error.message,
         );
       }
       throw error;

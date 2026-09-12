@@ -3,16 +3,17 @@
  * As they are only used by the website - which is always up to date
  * They are routes to run the OAuth2 flow with discord
  */
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 import httpErrors from "http-errors";
 const { Forbidden } = httpErrors;
 import fastifyRateLimit from "@fastify/rate-limit";
-import { Static, Type } from "@sinclair/typebox";
+import type { Static } from "@sinclair/typebox";
+import { Type } from "@sinclair/typebox";
 import crypto from "crypto";
-import Redis from "ioredis";
+import { Redis } from "ioredis";
 import { v4 as uuidv4 } from "uuid";
 
-import DiscordOauthRequests from "./discordOauth";
+import DiscordOauthRequests from "./discordOauth.js";
 
 // Callback after authorized with discord
 const CallbackQuerystring = Type.Object({
@@ -36,7 +37,7 @@ type StoredStateResponse = {
 const rootPath = "/auth";
 
 // Since this is a plugin async should be used
-// eslint-disable-next-line @typescript-eslint/require-await
+
 const addPlugin = async (instance: FastifyInstance) => {
   await instance.register(fastifyRateLimit, {
     global: true,
@@ -50,16 +51,8 @@ const addPlugin = async (instance: FastifyInstance) => {
       connectTimeout: 500,
       maxRetriesPerRequest: 1,
     }),
-    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-    keyGenerator: (request) => {
-      console.log(request.ip);
-      console.log(request.user);
-      console.log(request.user?.userId);
 
-      return request.user?.userId !== undefined
-        ? request.user.userId
-        : request.ip;
-    },
+    keyGenerator: (request) => request.user?.userId ?? request.ip,
     enableDraftSpec: true,
   });
   // Must be registered a second time as v1 and auth routes are separate
@@ -84,7 +77,7 @@ const addPlugin = async (instance: FastifyInstance) => {
         },
       },
       config: {
-        ratelimit: {
+        rateLimit: {
           max: 2,
           timeWindow: 5 * 1000,
           // 2 per 5 seconds
@@ -99,7 +92,7 @@ const addPlugin = async (instance: FastifyInstance) => {
       const redirectUrl = instance.discordOauthRequests.generateAuthUrl(state);
 
       return reply.send({ redirectUrl });
-    }
+    },
   );
   /**
    * Callback route, navigated too after authorized with discord
@@ -128,7 +121,7 @@ const addPlugin = async (instance: FastifyInstance) => {
         },
       },
       config: {
-        ratelimit: {
+        rateLimit: {
           max: 2,
           timeWindow: 5 * 1000,
           // 2 per 5 seconds
@@ -149,9 +142,8 @@ const addPlugin = async (instance: FastifyInstance) => {
       // Delete state so it cannot be used again - again for security
       await instance.redisCache.deleteState(state);
 
-      const tokenResponse = await instance.discordOauthRequests.exchangeToken(
-        code
-      );
+      const tokenResponse =
+        await instance.discordOauthRequests.exchangeToken(code);
       // If the required scopes are not set then the data required might not be accessible
       if (!DiscordOauthRequests.verifyScopes(tokenResponse.scope)) {
         return new Forbidden("Invalid scopes, please try again");
@@ -195,10 +187,10 @@ const addPlugin = async (instance: FastifyInstance) => {
       date.setDate(date.getDate() + 7);
       const redirectPath = cachedState.redirectPath ?? "/";
       return reply.send({ redirectUrl: redirectPath, token: sessionToken });
-    }
+    },
   );
 };
 
 export default addPlugin;
 
-export { StoredStateResponse };
+export type { StoredStateResponse };

@@ -1,5 +1,5 @@
 // Types for permission logic
-import { Snowflake } from "discord-api-types/globals";
+import type { Snowflake } from "discord-api-types/globals";
 
 // Both allow and deny for targets that have them - just a representation to pass between functions
 interface PermissionAllowAndDenyData {
@@ -41,8 +41,7 @@ interface MissingBotPermissionsResult {
 }
 
 type BotPermissionResult =
-  | PresentBotPermissionResult
-  | MissingBotPermissionsResult;
+  PresentBotPermissionResult | MissingBotPermissionsResult;
 
 // Result after discord permissions calculation - only difference from above it bigint instead of number
 interface PresentDiscordPermissionResult {
@@ -57,10 +56,9 @@ interface MissingDiscordPermissionsResult {
 }
 
 type DiscordPermissionResult =
-  | PresentDiscordPermissionResult
-  | MissingDiscordPermissionsResult;
+  PresentDiscordPermissionResult | MissingDiscordPermissionsResult;
 
-export {
+export type {
   BotPermissionResult,
   ChannelPermissionData,
   DiscordPermissionResult,

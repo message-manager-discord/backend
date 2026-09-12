@@ -65,12 +65,12 @@ const getDiscordPermissionByValue = (value: bigint): string | undefined => {
 };
 
 const parseDiscordPermissionValuesToStringNames = (
-  permissions: bigint[]
+  permissions: bigint[],
 ): string[] => {
   const parsed = permissions.map((permission) => {
     return getDiscordPermissionByValue(permission);
   });
-  return parsed.filter((permission) => permission !== undefined) as string[];
+  return parsed.filter((permission) => permission !== undefined);
 };
 export {
   DiscordPermissions,

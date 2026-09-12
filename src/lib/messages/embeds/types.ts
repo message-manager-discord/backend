@@ -26,4 +26,4 @@ interface StoredEmbed {
   fields?: StoredField[]; // Max 25
 }
 
-export { StoredEmbed };
+export type { StoredEmbed };

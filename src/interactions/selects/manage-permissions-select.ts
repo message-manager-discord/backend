@@ -1,25 +1,52 @@
 // Handle select menu for editing permissions
-import { Snowflake } from "discord-api-types/globals";
-import {
+import type { Snowflake } from "discord-api-types/globals";
+import type {
   APIMessageComponentGuildInteraction,
   APIMessageSelectMenuInteractionData,
+  APIMessageTopLevelComponent,
   APIStringSelectComponent,
-  ComponentType,
-  InteractionResponseType,
 } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import { ComponentType, InteractionResponseType } from "discord-api-types/v9";
+import type { FastifyInstance } from "fastify";
 
-import { getInternalPermissionByName } from "../../lib/permissions/consts";
-import { GuildSession } from "../../lib/session";
-import { InternalInteractionType } from "../interaction";
-import createPermissionsEmbed from "../shared/permissions-config";
-import { InteractionReturnData } from "../types";
+import {
+  InteractionOrRequestFinalStatus,
+  UnexpectedFailure,
+} from "../../errors.js";
+import { getInternalPermissionByName } from "../../lib/permissions/consts.js";
+import type { GuildSession } from "../../lib/session/index.js";
+import type { InternalInteractionType } from "../interaction.js";
+import createPermissionsEmbed from "../shared/permissions-config.js";
+import type { InteractionReturnData } from "../types.js";
+
+const getStringSelectFromMessage = (
+  components: APIMessageTopLevelComponent[],
+  customId: string,
+): APIStringSelectComponent | undefined => {
+  for (const component of components) {
+    if (component.type !== ComponentType.ActionRow) {
+      continue;
+    }
+
+    const select = component.components.find(
+      (child): child is APIStringSelectComponent =>
+        child.type === ComponentType.StringSelect &&
+        child.custom_id === customId,
+    );
+
+    if (select !== undefined) {
+      return select;
+    }
+  }
+
+  return undefined;
+};
 
 // Function to handle the permissions editing select menu
 export default async function handleManagePermissionsSelect(
   internalInteraction: InternalInteractionType<APIMessageComponentGuildInteraction>,
   session: GuildSession,
-  instance: FastifyInstance
+  instance: FastifyInstance,
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   const customIdData = interaction.data.custom_id.split(":");
@@ -40,11 +67,18 @@ export default async function handleManagePermissionsSelect(
     // This is the guild level role
     const permissionsToDeny: number[] = [];
     const permissionsToAllow: number[] = [];
-    const selectMenu = interaction.message.components?.[0].components.find(
-      (component) =>
-        component.type === ComponentType.StringSelect &&
-        component.custom_id === interaction.data.custom_id
-    ) as APIStringSelectComponent;
+
+    const selectMenu = getStringSelectFromMessage(
+      interaction.message.components ?? [],
+      interaction.data.custom_id,
+    );
+
+    if (selectMenu === undefined) {
+      throw new UnexpectedFailure(
+        InteractionOrRequestFinalStatus.GENERIC_UNEXPECTED_FAILURE,
+        "Could not find permissions select menu", // TODO: Validate this is the correct behavior (was added when migrate)
+      );
+    }
 
     const options = selectMenu.options;
     for (const option of options) {
@@ -75,11 +109,17 @@ export default async function handleManagePermissionsSelect(
   else if (action === "deny") {
     const permissionsToDeny: number[] = [];
     const permissionsToReset: number[] = [];
-    const selectMenu = interaction.message.components?.find(
-      (component) =>
-        component.components[0].type === ComponentType.StringSelect &&
-        component.components[0].custom_id === interaction.data.custom_id
-    )?.components[0] as APIStringSelectComponent; // Find select menu data in interaction data
+    const selectMenu = getStringSelectFromMessage(
+      interaction.message.components ?? [],
+      interaction.data.custom_id,
+    );
+
+    if (selectMenu === undefined) {
+      throw new UnexpectedFailure(
+        InteractionOrRequestFinalStatus.GENERIC_UNEXPECTED_FAILURE,
+        "Could not find permissions select menu", // TODO: Validate this is the correct behavior (was added when migrate)
+      );
+    }
     const options = selectMenu.options;
     for (const option of options) {
       const included = values.includes(option.value);
@@ -112,7 +152,7 @@ export default async function handleManagePermissionsSelect(
         permissionsToReset,
         permissionsToDeny,
         session,
-        channelId: channelId !== null ? channelId : undefined, // Handles both channel user and guild user perms with this field
+        channelId: channelId ?? undefined, // Handles both channel user and guild user perms with this field
 
         messageId: interaction.message.id,
       });
@@ -121,11 +161,16 @@ export default async function handleManagePermissionsSelect(
     // Action is allow
     const permissionsToAllow: number[] = [];
     const permissionsToReset: number[] = [];
-    const selectMenu = interaction.message.components?.find(
-      (component) =>
-        component.components[0].type === ComponentType.SelectMenu &&
-        component.components[0].custom_id === interaction.data.custom_id
-    )?.components[0] as APIStringSelectComponent;
+    const selectMenu = getStringSelectFromMessage(
+      interaction.message.components ?? [],
+      interaction.data.custom_id,
+    );
+    if (selectMenu === undefined) {
+      throw new UnexpectedFailure(
+        InteractionOrRequestFinalStatus.GENERIC_UNEXPECTED_FAILURE,
+        "Could not find permissions select menu", // TODO: Validate this is the correct behavior (was added when migrate)
+      );
+    }
     const options = selectMenu.options;
     for (const option of options) {
       const included = values.includes(option.value);
@@ -157,7 +202,7 @@ export default async function handleManagePermissionsSelect(
         permissionsToReset: permissionsToReset,
         permissionsToDeny: [],
         session,
-        channelId: channelId !== null ? channelId : undefined, // Handles both channel user and guild user perms with this field
+        channelId: channelId ?? undefined, // Handles both channel user and guild user perms with this field
 
         messageId: interaction.message.id,
       });

@@ -4,16 +4,16 @@
  * The function must be added in a pre-handler hook to run - this is so only routes that need authentication will require it
  */
 
-import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import httpErrors from "http-errors";
 const { Unauthorized } = httpErrors;
 
-import { Snowflake } from "discord-api-types/v9";
+import type { Snowflake } from "discord-api-types/v9";
 import fp from "fastify-plugin";
 
 const addAuthentication = async (
   request: FastifyRequest,
-  reply: FastifyReply
+  reply: FastifyReply,
 ): Promise<FastifyReply | void> => {
   const token = request.headers.authorization;
 
@@ -22,7 +22,7 @@ const addAuthentication = async (
   }
 
   const sessionData = await request.server.redisCache.getSession(
-    token.replace("Bearer ", "")
+    token.replace("Bearer ", ""),
   );
   if (sessionData) {
     // Then get the user's data from the database - it is separate as sessions should expire but the user's data should not
@@ -50,7 +50,7 @@ const addAuthentication = async (
 
 const requireAuthentication = async (
   request: FastifyRequest,
-  reply: FastifyReply
+  reply: FastifyReply,
 ): Promise<FastifyReply | void> => {
   if (request.user === undefined) {
     return reply.send(new Unauthorized());
@@ -81,4 +81,4 @@ const authPlugin = fp(async (instance: FastifyInstance) => {
 });
 
 export default authPlugin;
-export { UserRequestData };
+export type { UserRequestData };

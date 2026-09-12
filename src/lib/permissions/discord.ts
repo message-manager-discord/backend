@@ -1,10 +1,13 @@
 // Checking and getting discord permissions for both users and the bot
 
-import { Snowflake } from "discord-api-types/globals";
-import { Guild } from "redis-discord-cache";
+import type { Snowflake } from "discord-api-types/globals";
+import type { Guild } from "redis-discord-cache";
 
-import { DiscordPermissionResult } from "./types";
-import { checkDiscordPermissionValue, tryAndHandleGuildErrors } from "./utils";
+import type { DiscordPermissionResult } from "./types.js";
+import {
+  checkDiscordPermissionValue,
+  tryAndHandleGuildErrors,
+} from "./utils.js";
 
 // Fetches the user's permissions for a channel / guild from the gateway cache
 const getUserDiscordPermission = ({
@@ -24,7 +27,7 @@ const getUserDiscordPermission = ({
       permission = await guild.calculateChannelPermissions(
         userId,
         userRoles,
-        channelId
+        channelId,
       );
     } else {
       permission = await guild.calculateGuildPermissions(userId, userRoles);

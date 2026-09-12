@@ -1,28 +1,28 @@
 // This manages the currently editing messages stored in cache
 // For message editing flows
 
-import { Snowflake } from "discord-api-types/globals";
-import { FastifyInstance } from "fastify";
+import type { Snowflake } from "discord-api-types/globals";
+import type { FastifyInstance } from "fastify";
 
 import {
   ExpectedFailure,
   InteractionOrRequestFinalStatus,
   LimitHit,
-} from "../../errors";
-import { checkEmbedMeetsLimits } from "./embeds/checks";
-import { StoredEmbed } from "./embeds/types";
+} from "../../errors.js";
+import { checkEmbedMeetsLimits } from "./embeds/checks.js";
+import type { StoredEmbed } from "./embeds/types.js";
 
 // Generate message cache key - a function to ensure the key is always the same format
 const createMessageCacheKey = (
   interactionId: Snowflake,
-  channelId: Snowflake
+  channelId: Snowflake,
 ): string => {
   return `${interactionId}-${channelId}`; // use - to separate to avoid collisions with custom_id
 };
 
 // Get the info from the key
 const splitMessageCacheKey = (
-  key: string
+  key: string,
 ): {
   interactionId: Snowflake;
   channelId: Snowflake;
@@ -56,16 +56,16 @@ const saveMessageToCache = ({
     if (exceedsLimits) {
       throw new LimitHit(
         InteractionOrRequestFinalStatus.EMBED_EXCEEDS_DISCORD_LIMITS,
-        "The embed exceeds one or more of limits on embeds."
+        "The embed exceeds one or more of limits on embeds.",
       );
     }
     if (
-      data.embed?.color !== undefined &&
+      data.embed.color !== undefined &&
       (data.embed.color > 16777215 || data.embed.color < 0)
     ) {
       throw new ExpectedFailure(
         InteractionOrRequestFinalStatus.EMBED_EXCEEDS_DISCORD_LIMITS,
-        "The embed color is not in the range of 0 - 16777215."
+        "The embed color is not in the range of 0 - 16777215.",
       );
     }
   }
@@ -83,16 +83,16 @@ const getMessageFromCache = async ({
   if (message === null) {
     throw new ExpectedFailure(
       InteractionOrRequestFinalStatus.MESSAGE_GENERATION_CACHE_NOT_FOUND,
-      "The cache for this message generation was not found. This could be due to a timeout - or a restart. \nPlease try the initial action again, and if this error persists, contact support."
+      "The cache for this message generation was not found. This could be due to a timeout - or a restart. \nPlease try the initial action again, and if this error persists, contact support.",
     );
   }
   return message;
 };
 
+export type { MessageSavedInCache };
 export {
   createMessageCacheKey,
   getMessageFromCache,
-  MessageSavedInCache,
   saveMessageToCache,
   splitMessageCacheKey,
 };

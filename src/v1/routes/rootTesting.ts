@@ -1,6 +1,6 @@
 /* eslint-disable */
 // Just a testing file
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 
 const rootPlugin = async (instance: FastifyInstance) => {
   instance.get(
@@ -8,7 +8,7 @@ const rootPlugin = async (instance: FastifyInstance) => {
     { preHandler: instance.auth([instance.requireAuthentication]) },
     async function (request, reply) {
       return { userId: request.user?.userId };
-    }
+    },
   );
 };
 

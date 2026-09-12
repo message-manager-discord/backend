@@ -1,5 +1,6 @@
-import { Static, Type } from "@sinclair/typebox";
-import { FastifyInstance } from "fastify";
+import type { Static } from "@sinclair/typebox";
+import { Type } from "@sinclair/typebox";
+import type { FastifyInstance } from "fastify";
 import httpErrors from "http-errors";
 
 import {
@@ -13,15 +14,17 @@ import {
   getReportHistory,
   getReportMessage,
   getReports,
-} from "../../lib/reports";
-import {
-  ReportCloseStatusEnum,
+} from "../../lib/reports.js";
+import type {
   ReportListingModelType,
   ReportMessageHistoryResponseType,
   ReportMessageModelType,
   ReportModelType,
+} from "../types/reports.js";
+import {
+  ReportCloseStatusEnum,
   ReportStatusRequest,
-} from "../types/reports";
+} from "../types/reports.js";
 const { Forbidden, BadRequest } = httpErrors;
 
 // TODO: Move actions away from status - ie just have a status of actioned and custom actions
@@ -103,7 +106,7 @@ const ActionReportBody = Type.Object({
     Type.Object({
       id: Type.String(),
       length: Type.Optional(Type.Number()),
-    })
+    }),
   ),
   delete_message: Type.Boolean(),
   warning: Type.Boolean(),
@@ -124,7 +127,7 @@ const verifyId = (id: string): true => {
   try {
     BigInt(id);
     return true;
-  } catch (e) {
+  } catch {
     throw new BadRequest("report id must be a valid bitint");
   }
 };
@@ -133,7 +136,7 @@ const verifyId = (id: string): true => {
 const reportPlugin = async (instance: FastifyInstance) => {
   instance.addHook(
     "preHandler",
-    instance.auth([instance.requireAuthentication])
+    instance.auth([instance.requireAuthentication]),
   );
 
   // Get Reports
@@ -174,7 +177,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
       const { status, assigned_to, guild, limit, skip } = request.query;
 
       // Can be disabled as these routes are under authentication, and therefore will have a user
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
       const user = request.user!;
 
       let filterByUser: string | undefined;
@@ -195,7 +198,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
         skip,
         staff: user.staff,
       });
-    }
+    },
   );
 
   // Create Report
@@ -230,7 +233,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
     async (request) => {
       const body = request.body;
       // Can be disabled as these routes are under authentication, and therefore will have a user
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
       const user = request.user!;
       return await createReport({
         title: body.title,
@@ -241,7 +244,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
         userId: user.userId,
         staff: user.staff,
       });
-    }
+    },
   );
   // Get Report
   instance.get<{ Params: ReportParamsType; Reply: ReportModelType }>(
@@ -282,7 +285,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
       const { id } = request.params;
       verifyId(id);
       // Can be disabled as these routes are under authentication, and therefore will have a user
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
       const user = request.user!;
       const staff = user.staff;
       return await getReport({
@@ -291,7 +294,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
         staff,
         reportId: id,
       });
-    }
+    },
   );
   // Get Message Can Report
   instance.get<{
@@ -300,7 +303,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
   }>(
     "/reports/can-report",
     {
-      config: { ratelimit: { max: 10, timeWindow: 5 * 1000 } }, // Effectively one request per second, but allows bursts of up to 5
+      config: { rateLimit: { max: 10, timeWindow: 5 * 1000 } }, // Effectively one request per second, but allows bursts of up to 5
       schema: {
         description: "Check if a message can be reported",
         tags: ["reports"],
@@ -327,7 +330,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
         (await checkMessageCanBeReported(channel_id, message_id, instance)) !==
         false
       );
-    }
+    },
   );
 
   // Create Report Messages
@@ -338,7 +341,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
   }>(
     `${rootPath}/:id/messages`,
     {
-      config: { ratelimit: { max: 1, timeWindow: 30 * 1000 } }, // One message sent per 30 seconds, as messages should not need to be sent in quick succession
+      config: { rateLimit: { max: 1, timeWindow: 30 * 1000 } }, // One message sent per 30 seconds, as messages should not need to be sent in quick succession
       schema: {
         description: "Create a report message",
         tags: ["reports"],
@@ -373,7 +376,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
       verifyId(id);
       const body = request.body;
       // Can be disabled as these routes are under authentication, and therefore will have a user
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
       const user = request.user!;
       return await createReportMessage({
         instance,
@@ -385,7 +388,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
         content: body.content,
         staffOnly: body.staff_only,
       });
-    }
+    },
   );
 
   // Get Report Message
@@ -395,7 +398,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
   }>(
     `${rootPath}/:id/messages/:message_id`,
     {
-      config: { ratelimit: { max: 5, timeWindow: 5 * 1000 } }, // Effectively one request per second, but allows bursts of up to 5
+      config: { rateLimit: { max: 5, timeWindow: 5 * 1000 } }, // Effectively one request per second, but allows bursts of up to 5
       schema: {
         description: "Get a report message",
         tags: ["reports"],
@@ -431,7 +434,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
       verifyId(id);
       verifyId(message_id);
       // Can be disabled as these routes are under authentication, and therefore will have a user
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
       const user = request.user!;
       const staff = user.staff;
       return await getReportMessage({
@@ -440,7 +443,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
         reportId: id,
         messageId: message_id,
       });
-    }
+    },
   );
 
   // Assign report
@@ -452,7 +455,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
   }>(
     `${rootPath}/:id/assign`,
     {
-      config: { ratelimit: { max: 1, timeWindow: 30 * 1000 } }, // Should only really be sent once ever for a route, so can be heavily rate limited
+      config: { rateLimit: { max: 1, timeWindow: 30 * 1000 } }, // Should only really be sent once ever for a route, so can be heavily rate limited
       schema: {
         description: "Assign a report to a staff member",
         tags: ["reports"],
@@ -487,7 +490,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
       const { assigned_staff_id } = request.body;
       verifyId(assigned_staff_id);
       // Can be disabled as these routes are under authentication, and therefore will have a user
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
       const user = request.user!;
       const staff = user.staff;
       if (staff !== true) {
@@ -503,7 +506,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
         assignedUserId: assigned_staff_id,
         adminUser: !!user.admin,
       });
-    }
+    },
   );
 
   instance.post<{
@@ -513,7 +516,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
   }>(
     `${rootPath}/:id/close`,
     {
-      config: { ratelimit: { max: 1, timeWindow: 30 * 1000 } }, // Should only really be sent once ever, so can be heavily rate limited
+      config: { rateLimit: { max: 1, timeWindow: 30 * 1000 } }, // Should only really be sent once ever, so can be heavily rate limited
       schema: {
         description: "Close a report",
         tags: ["reports"],
@@ -548,7 +551,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
       const { staff_report_reason, message_to_reporting_user, status } =
         request.body;
       // Can be disabled as these routes are under authentication, and therefore will have a user
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
       const user = request.user!;
 
       return await closeReport({
@@ -559,7 +562,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
         messageToReportingUser: message_to_reporting_user,
         closeStatus: status,
       });
-    }
+    },
   );
 
   instance.post<{
@@ -569,7 +572,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
   }>(
     `${rootPath}/:id/action`,
     {
-      config: { ratelimit: { max: 1, timeWindow: 30 * 1000 } }, // Should only really be sent once ever, so can be heavily rate limited
+      config: { rateLimit: { max: 1, timeWindow: 30 * 1000 } }, // Should only really be sent once ever, so can be heavily rate limited
       schema: {
         description: "Action a report",
         tags: ["reports"],
@@ -603,7 +606,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
       verifyId(id);
       request.body.user_ban_ids.forEach((user_id) => verifyId(user_id.id));
       // Can be disabled as these routes are under authentication, and therefore will have a user
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
       const user = request.user!;
       const report = await actionReport({
         instance,
@@ -618,7 +621,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
         shouldDeleteMessage: request.body.delete_message,
       });
       return report;
-    }
+    },
   );
 
   instance.get<{
@@ -628,7 +631,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
   }>(
     `${rootPath}/:id/history`,
     {
-      config: { ratelimit: { max: 10, timeWindow: 5 * 1000 } }, // Might be clicked through pretty quickly when being used, allows for 10 per 5 seconds
+      config: { rateLimit: { max: 10, timeWindow: 5 * 1000 } }, // Might be clicked through pretty quickly when being used, allows for 10 per 5 seconds
       schema: {
         description: "Get the history of a report",
         tags: ["reports"],
@@ -660,7 +663,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
     },
     async (request) => {
       // Can be disabled as these routes are under authentication, and therefore will have a user
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
       const user = request.user!;
       if (!user.staff) {
         throw new Forbidden("You are not a staff member");
@@ -669,7 +672,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
       verifyId(id);
       const { position } = request.query;
       let { limit } = request.query;
-      if (limit === undefined) limit = 10;
+      limit ??= 10;
       return await getReportHistory({
         instance,
         reportId: id,
@@ -677,7 +680,7 @@ const reportPlugin = async (instance: FastifyInstance) => {
         limit,
         user,
       });
-    }
+    },
   );
 };
 

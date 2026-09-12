@@ -1,15 +1,16 @@
-import { Snowflake } from "discord-api-types/globals";
-import { RESTGetAPIUserResult, Routes } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { Snowflake } from "discord-api-types/globals";
+import type { RESTGetAPIUserResult } from "discord-api-types/v9";
+import { Routes } from "discord-api-types/v9";
+import type { FastifyInstance } from "fastify";
 
 import {
   ExpectedOauth2Failure,
   InteractionOrRequestFinalStatus,
-} from "../errors";
+} from "../errors.js";
 
 const getUserData = async (
   userId: Snowflake,
-  instance: FastifyInstance
+  instance: FastifyInstance,
 ): Promise<{
   avatar: string | null;
   username: string;
@@ -33,23 +34,19 @@ const getUserData = async (
         userId: userId,
       });
     } catch (error) {
-      if (
-        !(
-          error instanceof ExpectedOauth2Failure &&
-          error.status === InteractionOrRequestFinalStatus.OAUTH_TOKEN_EXPIRED
-        )
-      ) {
+      if (!(
+        error instanceof ExpectedOauth2Failure &&
+        error.status === InteractionOrRequestFinalStatus.OAUTH_TOKEN_EXPIRED
+      )) {
         throw error;
       }
     }
   }
   // if that didn't work, try the bot token
-  if (user === undefined) {
-    // Fetch user from discord API
-    user = (await instance.restClient.get(
-      Routes.user(userId)
-    )) as RESTGetAPIUserResult;
-  }
+  // Fetch user from discord API
+  user ??= (await instance.restClient.get(
+    Routes.user(userId),
+  )) as RESTGetAPIUserResult;
   // Store hash in cache
   await instance.redisCache.setUserData(user.id, {
     avatar:

@@ -2,24 +2,25 @@
  * Custom client for making requests to Discord's OAuth2 API
  */
 
-import axios, { AxiosError, AxiosResponse } from "axios";
-import {
+import type { AxiosError, AxiosResponse } from "axios";
+import axios from "axios";
+import type {
   RESTGetAPICurrentUserGuildsResult,
   RESTGetAPICurrentUserResult,
   RESTGetCurrentUserGuildMemberResult,
   RESTPostOAuth2AccessTokenResult,
   Snowflake,
 } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 import { URLSearchParams } from "url";
 
-import { discordAPIBaseURL, requiredScopes } from "./constants";
+import { discordAPIBaseURL, requiredScopes } from "./constants.js";
 import {
   ExpectedOauth2Failure,
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
-} from "./errors";
-import { UserRequestData } from "./plugins/authentication";
+} from "./errors.js";
+import type { UserRequestData } from "./plugins/authentication.js";
 
 // Two different responses to differentiate between a cache and uncached response
 // This is because they need to be handled differently
@@ -100,7 +101,7 @@ class DiscordOauthRequests {
     if (cacheExpiry !== undefined && userId !== undefined) {
       const cachedResponse = (await this._instance.redisCache.getOauthCache(
         path,
-        userId
+        userId,
       )) as string | null;
 
       if (cachedResponse !== null) {
@@ -116,7 +117,7 @@ class DiscordOauthRequests {
       await this._instance.redisCache.setOauthCache(
         path,
         userId,
-        response.response.data
+        response.response.data,
       );
       return response;
     }
@@ -145,16 +146,16 @@ class DiscordOauthRequests {
     if (statusCode === 401) {
       return new ExpectedOauth2Failure(
         InteractionOrRequestFinalStatus.OAUTH_TOKEN_EXPIRED,
-        "Token expired, please re-authenticate"
+        "Token expired, please re-authenticate",
       );
     } else {
       return new UnexpectedFailure(
         InteractionOrRequestFinalStatus.OAUTH_REQUEST_FAILED,
         `Oauth request to ${
           // TODO: Fix this type mess. Most likely by changing request libs
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,  @typescript-eslint/restrict-template-expressions, @typescript-eslint/strict-boolean-expressions
-          response.request.path || "Unknown path"
-        } failed with the status ${statusCode}`
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          response.request.path ?? "Unknown path"
+        } failed with the status ${statusCode}`,
       );
     }
   }
@@ -209,7 +210,7 @@ class DiscordOauthRequests {
   }
   async fetchGuildMember(
     guildId: Snowflake,
-    user: UserRequestData
+    user: UserRequestData,
   ): Promise<RESTGetCurrentUserGuildMemberResult> {
     const response = await this._makeRequest({
       path: `/users/@me/guilds/${guildId}/member`,
@@ -226,7 +227,7 @@ class DiscordOauthRequests {
     return uncachedResponse.data as RESTGetCurrentUserGuildMemberResult;
   }
   async fetchUserGuilds(
-    user: UserRequestData
+    user: UserRequestData,
   ): Promise<RESTGetAPICurrentUserGuildsResult> {
     const response = await this._makeRequest({
       path: "/users/@me/guilds",
@@ -247,7 +248,7 @@ class DiscordOauthRequests {
     return `https://discord.com/api/oauth2/authorize?response_type=code&client_id=${
       this._instance.envVars.DISCORD_CLIENT_ID // This is checked on startup
     }&redirect_uri=${`${this._instance.envVars.SITE_URL}/auth/callback`}&scope=${requiredScopes.join(
-      "%20"
+      "%20",
     )}&state=${state}`;
   }
 }

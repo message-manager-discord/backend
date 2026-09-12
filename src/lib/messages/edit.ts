@@ -1,35 +1,37 @@
 // Edit messages that have been sent through the bot previously
-import { DiscordAPIError, RawFile } from "@discordjs/rest";
-import { EmbedField, Message, MessageEmbed, Prisma } from "@prisma/client";
-import { APIEmbed, Routes, Snowflake } from "discord-api-types/v9";
-import { RESTPatchAPIChannelMessageResult } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { RawFile } from "@discordjs/rest";
+import { DiscordAPIError } from "@discordjs/rest";
+import type { EmbedField, Message, MessageEmbed, Prisma } from "@prisma/client";
+import type { APIEmbed, Snowflake } from "discord-api-types/v9";
+import type { RESTPatchAPIChannelMessageResult } from "discord-api-types/v9";
+import { Routes } from "discord-api-types/v9";
+import type { FastifyInstance } from "fastify";
 
-import { embedPink } from "../../constants";
-import { parseDiscordPermissionValuesToStringNames } from "../../consts";
+import { embedPink } from "../../constants.js";
+import { parseDiscordPermissionValuesToStringNames } from "../../consts.js";
 import {
   ExpectedFailure,
   ExpectedPermissionFailure,
   InteractionOrRequestFinalStatus,
   LimitHit,
   UnexpectedFailure,
-} from "../../errors";
-import limits from "../../limits";
-import { InternalPermissions } from "../permissions/consts";
-import { GuildSession } from "../session";
-import { checkDatabaseMessage } from "./checks";
-import { requiredPermissionsEdit } from "./consts";
-import { checkEmbedMeetsLimits } from "./embeds/checks";
+} from "../../errors.js";
+import limits from "../../limits.js";
+import { InternalPermissions } from "../permissions/consts.js";
+import type { GuildSession } from "../session/index.js";
+import { checkDatabaseMessage } from "./checks.js";
+import { requiredPermissionsEdit } from "./consts.js";
+import { checkEmbedMeetsLimits } from "./embeds/checks.js";
 import {
   createSendableEmbedFromStoredEmbed,
   createStoredEmbedFromAPIMessage,
   createStoredEmbedFromDataBaseEmbed,
-} from "./embeds/parser";
-import { StoredEmbed } from "./embeds/types";
+} from "./embeds/parser.js";
+import type { StoredEmbed } from "./embeds/types.js";
 import {
   missingBotDiscordPermissionMessage,
   missingUserDiscordPermissionMessage,
-} from "./utils";
+} from "./utils.js";
 
 // Options for edit functions
 interface CheckEditPossibleOptions {
@@ -61,17 +63,17 @@ const checkEditPossible = async ({
   // Check if the user has required discord permissions to edit messages
   const userHasRequiredDiscordPermissions = await session.hasDiscordPermissions(
     requiredPermissionsEdit,
-    channelId
+    channelId,
   );
   if (!userHasRequiredDiscordPermissions.allPresent) {
     throw new ExpectedPermissionFailure(
       InteractionOrRequestFinalStatus.USER_MISSING_DISCORD_PERMISSION,
       missingUserDiscordPermissionMessage(
         parseDiscordPermissionValuesToStringNames(
-          userHasRequiredDiscordPermissions.missing
+          userHasRequiredDiscordPermissions.missing,
         ),
-        channelId
-      )
+        channelId,
+      ),
     );
   }
   // Check if the bot has required discord permissions to edit messages
@@ -83,10 +85,10 @@ const checkEditPossible = async ({
       InteractionOrRequestFinalStatus.BOT_MISSING_DISCORD_PERMISSION,
       missingBotDiscordPermissionMessage(
         parseDiscordPermissionValuesToStringNames(
-          botHasRequiredDiscordPermissions.missing
+          botHasRequiredDiscordPermissions.missing,
         ),
-        channelId
-      )
+        channelId,
+      ),
     );
   }
 
@@ -106,7 +108,7 @@ const checkEditPossible = async ({
     // This function should throw if the message is not found in the database
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.GENERIC_UNEXPECTED_FAILURE,
-      "Message check returned falsy like value when it should only return true"
+      "Message check returned falsy like value when it should only return true",
     );
   }
 
@@ -115,13 +117,13 @@ const checkEditPossible = async ({
     !(
       await session.hasBotPermissions(
         InternalPermissions.EDIT_MESSAGES,
-        channelId
+        channelId,
       )
     ).allPresent
   ) {
     throw new ExpectedPermissionFailure(
       InteractionOrRequestFinalStatus.USER_MISSING_INTERNAL_BOT_PERMISSION,
-      missingAccessMessage
+      missingAccessMessage,
     );
   }
   return databaseMessage;
@@ -148,7 +150,7 @@ async function editMessage({
     if ((content === undefined || content === "") && embed === undefined) {
       throw new ExpectedFailure(
         InteractionOrRequestFinalStatus.ATTEMPTING_TO_SEND_WHEN_NO_CONTENT_SET,
-        "No content or embeds have been set, this is required to send a message"
+        "No content or embeds have been set, this is required to send a message",
       );
     }
     if (embed !== undefined) {
@@ -157,16 +159,16 @@ async function editMessage({
       if (exceedsLimits) {
         throw new LimitHit(
           InteractionOrRequestFinalStatus.EMBED_EXCEEDS_DISCORD_LIMITS,
-          "The embed exceeds one or more of limits on embeds."
+          "The embed exceeds one or more of limits on embeds.",
         );
       }
       if (
-        embed?.color !== undefined &&
+        embed.color !== undefined &&
         (embed.color > 16777215 || embed.color < 0)
       ) {
         throw new ExpectedFailure(
           InteractionOrRequestFinalStatus.EMBED_EXCEEDS_DISCORD_LIMITS,
-          "The embed color is not in the range of 0 - 16777215."
+          "The embed color is not in the range of 0 - 16777215.",
         );
       }
 
@@ -174,7 +176,7 @@ async function editMessage({
       if (embed.title === undefined && embed.description === undefined) {
         throw new ExpectedFailure(
           InteractionOrRequestFinalStatus.EMBED_REQUIRES_TITLE_OR_DESCRIPTION,
-          "The embed requires a title or description."
+          "The embed requires a title or description.",
         );
       }
     }
@@ -187,7 +189,7 @@ async function editMessage({
       Routes.channelMessage(channelId, messageId),
       {
         body: { content: content, embeds },
-      }
+      },
     )) as RESTPatchAPIChannelMessageResult;
     // Find previous edit - to display changes in a log
     const messageBefore = await instance.prisma.message.findFirst({
@@ -206,12 +208,11 @@ async function editMessage({
     const sentEmbed = createStoredEmbedFromAPIMessage(response);
     // setup the embed storing database query
     let embedQuery:
-      | Prisma.MessageEmbedCreateNestedOneWithoutMessageInput
-      | undefined = undefined;
+      Prisma.MessageEmbedCreateNestedOneWithoutMessageInput | undefined =
+      undefined;
     if (sentEmbed !== null) {
       let fieldQuery:
-        | Prisma.EmbedFieldCreateNestedManyWithoutEmbedInput
-        | undefined;
+        Prisma.EmbedFieldCreateNestedManyWithoutEmbedInput | undefined;
 
       if (sentEmbed.fields && sentEmbed.fields.length > 0) {
         fieldQuery = {
@@ -320,17 +321,13 @@ async function editMessage({
           messageBefore.content !== ""
             ? `\n**Original Content:**\n${messageBefore.content}`
             : messageBefore?.content === ""
-            ? "\n**Original Content was empty**"
-            : ""
+              ? "\n**Original Content was empty**"
+              : ""
         }` +
         `${
-          response.content !== undefined &&
-          response.content !== null &&
           response.content !== ""
             ? `\n**New Content:**\n${response.content}`
-            : response.content === ""
-            ? "\n**New Content is empty**"
-            : ""
+            : "\n**New Content is empty**"
         }`,
       fields: [
         { name: "Action By:", value: `<@${session.userId}>`, inline: true },
@@ -346,11 +343,7 @@ async function editMessage({
     }
 
     const files: RawFile[] = [];
-    if (
-      sentEmbed !== null &&
-      sentEmbed !== undefined &&
-      embedBefore !== undefined
-    ) {
+    if (sentEmbed !== null && embedBefore !== undefined) {
       files.push({
         name: "embed-before.json",
         data: JSON.stringify(embedBefore, undefined, 2),
@@ -361,7 +354,7 @@ async function editMessage({
       });
       logEmbed.description +=
         "\n\nEmbed representation can be found in the attachment.";
-    } else if (sentEmbed !== null && sentEmbed !== undefined) {
+    } else if (sentEmbed !== null) {
       files.push({
         name: "embed-after.json",
         data: JSON.stringify(sentEmbed, undefined, 2),
@@ -385,12 +378,12 @@ async function editMessage({
       if (error.code === 404) {
         throw new UnexpectedFailure(
           InteractionOrRequestFinalStatus.CHANNEL_NOT_FOUND_DISCORD_HTTP,
-          "Channel not found"
+          "Channel not found",
         );
       } else if (error.code === 403 || error.code === 50013) {
         throw new UnexpectedFailure(
           InteractionOrRequestFinalStatus.MISSING_PERMISSIONS_DISCORD_HTTP_SEND_MESSAGE,
-          error.message
+          error.message,
         );
       }
       throw error;

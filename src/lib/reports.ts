@@ -1,4 +1,4 @@
-import {
+import type {
   EmbedField,
   Guild,
   GuildBan,
@@ -11,37 +11,37 @@ import {
   UserBan,
   Warning,
 } from "@prisma/client";
-import { Snowflake } from "discord-api-types/globals";
-import { FastifyInstance } from "fastify";
+import type { Snowflake } from "discord-api-types/globals";
+import type { FastifyInstance } from "fastify";
 import httpErrors from "http-errors";
 
-import limits from "../limits";
+import limits from "../limits.js";
 import {
-  Action,
-  ReportCloseStatusEnum,
-  ReportListingModelType,
-  ReportMessageHistoryModelType,
-  ReportMessageHistoryResponseType,
-  ReportMessageModelType,
-  ReportModelType,
+  type ReportCloseStatusEnum,
+  type ReportListingModelType,
+  type ReportMessageHistoryModelType,
+  type ReportMessageHistoryResponseType,
+  type ReportMessageModelType,
+  type ReportModelType,
   ReportStatusRequest,
-} from "../v1/types/reports";
+} from "../v1/types/reports.js";
+import { Action } from "../v1/types/reports.js";
 const { Forbidden, NotFound, BadRequest } = httpErrors;
 import {
   GuildNotFound,
   GuildUnavailable,
   ShardInactive,
-} from "redis-discord-cache/dist/errors";
+} from "redis-discord-cache";
 
-import { UserRequestData } from "../plugins/authentication";
-import { createStoredEmbedFromDataBaseEmbed } from "./messages/embeds/parser";
+import type { UserRequestData } from "../plugins/authentication.js";
+import { createStoredEmbedFromDataBaseEmbed } from "./messages/embeds/parser.js";
 
 // TODO fix and use custom errors!!!
 
 const checkMessageCanBeReported = async (
   channelId: Snowflake,
   messageId: Snowflake,
-  instance: FastifyInstance
+  instance: FastifyInstance,
 ): Promise<Message | false> => {
   // First check if the message is in the database, and the latest message is not deleted
   const message = await instance.prisma.message.findFirst({
@@ -82,7 +82,7 @@ const createReportFromData = async (
   },
   staff: boolean, // If staff only values should be included
 
-  instance: FastifyInstance
+  instance: FastifyInstance,
 ): Promise<ReportModelType> => {
   // Staff only data is:
   // action
@@ -113,24 +113,22 @@ const createReportFromData = async (
         report.guild.guildBans.find(
           (ban) =>
             ban.appealed === false &&
-            (ban.expireAt === null || ban.expireAt > new Date())
+            (ban.expireAt === null || ban.expireAt > new Date()),
         ) !== undefined,
     };
   }
   try {
     const guild = await instance.redisGuildManager.getGuild(
-      report.guildId.toString()
+      report.guildId.toString(),
     );
     extraGuildData.icon = await guild.icon;
     extraGuildData.name = await guild.name;
   } catch (error) {
-    if (
-      !(
-        error instanceof GuildNotFound ||
-        error instanceof GuildUnavailable ||
-        error instanceof ShardInactive
-      )
-    ) {
+    if (!(
+      error instanceof GuildNotFound ||
+      error instanceof GuildUnavailable ||
+      error instanceof ShardInactive
+    )) {
       throw error;
     }
   }
@@ -147,16 +145,16 @@ const createReportFromData = async (
     report.action === null
       ? undefined
       : !staff
-      ? undefined
-      : report.action.guildBanId !== null
-      ? Action.GUILD_BAN
-      : report.action.userBans.length > 0
-      ? Action.USER_BAN
-      : report.action.warningId !== null
-      ? report.action.warning?.type === "delete"
-        ? Action.DELETE
-        : Action.WARNING
-      : undefined;
+        ? undefined
+        : report.action.guildBanId !== null
+          ? Action.GUILD_BAN
+          : report.action.userBans.length > 0
+            ? Action.USER_BAN
+            : report.action.warningId !== null
+              ? report.action.warning?.type === "delete"
+                ? Action.DELETE
+                : Action.WARNING
+              : undefined;
 
   const reportedMessage = {
     id: report.reportedMessageSnapshot.id.toString(),
@@ -165,7 +163,7 @@ const createReportFromData = async (
       report.reportedMessageSnapshot.embed !== undefined &&
       report.reportedMessageSnapshot.embed !== null
         ? createStoredEmbedFromDataBaseEmbed(
-            report.reportedMessageSnapshot.embed
+            report.reportedMessageSnapshot.embed,
           )
         : undefined,
     author_id: staff
@@ -177,7 +175,7 @@ const createReportFromData = async (
 
   const otherReports = staff
     ? report.reportedMessageSnapshot.reports.map((report) =>
-        report.id.toString()
+        report.id.toString(),
       )
     : undefined;
   let assignedStaffId = report.assignedStaffId?.toString();
@@ -208,7 +206,7 @@ const createReportFromData = async (
     created_at: report.createdAt.toISOString(),
     updated_at: report.updatedAt.toISOString(),
     messages: report.ReportMessages.filter(
-      (message) => !message.staffOnly || staff
+      (message) => !message.staffOnly || staff,
     ).map((message) => createReportMessageFromData(message, staff)),
     staff_view: staff,
   };
@@ -216,7 +214,7 @@ const createReportFromData = async (
 
 const createReportMessageFromData = (
   message: ReportMessage,
-  staff: boolean
+  staff: boolean,
 ): ReportMessageModelType => {
   return {
     id: message.id.toString(),
@@ -248,22 +246,22 @@ const getReports = async ({
   staff: boolean;
 }): Promise<ReportListingModelType> => {
   const statusFilter: ReportStatus[] | undefined =
-    filterStatus === undefined || filterStatus === null
+    filterStatus === undefined
       ? undefined
-      : filterStatus === "open"
-      ? ["pending"]
-      : filterStatus === "closed"
-      ? ["invalid", "actioned", "spam"]
-      : filterStatus === "assigned"
-      ? ["pending"] // As assigned is only for pending and review - and the assigned staff id will be set on closed reports
-      : [filterStatus as ReportStatus];
+      : filterStatus === ReportStatusRequest.OPEN
+        ? ["pending"]
+        : filterStatus === ReportStatusRequest.CLOSED
+          ? ["invalid", "actioned", "spam"]
+          : filterStatus === ReportStatusRequest.ASSIGNED
+            ? ["pending"]
+            : [filterStatus];
 
   const assignedFilter =
     assigned_to !== undefined
       ? BigInt(assigned_to)
-      : filterStatus === "assigned"
-      ? { not: null }
-      : undefined;
+      : filterStatus === ReportStatusRequest.ASSIGNED
+        ? { not: null }
+        : undefined;
   const reports = await instance.prisma.report.findMany({
     where: {
       status: {
@@ -289,19 +287,14 @@ const getReports = async ({
     },
   });
   const extraGuildData = await instance.redisGuildManager.getGuildIconsAndNames(
-    reports.map((report) => report.guildId.toString())
+    reports.map((report) => report.guildId.toString()),
   );
 
   return {
     reports: reports.map((report) => {
-      let messageCount = 0;
-      if (staff) {
-        messageCount = report.ReportMessages.length;
-      } else {
-        messageCount = report.ReportMessages.filter(
-          (message) => !message.staffOnly
-        ).length;
-      }
+      const messageCount = staff
+        ? report.ReportMessages.length
+        : report.ReportMessages.filter((message) => !message.staffOnly).length;
       // get data from extradata by guild id key
       const guildData = extraGuildData[report.guildId.toString()];
 
@@ -352,7 +345,7 @@ const createReport = async ({
   const message = await checkMessageCanBeReported(
     channelId,
     messageId,
-    instance
+    instance,
   );
   // check limits
   if (title.length >= 35) {
@@ -363,7 +356,7 @@ const createReport = async ({
   }
   if (message === false) {
     throw new Forbidden(
-      "message specified cannot be reported or does not exist"
+      "message specified cannot be reported or does not exist",
     );
   }
 
@@ -389,7 +382,7 @@ const createReport = async ({
   });
   if (spamReports > limits.MAX_MONTHLY_SPAM_REPORTS) {
     throw new Forbidden(
-      "You are temporally banned from reporting messages, as you've made too many spam reports."
+      "You are temporally banned from reporting messages, as you've made too many spam reports.",
     );
   }
 
@@ -505,7 +498,7 @@ const getReportMessage = async ({
       report: true,
     },
   });
-  if (message === null || message.reportId !== BigInt(reportId)) {
+  if (message?.reportId !== BigInt(reportId)) {
     throw new NotFound("message not found");
   }
 
@@ -568,7 +561,7 @@ const createReportMessage = async ({
   }
   if (report.reportingUserId !== BigInt(user.userId) && !user.staff) {
     throw new Forbidden(
-      "you do not have permission to send a message to this report"
+      "you do not have permission to send a message to this report",
     );
   }
   if (["invalid", "actioned", "spam"].includes(report.status)) {
@@ -682,7 +675,7 @@ const assignReport = async ({
       },
     }),
     true, // must be staff
-    instance
+    instance,
   );
 };
 
@@ -727,6 +720,8 @@ const actionReport = async ({
     throw new Forbidden("this report is already closed");
   }
 
+  // Keep the runtime guard for malformed request payloads.
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (messageToReportingUser !== undefined) {
     await createReportMessage({
       instance,
@@ -739,6 +734,8 @@ const actionReport = async ({
       },
     });
   }
+  // Keep the runtime guard for malformed request payloads.
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (staffReportReason !== undefined) {
     await createReportMessage({
       instance,
@@ -761,7 +758,7 @@ const actionReport = async ({
       closeStaffId: BigInt(user.userId),
       action: {
         create: {
-          ...(guildBan?.ban && {
+          ...(guildBan.ban && {
             guildBan: {
               create: {
                 guild: {
@@ -966,7 +963,7 @@ const getReportHistory = async ({
   }
   if (!user.staff) {
     throw new Forbidden(
-      "You do not have permission to view report message history"
+      "You do not have permission to view report message history",
     );
   }
   const reportMessageHistory = await instance.prisma.message.findMany({
@@ -1005,12 +1002,12 @@ const getReportHistory = async ({
       id: message.id.toString(),
       content: message.content ?? undefined,
       embed:
-        message.embed !== undefined && message.embed !== null
+        message.embed !== null
           ? createStoredEmbedFromDataBaseEmbed(message.embed)
           : undefined,
       acting_user_id: message.editedBy.toString(),
       edited_at: message.editedAt.toISOString(),
-    })
+    }),
   );
 
   return {

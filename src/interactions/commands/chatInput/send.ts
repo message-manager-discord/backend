@@ -1,40 +1,40 @@
 // Chat input send command
-import {
+import type {
   APIApplicationCommandInteractionDataBooleanOption,
   APIApplicationCommandInteractionDataChannelOption,
   APIChatInputApplicationCommandGuildInteraction,
+} from "discord-api-types/v9";
+import {
   ApplicationCommandOptionType,
   ChannelType,
   InteractionResponseType,
   MessageFlags,
 } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 
 import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
-} from "../../../errors";
+} from "../../../errors.js";
 import {
   createMessageCacheKey,
   saveMessageToCache,
-} from "../../../lib/messages/cache";
-import {
-  checkSendMessagePossible,
-  ThreadOptionObject,
-} from "../../../lib/messages/send";
-import { GuildSession } from "../../../lib/session";
-import { InternalInteractionType } from "../../interaction";
+} from "../../../lib/messages/cache.js";
+import type { ThreadOptionObject } from "../../../lib/messages/send.js";
+import { checkSendMessagePossible } from "../../../lib/messages/send.js";
+import type { GuildSession } from "../../../lib/session/index.js";
+import type { InternalInteractionType } from "../../interaction.js";
 import {
   createModal,
   createTextInputWithRow,
-} from "../../modals/createStructures";
-import { createInitialMessageGenerationEmbed } from "../../shared/message-generation";
-import { InteractionReturnData } from "../../types";
+} from "../../modals/createStructures.js";
+import { createInitialMessageGenerationEmbed } from "../../shared/message-generation.js";
+import type { InteractionReturnData } from "../../types.js";
 
 export default async function handleSendCommand(
   internalInteraction: InternalInteractionType<APIChatInputApplicationCommandGuildInteraction>,
   session: GuildSession,
-  instance: FastifyInstance
+  instance: FastifyInstance,
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   // First option: Channel
@@ -42,20 +42,23 @@ export default async function handleSendCommand(
     interaction.data.options?.find(
       (option) =>
         option.name === "channel" &&
-        option.type === ApplicationCommandOptionType.Channel
-    ) as APIApplicationCommandInteractionDataChannelOption
+        option.type === ApplicationCommandOptionType.Channel,
+    ) as APIApplicationCommandInteractionDataChannelOption | undefined
   )?.value;
-  const channel = interaction.data.resolved?.channels?.[channelId];
-  if (!channelId) {
+  const channel =
+    channelId === undefined
+      ? undefined
+      : interaction.data.resolved?.channels?.[channelId];
+  if (channelId === undefined || channelId === "") {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.APPLICATION_COMMAND_MISSING_EXPECTED_OPTION,
-      "No channel option on send command"
+      "No channel option on send command",
     );
   }
-  if (!channel) {
+  if (channel === undefined) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.APPLICATION_COMMAND_RESOLVED_MISSING_EXPECTED_VALUE,
-      "Channel not found in resolved data"
+      "Channel not found in resolved data",
     );
   }
   // Content only means a message generation flow will not be started and the content modal displayed immediately
@@ -64,16 +67,16 @@ export default async function handleSendCommand(
       interaction.data.options?.find(
         (option) =>
           option.name === "content-only" &&
-          option.type === ApplicationCommandOptionType.Boolean
-      ) as APIApplicationCommandInteractionDataBooleanOption
+          option.type === ApplicationCommandOptionType.Boolean,
+      ) as APIApplicationCommandInteractionDataBooleanOption | undefined
     )?.value ?? false;
 
   let threadData: undefined | ThreadOptionObject = undefined;
 
   if (
-    channel.type === ChannelType.GuildNewsThread ||
-    channel.type === ChannelType.GuildPrivateThread ||
-    channel.type === ChannelType.GuildPublicThread
+    channel.type === ChannelType.AnnouncementThread ||
+    channel.type === ChannelType.PrivateThread ||
+    channel.type === ChannelType.PublicThread
   ) {
     // Get thread data for message checks
     threadData = {
@@ -98,7 +101,7 @@ export default async function handleSendCommand(
       title: `Sending a message to ${
         channel.name !== null
           ? `#${
-              channel.name && channel.name.length > 23
+              channel.name.length > 23
                 ? `${channel.name.substring(0, 20)}...`
                 : channel.name
             }`
@@ -124,7 +127,7 @@ export default async function handleSendCommand(
   const embedData = createInitialMessageGenerationEmbed(
     messageGenerationKey,
     {}, // Empty as this is the start of the process,
-    interaction.guild_id
+    interaction.guild_id,
   );
 
   return {

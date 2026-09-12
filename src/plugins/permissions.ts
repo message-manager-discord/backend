@@ -1,9 +1,9 @@
 // Registering the permissions manager to the instance
 
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
 
-import PermissionManager from "../lib/permissions/manager";
+import PermissionManager from "../lib/permissions/manager.js";
 
 declare module "fastify" {
   interface FastifyInstance {
@@ -15,7 +15,7 @@ const permissionPlugin = fp(
   // eslint-disable-next-line @typescript-eslint/require-await
   async (instance: FastifyInstance) => {
     instance.decorate("permissionManager", new PermissionManager(instance));
-  }
+  },
 );
 
 export default permissionPlugin;

@@ -1,58 +1,53 @@
 // Edit button - start a message generation flow with the edit type from it
-import {
-  APIMessageComponentGuildInteraction,
-  InteractionResponseType,
-  MessageFlags,
-} from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { APIMessageComponentGuildInteraction } from "discord-api-types/v9";
+import { InteractionResponseType, MessageFlags } from "discord-api-types/v9";
+import type { FastifyInstance } from "fastify";
 
 import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
-} from "../../errors";
-import {
-  MessageSavedInCache,
-  saveMessageToCache,
-} from "../../lib/messages/cache";
-import { createMessageCacheKey } from "../../lib/messages/cache";
-import { checkEditPossible } from "../../lib/messages/edit";
-import { createStoredEmbedFromDataBaseEmbed } from "../../lib/messages/embeds/parser";
-import { StoredEmbed } from "../../lib/messages/embeds/types";
-import { GuildSession } from "../../lib/session";
-import { InternalInteractionType } from "../interaction";
-import { createInitialMessageGenerationEmbed } from "../shared/message-generation";
-import { InteractionReturnData } from "../types";
+} from "../../errors.js";
+import type { MessageSavedInCache } from "../../lib/messages/cache.js";
+import { saveMessageToCache } from "../../lib/messages/cache.js";
+import { createMessageCacheKey } from "../../lib/messages/cache.js";
+import { checkEditPossible } from "../../lib/messages/edit.js";
+import { createStoredEmbedFromDataBaseEmbed } from "../../lib/messages/embeds/parser.js";
+import type { StoredEmbed } from "../../lib/messages/embeds/types.js";
+import type { GuildSession } from "../../lib/session/index.js";
+import type { InternalInteractionType } from "../interaction.js";
+import { createInitialMessageGenerationEmbed } from "../shared/message-generation.js";
+import type { InteractionReturnData } from "../types.js";
 
 export default async function handleEditButton(
   internalInteraction: InternalInteractionType<APIMessageComponentGuildInteraction>,
   session: GuildSession,
-  instance: FastifyInstance
+  instance: FastifyInstance,
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   const messageId = interaction.data.custom_id.split(":")[1];
   if (!messageId) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.COMPONENT_CUSTOM_ID_MALFORMED,
-      "No message id on edit button"
+      "No message id on edit button",
     );
   }
   // Check permissions for editing
   const databaseMessage = await checkEditPossible({
     session,
-    channelId: interaction.channel_id,
+    channelId: interaction.channel.id,
     instance,
     messageId,
   });
   // Create stored embed from the message (from the database message as the message is not included in the interaction)
   let embed: StoredEmbed | undefined = undefined;
-  if (databaseMessage?.embed !== null && databaseMessage?.embed !== undefined) {
+  if (databaseMessage.embed !== null) {
     embed = createStoredEmbedFromDataBaseEmbed(databaseMessage.embed);
   }
 
   // Add to cache with key
   const messageGenerationKey = createMessageCacheKey(
     interaction.id,
-    interaction.channel_id
+    interaction.channel.id,
   );
   const cacheData: MessageSavedInCache = {
     content: databaseMessage.content ?? undefined,
@@ -68,7 +63,7 @@ export default async function handleEditButton(
   const embedData = createInitialMessageGenerationEmbed(
     messageGenerationKey,
     cacheData,
-    interaction.guild_id
+    interaction.guild_id,
   );
 
   return {

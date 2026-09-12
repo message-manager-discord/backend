@@ -4,9 +4,10 @@
  * With a gateway cache instance also running, and must be connected to the same redis instance
  */
 
-import { FastifyInstance, FastifyPluginOptions } from "fastify";
+import type { FastifyInstance, FastifyPluginOptions } from "fastify";
 import fp from "fastify-plugin";
-import { createRedisClient, GuildManager } from "redis-discord-cache";
+import type { GuildManager } from "redis-discord-cache";
+import { createRedisClient } from "redis-discord-cache";
 
 declare module "fastify" {
   interface FastifyInstance {
@@ -24,19 +25,17 @@ interface DiscordRedisCachePluginOptions extends FastifyPluginOptions {
 const discordRedisCachePlugin = fp(
   // eslint-disable-next-line @typescript-eslint/require-await
   async (server: FastifyInstance, options?: DiscordRedisCachePluginOptions) => {
-    if (
-      options?.redis?.port === undefined ||
-      options?.redis?.host === undefined
-    ) {
+    const redis = options?.redis;
+    if (redis?.port === undefined || redis.host === undefined) {
       throw new Error("Host or port not set");
     }
     server.log.info(
-      `Connecting to redis discord gateway cache at ${options.redis.host}:${options.redis.port}`
+      `Connecting to redis discord gateway cache at ${redis.host}:${redis.port}`,
     );
-    const redisGuildManager = createRedisClient(options.redis);
+    const redisGuildManager = createRedisClient(redis);
 
     server.decorate("redisGuildManager", redisGuildManager);
-  }
+  },
 );
 
 export default discordRedisCachePlugin;

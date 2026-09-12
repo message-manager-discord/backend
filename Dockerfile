@@ -1,5 +1,5 @@
 # syntax = docker/dockerfile:1.2
-FROM node:17-buster
+FROM node:24-alpine
 # Create app directory
 WORKDIR /usr/src/app
 
@@ -28,4 +28,4 @@ RUN --mount=type=secret,id=sentry_auth_token --mount=type=secret,id=sentry_org -
     --project $(cat /run/secrets/sentry_project) --auth-token $(cat /run/secrets/sentry_auth_token)
 
 
-CMD [ "npm", "run", "start" ]
+CMD [ "node", "./dist/index.js" ]

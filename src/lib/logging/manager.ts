@@ -1,19 +1,21 @@
 // Functions for logging managing / sending for sending log messages through
 // discord webhooks
-import { DiscordAPIError, RawFile } from "@discordjs/rest";
-import { Snowflake } from "discord-api-types/globals";
-import { APIEmbed, APIMessage, RESTJSONErrorCodes } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { RawFile } from "@discordjs/rest";
+import { DiscordAPIError } from "@discordjs/rest";
+import type { Snowflake } from "discord-api-types/globals";
+import type { APIEmbed, APIMessage } from "discord-api-types/v9";
+import { RESTJSONErrorCodes } from "discord-api-types/v9";
+import type { FastifyInstance } from "fastify";
 
-import { DiscordPermissions } from "../../consts";
+import { DiscordPermissions } from "../../consts.js";
 import {
   ExpectedPermissionFailure,
   InteractionOrRequestFinalStatus,
-} from "../../errors";
-import { InternalPermissions } from "../permissions/consts";
-import { checkDiscordPermissionValue } from "../permissions/utils";
-import { GuildSession } from "../session";
-import WebhookManager from "../webhook/manager";
+} from "../../errors.js";
+import { InternalPermissions } from "../permissions/consts.js";
+import { checkDiscordPermissionValue } from "../permissions/utils.js";
+import type { GuildSession } from "../session/index.js";
+import type WebhookManager from "../webhook/manager.js";
 
 export default class LoggingManager {
   _webhookManager: WebhookManager;
@@ -27,7 +29,7 @@ export default class LoggingManager {
     const guild = await this._instance.prisma.guild.findUnique({
       where: { id: BigInt(guildId) },
     });
-    if (!guild || guild.logChannelId === null) {
+    if (guild?.logChannelId == null) {
       return null;
     }
     return guild.logChannelId.toString();
@@ -37,18 +39,18 @@ export default class LoggingManager {
     if (
       !checkDiscordPermissionValue(
         BigInt(session.userInteractionCalculatedChannelPermissions),
-        DiscordPermissions.ADMINISTRATOR
+        DiscordPermissions.ADMINISTRATOR,
       ) &&
       !(
         await session.hasBotPermissions(
           InternalPermissions.MANAGE_CONFIG,
-          undefined
+          undefined,
         )
       ).allPresent
     ) {
       throw new ExpectedPermissionFailure(
         InteractionOrRequestFinalStatus.USER_MISSING_INTERNAL_BOT_PERMISSION,
-        "You are missing the `MANAGE_CONFIG` permission"
+        "You are missing the `MANAGE_CONFIG` permission",
       );
     }
     return true;
@@ -57,7 +59,7 @@ export default class LoggingManager {
   // Set the logging channel for a guild (bot setting)
   public async setGuildLoggingChannel(
     channelId: Snowflake,
-    session: GuildSession
+    session: GuildSession,
   ): Promise<Snowflake | null> {
     await this._loggingPermissionChecks(session);
     await this._webhookManager.getWebhook(channelId, session.guildId);
@@ -74,7 +76,7 @@ export default class LoggingManager {
   }
   // Remove the logging channel for a guild (bot setting)
   public async removeGuildLoggingChannel(
-    session: GuildSession
+    session: GuildSession,
   ): Promise<Snowflake | null> {
     await this._loggingPermissionChecks(session);
     const beforeChannelId = this.getGuildLoggingChannel(session.guildId);
@@ -123,7 +125,7 @@ export default class LoggingManager {
         channelId,
         guildId,
         data,
-        files
+        files,
       );
     } catch (error) {
       // Catch some discord errors

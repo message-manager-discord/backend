@@ -1,5 +1,5 @@
 // Required permission constants - in the form of arrays of bitfields
-import { DiscordPermissions } from "../../consts";
+import { DiscordPermissions } from "../../consts.js";
 
 const requiredPermissionsEdit = [DiscordPermissions.VIEW_CHANNEL];
 const requiredPermissionsDelete = requiredPermissionsEdit;
