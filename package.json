@@ -18,7 +18,8 @@
     "start": "node ./dist/index.js",
     "dev": "tsc-watch --noClear --onSuccess \"node ./dist/index.js\"",
     "go": "npm run build && npm run start",
-    "test": "tap --ts --test-ignore=dist",
+    "test": "vitest run --dir src",
+    "test:watch": "vitest --dir src",
     "migrate": "prisma migrate deploy",
     "generate": "prisma generate",
     "lint": "eslint .",
@@ -67,7 +68,8 @@
     "ts-node": "^10.9.1",
     "tsc-watch": "^6.2.1",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.65.0"
+    "typescript-eslint": "^8.65.0",
+    "vitest": "^5.0.0"
   },
   "type": "module"
 }

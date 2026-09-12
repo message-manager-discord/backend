@@ -1,5 +1,6 @@
 {
   "extends": "./tsconfig",
+  "exclude": ["dist", "node_modules", "src/tests"],
   "compilerOptions": {
     "sourceMap": true,
     "inlineSources": true,
