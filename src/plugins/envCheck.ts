@@ -66,6 +66,7 @@ const schemaForEnv = {
     },
     METRICS_AUTH_TOKEN: {
       type: "string",
+      minLength: 1,
     },
     AVATAR_URL: {
       type: "string",
@@ -91,6 +92,7 @@ const schemaForEnv = {
     },
     INTERNAL_TOKEN: {
       type: "string",
+      minLength: 1,
     },
     DEFAULT_STAFF_PROFILE_NAME: {
       type: "string",

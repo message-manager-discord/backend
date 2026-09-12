@@ -52,13 +52,7 @@ const addPlugin = async (instance: FastifyInstance) => {
       maxRetriesPerRequest: 1,
     }),
 
-    keyGenerator: (request) => {
-      console.log(request.ip);
-      console.log(request.user);
-      console.log(request.user?.userId);
-
-      return request.user?.userId ?? request.ip;
-    },
+    keyGenerator: (request) => request.user?.userId ?? request.ip,
     enableDraftSpec: true,
   });
   // Must be registered a second time as v1 and auth routes are separate
