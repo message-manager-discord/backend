@@ -6,6 +6,9 @@ import type { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
 import httpErrors from "http-errors";
 import { Counter, register, Summary } from "prom-client";
+
+import { secureCompare } from "../lib/secureCompare.js";
+
 const { Unauthorized } = httpErrors;
 
 // To differenate between the types of metrics - as metrics are accumulated from the different services
@@ -47,10 +50,9 @@ const discordRestPlugin = fp(async (instance: FastifyInstance) => {
 
   // route for prometheus to scrape
   instance.get("/metrics", async (request, reply) => {
-    if (
-      request.headers.authorization?.replace(/BEARER\s*/i, "") !==
-      instance.envVars.METRICS_AUTH_TOKEN
-    ) {
+    const providedToken =
+      request.headers.authorization?.replace(/BEARER\s*/i, "") ?? "";
+    if (!secureCompare(providedToken, instance.envVars.METRICS_AUTH_TOKEN)) {
       throw new Unauthorized("Unauthorized");
     }
     return reply.type("text/plain").send(await register.metrics());

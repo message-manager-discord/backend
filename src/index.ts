@@ -94,7 +94,7 @@ await instance.register(fastifyCookie, {
   parseOptions: {},
 } as FastifyCookieOptions);
 await instance.register(fastifyCors, {
-  origin: true,
+  origin: instance.envVars.SITE_URL,
   methods: ["GET", "PUT", "POST", "DELETE", "PATCH"],
   credentials: true,
 });

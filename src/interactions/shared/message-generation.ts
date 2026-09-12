@@ -145,7 +145,6 @@ const createEmbedMessageGenerationEmbed = (
           max_values: 1,
           min_values: 1,
           options: currentStatus.embed.fields.map((field, index) => {
-            console.log(field);
             return {
               label: field.name,
               value: index.toString(),

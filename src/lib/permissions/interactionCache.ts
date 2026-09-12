@@ -229,7 +229,6 @@ class PermissionInteractionCache {
                 // This can happen if the interaction was deleted by the user
                 // Remove from cache
                 delete this._interactionCache[messageCacheId];
-                console.log("Was deleted");
               } else if (
                 ((error as AxiosError).response as AxiosResponse).status === 429
               ) {

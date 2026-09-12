@@ -3,6 +3,7 @@ import { Type } from "@sinclair/typebox";
 import type { FastifyInstance } from "fastify";
 import httpErrors from "http-errors";
 
+import { secureCompare } from "../../lib/secureCompare.js";
 import { getUserData } from "../../lib/user.js";
 const { Unauthorized } = httpErrors;
 const UserParams = Type.Object({
@@ -13,10 +14,14 @@ type UserParamsType = Static<typeof UserParams>;
 const internalPlugin = async (instance: FastifyInstance) => {
   instance.addHook("preHandler", async (request, response) => {
     if (
-      request.headers.authorization !==
-      `Bearer ${instance.envVars.INTERNAL_TOKEN}`
+      request.headers.authorization === undefined ||
+      !secureCompare(
+        request.headers.authorization,
+        `Bearer ${instance.envVars.INTERNAL_TOKEN}`,
+      )
     ) {
       await response.send(new Unauthorized("Not authorized"));
+      return;
     }
   });
 
