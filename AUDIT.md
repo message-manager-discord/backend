@@ -131,7 +131,7 @@ Toolchain in use during review: Node 24, npm with lockfile v3.
 These are bigger migrations, not plain version bumps. They are out of scope unless
 someone explicitly wants to expand this branch beyond package/style modernisation:
 
-- `discord-api-types` v9 → v10
+- ~~`discord-api-types` v9 → v10~~ — deliberately skipped (Sept 2026); the `/v9` entrypoint works fine
 - `@prisma/client` / `prisma` major
 - `@sentry/node` major
 - `ioredis` major
