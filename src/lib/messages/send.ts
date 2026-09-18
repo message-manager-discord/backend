@@ -1,7 +1,6 @@
 // Send messages through the bot
 import type { RawFile } from "@discordjs/rest";
 import { DiscordAPIError } from "@discordjs/rest";
-import type { Prisma } from "@prisma/client";
 import type {
   APIEmbed,
   APIMessage,
@@ -20,6 +19,7 @@ import {
   LimitHit,
   UnexpectedFailure,
 } from "../../errors.js";
+import type { Prisma } from "../../generated/prisma/client.js";
 import { InternalPermissions } from "../permissions/consts.js";
 import type { GuildSession } from "../session/index.js";
 import {

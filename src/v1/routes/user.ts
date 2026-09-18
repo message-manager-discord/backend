@@ -6,10 +6,10 @@ import type { Static } from "@sinclair/typebox";
 import { Type } from "@sinclair/typebox";
 import httpErrors from "http-errors";
 const { Forbidden, NotFound, BadRequest } = httpErrors;
-import { Prisma } from "@prisma/client";
 import type { FastifyInstance } from "fastify";
 
 import { DiscordPermissions } from "../../consts.js";
+import { Prisma } from "../../generated/prisma/client.js";
 import type { UserRequestData } from "../../plugins/authentication.js";
 import { errors401to404ResponseSchema } from "../types.js";
 const rootPath = "/users";

@@ -5,7 +5,6 @@
  * Many functions seem very similar, but they are not. They act on different types of permissions and therefore must
  * set different objects, so would be more complex to combine them
  */
-import type { Prisma } from "@prisma/client";
 import type { Snowflake } from "discord-api-types/globals";
 import type { FastifyInstance } from "fastify";
 import type { Guild } from "redis-discord-cache";
@@ -16,6 +15,7 @@ import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../../errors.js";
+import type { Prisma } from "../../generated/prisma/client.js";
 import type { ExtendedPrismaClient } from "../../plugins/prisma.js";
 import { ActionType, createLoggingEmbed } from "../logging/embed.js";
 import type { GuildSession } from "../session/index.js";
@@ -236,27 +236,29 @@ class PermissionManager {
       },
     });
     // Filter out channels that have no permissions
-    channels = channels.filter((channel) => {
-      // Any falsy values
-      // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-      if (!channel.permissions) return false;
-      // Return true if at any level there is any permission set to anything other than NONE
-      for (const permission of Object.values(
-        (channel.permissions as unknown as ChannelPermissionData).roles,
-      )) {
-        if (permission.allow !== InternalPermissions.NONE) return true;
-        if (permission.deny !== InternalPermissions.NONE) return true;
-      }
-      for (const permission of Object.values(
-        (channel.permissions as unknown as ChannelPermissionData).users,
-      )) {
-        if (permission.allow !== InternalPermissions.NONE) return true;
-        if (permission.deny !== InternalPermissions.NONE) return true;
-      }
-      return false;
-    });
+    channels = channels.filter(
+      (channel: { permissions: unknown; id: bigint }) => {
+        // Any falsy values
+        // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+        if (!channel.permissions) return false;
+        // Return true if at any level there is any permission set to anything other than NONE
+        for (const permission of Object.values(
+          (channel.permissions as unknown as ChannelPermissionData).roles,
+        )) {
+          if (permission.allow !== InternalPermissions.NONE) return true;
+          if (permission.deny !== InternalPermissions.NONE) return true;
+        }
+        for (const permission of Object.values(
+          (channel.permissions as unknown as ChannelPermissionData).users,
+        )) {
+          if (permission.allow !== InternalPermissions.NONE) return true;
+          if (permission.deny !== InternalPermissions.NONE) return true;
+        }
+        return false;
+      },
+    );
 
-    return channels.map((channel) => channel.id.toString());
+    return channels.map((channel: { id: bigint }) => channel.id.toString());
   }
 
   // Get all users / roles with permissions set on a guild - used to display what users / roles have permissions set

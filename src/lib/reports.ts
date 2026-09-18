@@ -1,3 +1,7 @@
+import type { Snowflake } from "discord-api-types/globals";
+import type { FastifyInstance } from "fastify";
+import httpErrors from "http-errors";
+
 import type {
   EmbedField,
   Guild,
@@ -10,11 +14,7 @@ import type {
   ReportStatus,
   UserBan,
   Warning,
-} from "@prisma/client";
-import type { Snowflake } from "discord-api-types/globals";
-import type { FastifyInstance } from "fastify";
-import httpErrors from "http-errors";
-
+} from "../generated/prisma/client.js";
 import limits from "../limits.js";
 import {
   type ReportCloseStatusEnum,
@@ -998,7 +998,7 @@ const getReportHistory = async ({
   const isMore = totalMessageHistoryBeforeOrAfter > Math.abs(position) + limit;
 
   const entries: ReportMessageHistoryModelType[] = reportMessageHistory.map(
-    (message): ReportMessageHistoryModelType => ({
+    (message) => ({
       id: message.id.toString(),
       content: message.content ?? undefined,
       embed:

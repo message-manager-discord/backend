@@ -1,6 +1,7 @@
-import { ReportStatus } from "@prisma/client";
 import type { Static } from "@sinclair/typebox";
 import { Type } from "@sinclair/typebox";
+
+import { ReportStatus } from "../../generated/prisma/client.js";
 
 const EmbedField = Type.Object({
   name: Type.String(),

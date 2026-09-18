@@ -1,7 +1,6 @@
 // Edit messages that have been sent through the bot previously
 import type { RawFile } from "@discordjs/rest";
 import { DiscordAPIError } from "@discordjs/rest";
-import type { EmbedField, Message, MessageEmbed, Prisma } from "@prisma/client";
 import type { APIEmbed, Snowflake } from "discord-api-types/v9";
 import type { RESTPatchAPIChannelMessageResult } from "discord-api-types/v9";
 import { Routes } from "discord-api-types/v9";
@@ -16,6 +15,12 @@ import {
   LimitHit,
   UnexpectedFailure,
 } from "../../errors.js";
+import type {
+  EmbedField,
+  Message,
+  MessageEmbed,
+  Prisma,
+} from "../../generated/prisma/client.js";
 import limits from "../../limits.js";
 import { InternalPermissions } from "../permissions/consts.js";
 import type { GuildSession } from "../session/index.js";
@@ -252,6 +257,7 @@ async function editMessage({
       data: {
         id: BigInt(messageId),
         content: response.content,
+        embed: embedQuery,
 
         editedAt: new Date(Date.now()),
         editedBy: BigInt(session.userId),
@@ -261,7 +267,6 @@ async function editMessage({
             where: {
               id: BigInt(channelId),
             },
-
             create: {
               id: BigInt(channelId),
               guildId: BigInt(session.userId),
@@ -273,15 +278,14 @@ async function editMessage({
             where: {
               id: BigInt(session.guildId),
             },
-
             create: {
               id: BigInt(session.guildId),
             },
           },
         },
-        embed: embedQuery,
       },
     });
+
     // Check if message history count hasn't exceeded the limit, if it has then delete the oldest history
 
     const messageCount = await instance.prisma.message.count({

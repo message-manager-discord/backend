@@ -1,7 +1,6 @@
 // Delete a message that was sent by the bot
 import type { RawFile } from "@discordjs/rest";
 import { DiscordAPIError } from "@discordjs/rest";
-import type { EmbedField, Message, MessageEmbed } from "@prisma/client";
 import type { APIEmbed, Snowflake } from "discord-api-types/v9";
 import { Routes } from "discord-api-types/v9";
 import type { FastifyInstance } from "fastify";
@@ -13,6 +12,11 @@ import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
 } from "../../errors.js";
+import type {
+  EmbedField,
+  Message,
+  MessageEmbed,
+} from "../../generated/prisma/client.js";
 import { InternalPermissions } from "../permissions/consts.js";
 import type { GuildSession } from "../session/index.js";
 import { checkDatabaseMessage } from "./checks.js";
@@ -161,7 +165,6 @@ async function deleteMessage({
             where: {
               id: BigInt(channelId),
             },
-
             create: {
               id: BigInt(channelId),
               guildId: BigInt(session.guildId),
@@ -173,7 +176,6 @@ async function deleteMessage({
             where: {
               id: BigInt(session.guildId),
             },
-
             create: {
               id: BigInt(session.guildId),
             },
@@ -181,6 +183,7 @@ async function deleteMessage({
         },
       },
     });
+
     // Generate deleted log message
     const logEmbed: APIEmbed = {
       color: embedPink,

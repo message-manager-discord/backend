@@ -5,7 +5,13 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    ignores: ["dist/**", ".nyc_output/**", "logs/**"],
+    ignores: [
+      "dist/**",
+      ".nyc_output/**",
+      "logs/**",
+      "prisma/generated/**",
+      "src/generated/prisma/**",
+    ],
   },
 
   eslint.configs.recommended,
@@ -20,7 +26,9 @@ export default tseslint.config(
 
     languageOptions: {
       parserOptions: {
-        projectService: true,
+        projectService: {
+          allowDefaultProject: ["prisma.config.ts"],
+        },
         tsconfigRootDir: import.meta.dirname,
       },
     },

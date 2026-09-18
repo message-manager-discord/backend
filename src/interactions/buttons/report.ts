@@ -2,8 +2,7 @@
 // Disable all checks
 // Remove this when reports are accepted again
 // Reports are not currently accepted but the starting infrastructure is in place
-import prismaClient from "@prisma/client";
-const { ReportStatus } = prismaClient;
+import { ReportStatus } from "../../generated/prisma/client.js";
 import type { APIMessageComponentGuildInteraction } from "discord-api-types/v9";
 import { InteractionResponseType, MessageFlags } from "discord-api-types/v9";
 import type { FastifyInstance } from "fastify";

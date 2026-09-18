@@ -1,7 +1,6 @@
 // Shared logic for addMessage (migration) command. Shared as it is currently used by both a context menu command
 // and a chat input command. This is because there are currently some mobile devices that do not support
 // context menu commands
-import type { Prisma } from "@prisma/client";
 import type {
   APIApplicationCommandGuildInteraction,
   APIMessage,
@@ -19,6 +18,7 @@ import {
   ExpectedFailure,
   InteractionOrRequestFinalStatus,
 } from "../../errors.js";
+import type { Prisma } from "../../generated/prisma/client.js";
 import { checkSendMessagePossible } from "../../lib/messages/send.js";
 import type { GuildSession } from "../../lib/session/index.js";
 import { addTipToEmbed } from "../../lib/tips/index.js";

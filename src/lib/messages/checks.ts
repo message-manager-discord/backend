@@ -1,5 +1,4 @@
 // Various checks for message actions
-import type { Message } from "@prisma/client";
 import type { APIMessage, Snowflake } from "discord-api-types/v9";
 import type { FastifyInstance } from "fastify";
 
@@ -7,6 +6,7 @@ import {
   ExpectedFailure,
   InteractionOrRequestFinalStatus,
 } from "../../errors.js";
+import type { Message } from "../../generated/prisma/client.js";
 import { registerAddCommand } from "../applicationCommands/registerHelper.js";
 import { InternalPermissions } from "../permissions/consts.js";
 import type { GuildSession } from "../session/index.js";
@@ -81,7 +81,9 @@ async function checkIfMessageExistsAndHandleAdding({
   }
 }
 
-const checkDatabaseMessage = (message: Message | null): message is Message => {
+const checkDatabaseMessage = <T extends Message | null>(
+  message: T,
+): message is T & Message => {
   // This checks if the message exists, and if it does not throws errors
   // It differs from checkIfMessageExistsAndHandleAdding in that that function requires the message to have existed on discord when the command was sent
   if (!message) {
