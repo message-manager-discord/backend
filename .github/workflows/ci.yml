@@ -17,5 +17,7 @@ jobs:
         run: npm ci
       - name: Prisma generation
         run: npm run generate
+        env:
+          DATABASE_URL: postgresql://user:password@localhost:5432/database
       - name: Typecheck
         run: npm run build
