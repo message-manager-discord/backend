@@ -18,7 +18,7 @@ RUN --mount=type=secret,id=sentry_auth_token --mount=type=secret,id=sentry_org -
     --project $(cat /run/secrets/sentry_project) --auth-token $(cat /run/secrets/sentry_auth_token)
 
 RUN --mount=type=secret,id=sentry_auth_token --mount=type=secret,id=sentry_org --mount=type=secret,id=sentry_project --mount=type=secret,id=sentry_version \
-    npx -y @sentry/cli releases files $(cat /run/secrets/sentry_version) upload-sourcemaps --ext map --ext js --ext ts ./dist \
+    npx -y @sentry/cli sourcemaps upload ./dist --release $(cat /run/secrets/sentry_version) --ext map --ext js --ext ts \
     --org $(cat /run/secrets/sentry_org) \
     --project $(cat /run/secrets/sentry_project) --auth-token $(cat /run/secrets/sentry_auth_token)
 
