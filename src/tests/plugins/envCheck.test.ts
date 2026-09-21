@@ -20,7 +20,6 @@ const completeEnv: Record<string, string> = {
   SITE_URL: "http://localhost",
   METRICS_AUTH_TOKEN: "test-metrics-token",
   AVATAR_URL: "http://localhost/avatar.webp",
-  PRISMA_FIELD_ENCRYPTION_KEY: "test-encryption-key",
   PORT: "3000",
   HOST: "localhost",
   NO_MIGRATION_AFTER: "1649923675917",

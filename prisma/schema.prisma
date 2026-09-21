@@ -1,4 +1,7 @@
 // Database schema for postgresql database
+// The `/// @encrypted` comments are documentation only. Field encryption was provided by
+// prisma-field-encryption, which has been removed; they mark the fields that were
+// encrypted in older data. See MIGRATION_LOG.md and scripts/decrypt-encrypted-fields.mjs.
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"

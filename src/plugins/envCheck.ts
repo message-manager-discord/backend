@@ -21,7 +21,6 @@ const schemaForEnv = {
     "SITE_URL",
     "METRICS_AUTH_TOKEN",
     "AVATAR_URL",
-    "PRISMA_FIELD_ENCRYPTION_KEY",
     "PORT",
     "HOST",
     "NO_MIGRATION_AFTER",
@@ -78,9 +77,6 @@ const schemaForEnv = {
     HOST: {
       type: "string",
     },
-    PRISMA_FIELD_ENCRYPTION_KEY: {
-      type: "string",
-    },
     NO_MIGRATION_AFTER: {
       type: "number",
     },
@@ -117,7 +113,6 @@ interface EnvVars {
   AVATAR_URL: string;
   PORT: number;
   HOST: string;
-  PRISMA_FIELD_ENCRYPTION_KEY: string;
   NO_MIGRATION_AFTER: number;
   SENTRY_DSN: string;
   API_ADMIN_IDS: string;
