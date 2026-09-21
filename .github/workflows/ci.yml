@@ -3,7 +3,6 @@ name: CI
 
 on:
   push:
-  pull_request:
 
 jobs:
   build:
@@ -16,5 +15,7 @@ jobs:
           node-version: 24
       - name: Install modules
         run: npm ci
+      - name: Prisma generation
+        run: npm run generate
       - name: Typecheck
         run: npm run build
