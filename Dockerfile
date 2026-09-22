@@ -8,9 +8,7 @@ RUN npm ci
 
 COPY . .
 
-ENV DATABASE_URL=postgresql://user:password@localhost:5432/database
-
-RUN npm run generate
+RUN DATABASE_URL=postgresql://user:password@localhost:5432/database npm run generate
 RUN npm run build:production
 
 RUN --mount=type=secret,id=sentry_auth_token --mount=type=secret,id=sentry_org --mount=type=secret,id=sentry_project --mount=type=secret,id=sentry_version \
