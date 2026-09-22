@@ -15,6 +15,7 @@ import {
 import type { FastifyInstance } from "fastify";
 import Fuse from "fuse.js";
 
+import packageJson from "../../../../package.json" with { type: "json" };
 import { embedPink, inviteUrl } from "../../../constants.js";
 import {
   ExpectedFailure,
@@ -69,8 +70,8 @@ const createInfoEmbed = async (
         inline: true,
       },
       {
-        name: "Node Version",
-        value: process.version,
+        name: "Version",
+        value: packageJson.version,
         inline: true,
       },
       { name: "Host System", value: process.platform, inline: true },
