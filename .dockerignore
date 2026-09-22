@@ -3,3 +3,8 @@ node_modules
 dist
 .nyc_output
 logs
+.git
+.github
+.vscode
+.wakatime-project
+*.md

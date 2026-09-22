@@ -2,29 +2,28 @@
 // Disable all checks
 // Remove this when reports are accepted again
 // Reports are not currently accepted but the starting infrastructure is in place
-import prismaClient from "@prisma/client";
-const { ReportStatus } = prismaClient;
+import { ReportStatus } from "../../generated/prisma/client.js";
+import type { APIMessageComponentGuildInteraction } from "discord-api-types/v9";
+import { InteractionResponseType, MessageFlags } from "discord-api-types/v9";
+import type { FastifyInstance } from "fastify";
 import {
-  APIMessageComponentGuildInteraction,
-  InteractionResponseType,
-  MessageFlags,
-} from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
-import { ExpectedFailure, InteractionOrRequestFinalStatus } from "../../errors";
-import { GuildSession } from "../../lib/session";
-import limits from "../../limits";
-import { InternalInteractionType } from "../interaction";
+  ExpectedFailure,
+  InteractionOrRequestFinalStatus,
+} from "../../errors.js";
+import { GuildSession } from "../../lib/session/index.js";
+import limits from "../../limits.js";
+import type { InternalInteractionType } from "../interaction.js";
 
 import {
   createModal,
   createTextInputWithRow,
-} from "../modals/createStructures";
-import { InteractionReturnData } from "../types";
+} from "../modals/createStructures.js";
+import type { InteractionReturnData } from "../types.js";
 
 export default async function handleReportButton(
   internalInteraction: InternalInteractionType<APIMessageComponentGuildInteraction>,
   session: GuildSession,
-  instance: FastifyInstance
+  instance: FastifyInstance,
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   // return this isn't happening right now message

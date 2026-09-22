@@ -6,8 +6,8 @@ Backend service for [message.anothercat.me](https://message.anothercat.me)
 
 ### Prerequisites
 
-Node 17.5 (see .nvmrc)
-Postgresql 13 with user with write permissions
+Node 24 (see .nvmrc)
+Postgresql 13+ with a user with write permissions
 Redis with REJSON
 
 ### Setup
@@ -27,6 +27,19 @@ You will need to setup a tunnel or some kind of way to expose the server to disc
 You will need to have a gateway cache instance also running
 [see message-manager-discord/gateway](https://github.com/message-manager-discord/gateway) and [message-manager-discord/redis-discord-cache](https://github.com/message-manager-discord/redis-discord-cache)
 
+### Tests
+
+Tests run with [Vitest](https://vitest.dev) and live in `src/tests`. No build step is
+needed:
+
+```bash
+npm test           # single run
+npm run test:watch # re-run on change
+```
+
+The permission tests under `src/tests/messages` are still commented out, as they
+need a Redis cache instance to run against.
+
 ### Migrations
 
 Prisma is used for migrations - run `npm run migrate` to migrate the database.
@@ -38,7 +51,7 @@ prisma - contains prisma schema and migrations
 src - contains the source code  
 .env - contains environment variables (do not use .env on production use docker env variables instead)  
 .env.example - contains example environment variables  
-.eslintrc.js - contains eslint config  
+eslint.config.js - contains eslint config  
 .prettierrc.json - contains prettier config  
 .wakatime-project - contains wakatime config  
 Dockerfile - contains docker config

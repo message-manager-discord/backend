@@ -1,29 +1,28 @@
 // Chat input command for migrating a message (same as ../message/addMessage.ts) but with message fetching logic (as it's not
 // returned by the api) for chat input commands
 import { DiscordAPIError } from "@discordjs/rest";
-import {
+import type {
   APIApplicationCommandInteractionDataStringOption,
   APIChatInputApplicationCommandGuildInteraction,
-  ApplicationCommandOptionType,
   RESTGetAPIChannelMessageResult,
-  Routes,
 } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import { ApplicationCommandOptionType, Routes } from "discord-api-types/v9";
+import type { FastifyInstance } from "fastify";
 
 import {
   ExpectedFailure,
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
-} from "../../../errors";
-import { GuildSession } from "../../../lib/session";
-import { InternalInteractionType } from "../../interaction";
-import { addMessageLogic } from "../../shared/addMessage";
-import { InteractionReturnData } from "../../types";
+} from "../../../errors.js";
+import type { GuildSession } from "../../../lib/session/index.js";
+import type { InternalInteractionType } from "../../interaction.js";
+import { addMessageLogic } from "../../shared/addMessage.js";
+import type { InteractionReturnData } from "../../types.js";
 
 export default async function handleAddMessageCommand(
   internalInteraction: InternalInteractionType<APIChatInputApplicationCommandGuildInteraction>,
   session: GuildSession,
-  instance: FastifyInstance
+  instance: FastifyInstance,
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   // First option: Message Id
@@ -31,13 +30,13 @@ export default async function handleAddMessageCommand(
     interaction.data.options?.find(
       (option) =>
         option.name === "message-id" &&
-        option.type === ApplicationCommandOptionType.String
-    ) as APIApplicationCommandInteractionDataStringOption
+        option.type === ApplicationCommandOptionType.String,
+    ) as APIApplicationCommandInteractionDataStringOption | undefined
   )?.value;
-  if (!messageId) {
+  if (messageId === undefined || messageId === "") {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.APPLICATION_COMMAND_MISSING_EXPECTED_OPTION,
-      "No message id option on add message command"
+      "No message id option on add message command",
     );
   }
   // Check if messageId is a valid snowflake
@@ -48,14 +47,14 @@ export default async function handleAddMessageCommand(
     } else {
       throw new ExpectedFailure(
         InteractionOrRequestFinalStatus.APPLICATION_COMMAND_SNOWFLAKE_OPTION_NOT_VALID,
-        "Invalid message id option on actions command - make sure this is a valid message id"
+        "Invalid message id option on actions command - make sure this is a valid message id",
       );
     }
   }
   // Fetch message from api
   try {
     const message = (await instance.restClient.get(
-      Routes.channelMessage(interaction.channel_id, messageId)
+      Routes.channelMessage(interaction.channel.id, messageId),
     )) as RESTGetAPIChannelMessageResult;
     return await addMessageLogic({
       // Execute add message logic
@@ -72,17 +71,17 @@ export default async function handleAddMessageCommand(
     if (error.status === 403) {
       throw new ExpectedFailure(
         InteractionOrRequestFinalStatus.BOT_MISSING_DISCORD_PERMISSION,
-        "The bot is missing the discord permissions to access that message"
+        "The bot is missing the discord permissions to access that message",
       );
     } else if (error.status === 404) {
       throw new ExpectedFailure(
         InteractionOrRequestFinalStatus.MESSAGE_NOT_FOUND_DISCORD_DELETED_OR_NOT_EXIST,
-        "That message could not be found, make sure you are using the command in the same channel as the message"
+        "That message could not be found, make sure you are using the command in the same channel as the message",
       );
     } else if (error.code === 50035) {
       throw new ExpectedFailure(
         InteractionOrRequestFinalStatus.APPLICATION_COMMAND_SNOWFLAKE_OPTION_NOT_VALID,
-        "Invalid message id option on actions command - make sure this is a valid message id"
+        "Invalid message id option on actions command - make sure this is a valid message id",
       );
     }
     throw error;

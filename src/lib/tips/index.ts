@@ -1,9 +1,9 @@
 // Tips appear at the bottom of embeds
 // There can be more than one, and it will be random
 
-import { APIEmbed } from "discord-api-types/v9";
+import type { APIEmbed } from "discord-api-types/v9";
 
-import { allTips } from "./tips";
+import { allTips } from "./tips.js";
 
 // Chance of any tip happening
 const allTipChance = 0.5;
@@ -33,4 +33,5 @@ function addTipToEmbed(embed: APIEmbed): APIEmbed {
   }
   return embed;
 }
-export { addTipToEmbed, selectTip, Tip };
+export type { Tip };
+export { addTipToEmbed, selectTip };

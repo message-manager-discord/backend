@@ -3,10 +3,10 @@
 // A client is used to handle parsing / ratelimits / errors / and type safety
 
 import { REST } from "@discordjs/rest";
-import { FastifyInstance, FastifyPluginOptions } from "fastify";
+import type { FastifyInstance, FastifyPluginOptions } from "fastify";
 import fp from "fastify-plugin";
 
-import DiscordOauthRequests from "../discordOauth";
+import DiscordOauthRequests from "../discordOauth.js";
 
 // Extend the fastify instance with the rest client
 declare module "fastify" {
@@ -38,7 +38,7 @@ const discordRestPlugin = fp(
     server.decorate("restClient", restClient);
     const discordOauthRequests = new DiscordOauthRequests(server);
     server.decorate("discordOauthRequests", discordOauthRequests);
-  }
+  },
 );
 
 export default discordRestPlugin;

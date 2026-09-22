@@ -1,30 +1,30 @@
 // Handle message generation select menu - this is for embed field editing
 // Returns a modal with the field's current values
-import {
+import type {
   APIMessageComponentGuildInteraction,
   APIMessageSelectMenuInteractionData,
 } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 
 import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
-} from "../../errors";
-import { getMessageFromCache } from "../../lib/messages/cache";
-import { GuildSession } from "../../lib/session";
-import { InternalInteractionType } from "../interaction";
+} from "../../errors.js";
+import { getMessageFromCache } from "../../lib/messages/cache.js";
+import type { GuildSession } from "../../lib/session/index.js";
+import type { InternalInteractionType } from "../interaction.js";
 import {
   createModal,
   createTextInputWithRow,
-} from "../modals/createStructures";
-import { generateMessageGenerationCustomId } from "../shared/message-generation";
-import { InteractionReturnData } from "../types";
+} from "../modals/createStructures.js";
+import { generateMessageGenerationCustomId } from "../shared/message-generation.js";
+import type { InteractionReturnData } from "../types.js";
 
 // Function to handle the message generation select menu
 export default async function handleMessageGenerationSelect(
   internalInteraction: InternalInteractionType<APIMessageComponentGuildInteraction>,
   session: GuildSession,
-  instance: FastifyInstance
+  instance: FastifyInstance,
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   const customIdData = interaction.data.custom_id.split(":");
@@ -33,7 +33,7 @@ export default async function handleMessageGenerationSelect(
   if (messageGenerationKey === undefined) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.COMPONENT_CUSTOM_ID_MALFORMED,
-      "No message key on message generation button"
+      "No message key on message generation button",
     );
   }
   // Get current state of the edit
@@ -43,7 +43,7 @@ export default async function handleMessageGenerationSelect(
   });
   // Get which field is being edited
   const index = parseInt(
-    (interaction.data as APIMessageSelectMenuInteractionData).values[0]
+    (interaction.data as APIMessageSelectMenuInteractionData).values[0],
   );
   const currentField = currentStatus.embed?.fields?.[index];
 
@@ -51,7 +51,7 @@ export default async function handleMessageGenerationSelect(
   if (currentField === undefined) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.FIELD_SELECT_OUT_OF_INDEX,
-      "Fields out of index"
+      "Fields out of index",
     );
   }
   // return generated modal with text inputs for each embed field - with the current values
@@ -60,7 +60,7 @@ export default async function handleMessageGenerationSelect(
     custom_id: generateMessageGenerationCustomId(
       messageGenerationKey,
       "edit-embed-field",
-      index
+      index,
     ),
     components: [
       createTextInputWithRow({

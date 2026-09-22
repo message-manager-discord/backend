@@ -1,42 +1,44 @@
 // Button to delete a message - will response with a confirmation as this is a destructive action
-import {
+import type {
   APIEmbed,
   APIMessageComponentGuildInteraction,
+} from "discord-api-types/v9";
+import {
   ButtonStyle,
   ComponentType,
   InteractionResponseType,
   MessageFlags,
 } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 
-import { embedPink } from "../../constants";
+import { embedPink } from "../../constants.js";
 import {
   InteractionOrRequestFinalStatus,
   UnexpectedFailure,
-} from "../../errors";
-import { checkDeletePossible } from "../../lib/messages/delete";
-import { GuildSession } from "../../lib/session";
-import { addTipToEmbed } from "../../lib/tips";
-import { InternalInteractionType } from "../interaction";
-import { InteractionReturnData } from "../types";
+} from "../../errors.js";
+import { checkDeletePossible } from "../../lib/messages/delete.js";
+import type { GuildSession } from "../../lib/session/index.js";
+import { addTipToEmbed } from "../../lib/tips/index.js";
+import type { InternalInteractionType } from "../interaction.js";
+import type { InteractionReturnData } from "../types.js";
 
 export default async function handleDeleteButton(
   internalInteraction: InternalInteractionType<APIMessageComponentGuildInteraction>,
   session: GuildSession,
-  instance: FastifyInstance
+  instance: FastifyInstance,
 ): Promise<InteractionReturnData> {
   const interaction = internalInteraction.interaction;
   const messageId = interaction.data.custom_id.split(":")[1];
   if (!messageId) {
     throw new UnexpectedFailure(
       InteractionOrRequestFinalStatus.COMPONENT_CUSTOM_ID_MALFORMED,
-      "No message id on delete button"
+      "No message id on delete button",
     );
   }
   // Check if message can be deleted
   const databaseMessage = await checkDeletePossible({
     session,
-    channelId: interaction.channel_id,
+    channelId: interaction.channel.id,
     instance,
     messageId,
   });

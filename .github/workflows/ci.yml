@@ -1,0 +1,23 @@
+# Runs a typecheck on push and pull requests
+name: CI
+
+on:
+  push:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Install modules
+        run: npm ci
+      - name: Prisma generation
+        run: npm run generate
+        env:
+          DATABASE_URL: postgresql://user:password@localhost:5432/database
+      - name: Typecheck
+        run: npm run build

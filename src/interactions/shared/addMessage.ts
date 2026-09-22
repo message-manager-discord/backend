@@ -1,24 +1,28 @@
 // Shared logic for addMessage (migration) command. Shared as it is currently used by both a context menu command
 // and a chat input command. This is because there are currently some mobile devices that do not support
 // context menu commands
-import { Prisma } from "@prisma/client";
-import {
+import type {
   APIApplicationCommandGuildInteraction,
-  APIEmbed,
   APIMessage,
   APIMessageApplicationCommandGuildInteraction,
+} from "discord-api-types/v9";
+import {
   InteractionResponseType,
   MessageFlags,
   MessageType,
 } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 
-import { embedPink } from "../../constants";
-import { ExpectedFailure, InteractionOrRequestFinalStatus } from "../../errors";
-import { checkSendMessagePossible } from "../../lib/messages/send";
-import { GuildSession } from "../../lib/session";
-import { addTipToEmbed } from "../../lib/tips";
-import { InteractionReturnData } from "../types";
+import { embedPink } from "../../constants.js";
+import {
+  ExpectedFailure,
+  InteractionOrRequestFinalStatus,
+} from "../../errors.js";
+import type { Prisma } from "../../generated/prisma/client.js";
+import { checkSendMessagePossible } from "../../lib/messages/send.js";
+import type { GuildSession } from "../../lib/session/index.js";
+import { addTipToEmbed } from "../../lib/tips/index.js";
+import type { InteractionReturnData } from "../types.js";
 
 // Function to add a message
 const addMessageLogic = async ({
@@ -43,21 +47,21 @@ const addMessageLogic = async ({
   ) {
     throw new ExpectedFailure(
       InteractionOrRequestFinalStatus.MIGRATION_ATTEMPTED_ON_MESSAGE_SENT_AFTER_MIGRATION_DATE,
-      "Only messages sent before the migration date can be migrated. Any messages sent after the migration date should already be in the database. See `/info message-migration` for more information."
+      "Only messages sent before the migration date can be migrated. Any messages sent after the migration date should already be in the database. See `/info message-migration` for more information.",
     );
   }
   // Author must be the bot
   if (message.author.id !== instance.envVars.DISCORD_CLIENT_ID) {
     throw new ExpectedFailure(
       InteractionOrRequestFinalStatus.MESSAGE_AUTHOR_NOT_BOT_AUTHOR,
-      "That message was not sent via the bot."
+      "That message was not sent via the bot.",
     );
   }
   // Message type must be a normal message - and not from an interaction
-  if (message.type !== MessageType.Default || message.interaction) {
+  if (message.type !== MessageType.Default) {
     throw new ExpectedFailure(
       InteractionOrRequestFinalStatus.MIGRATION_ATTEMPTED_ON_NON_STANDARD_MESSAGE,
-      "Message must be a normal message (not an interaction response, system message, etc) to be able to be added!"
+      "Message must be a normal message (not an interaction response, system message, etc) to be able to be added!",
     );
   }
   // Message must not have been migrated already
@@ -68,17 +72,17 @@ const addMessageLogic = async ({
   ) {
     throw new ExpectedFailure(
       InteractionOrRequestFinalStatus.MESSAGE_ALREADY_MIGRATED,
-      "Message already added to the database. This command is just for migrating messages to the new system."
+      "Message already added to the database. This command is just for migrating messages to the new system.",
     );
   }
   // Only allow one embed
   if (message.embeds.length > 1) {
     throw new ExpectedFailure(
       InteractionOrRequestFinalStatus.MIGRATION_ATTEMPTED_ON_MESSAGE_WITH_MULTIPLE_EMBEDS,
-      "Message must have only one embed to be added!"
+      "Message must have only one embed to be added!",
     );
   }
-  const embed: APIEmbed | undefined = message.embeds[0];
+  const embed = message.embeds.at(0);
 
   // Check if the user attempting to migrate the message has the correct permissions
   await checkSendMessagePossible({
@@ -88,12 +92,11 @@ const addMessageLogic = async ({
   });
   // Generate embed creation query (database)
   let embedQuery:
-    | Prisma.MessageEmbedCreateNestedOneWithoutMessageInput
-    | undefined = undefined;
-  if (embed !== null && embed !== undefined) {
+    Prisma.MessageEmbedCreateNestedOneWithoutMessageInput | undefined =
+    undefined;
+  if (embed !== undefined) {
     let fieldQuery:
-      | Prisma.EmbedFieldCreateNestedManyWithoutEmbedInput
-      | undefined;
+      Prisma.EmbedFieldCreateNestedManyWithoutEmbedInput | undefined;
 
     if (embed.fields && embed.fields.length > 0) {
       fieldQuery = {
@@ -139,11 +142,11 @@ const addMessageLogic = async ({
       channel: {
         connectOrCreate: {
           where: {
-            id: BigInt(interaction.channel_id),
+            id: BigInt(interaction.channel.id),
           },
 
           create: {
-            id: BigInt(interaction.channel_id),
+            id: BigInt(interaction.channel.id),
             guildId: BigInt(interaction.guild_id),
           },
         },

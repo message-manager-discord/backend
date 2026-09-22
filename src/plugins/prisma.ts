@@ -1,24 +1,27 @@
-// Plugin that registers the prisma client to the fastify instance (prisma is the database ORM)
-// The Prisma Database schema is in /prisma/schema.prisma
-
-import prismaClientImport from "@prisma/client";
-import { FastifyPluginAsync } from "fastify";
+import { PrismaPg } from "@prisma/adapter-pg";
+import type { FastifyPluginAsync } from "fastify";
 import fp from "fastify-plugin";
-import { fieldEncryptionMiddleware } from "prisma-field-encryption";
 
-// Extend the fastify instance with the prisma client
+import { PrismaClient } from "../generated/prisma/client.js";
+
+const createPrismaClient = () => {
+  const adapter = new PrismaPg({
+    connectionString: process.env.DATABASE_URL,
+  });
+
+  return new PrismaClient({ adapter });
+};
+
+export type ExtendedPrismaClient = ReturnType<typeof createPrismaClient>;
+
 declare module "fastify" {
   interface FastifyInstance {
-    prisma: prismaClientImport.PrismaClient;
+    prisma: ExtendedPrismaClient;
   }
 }
 
 const prismaPlugin: FastifyPluginAsync = fp(async (server) => {
-  const prisma = new prismaClientImport.PrismaClient();
-
-  // Register encryption middleware to prisma client - this will encrypt all fields with the prisma schema
-  // comment of "/// @encrypted" on them
-  prisma.$use(fieldEncryptionMiddleware());
+  const prisma = createPrismaClient();
 
   await prisma.$connect();
 

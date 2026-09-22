@@ -1,31 +1,31 @@
-# syntax = docker/dockerfile:1.2
-FROM node:17-buster
-# Create app directory
+FROM node:24-alpine
+
 WORKDIR /usr/src/app
 
-# Install app dependencies
 COPY package*.json ./
 
 RUN npm ci
 
 COPY . .
 
-RUN npm run generate
-RUN npm run build:production 
+RUN DATABASE_URL=postgresql://user:password@localhost:5432/database npm run generate
+RUN npm run build:production
 
 RUN --mount=type=secret,id=sentry_auth_token --mount=type=secret,id=sentry_org --mount=type=secret,id=sentry_project --mount=type=secret,id=sentry_version \
     npx -y @sentry/cli releases new $(cat /run/secrets/sentry_version) --org $(cat /run/secrets/sentry_org) \
     --project $(cat /run/secrets/sentry_project) --auth-token $(cat /run/secrets/sentry_auth_token)
+
 RUN --mount=type=secret,id=sentry_auth_token --mount=type=secret,id=sentry_org --mount=type=secret,id=sentry_project --mount=type=secret,id=sentry_version \
-    npx -y @sentry/cli releases files $(cat /run/secrets/sentry_version) upload-sourcemaps --ext map --ext js --ext ts ./dist \
+    npx -y @sentry/cli sourcemaps upload ./dist --release $(cat /run/secrets/sentry_version) --ext map --ext js --ext ts \
     --org $(cat /run/secrets/sentry_org) \
     --project $(cat /run/secrets/sentry_project) --auth-token $(cat /run/secrets/sentry_auth_token)
-RUN  --mount=type=secret,id=sentry_auth_token --mount=type=secret,id=sentry_org --mount=type=secret,id=sentry_project --mount=type=secret,id=sentry_version \
-    npx -y @sentry/cli releases set-commits $(cat /run/secrets/sentry_version) --auto --org $(cat /run/secrets/sentry_org) \
+
+RUN --mount=type=secret,id=sentry_auth_token --mount=type=secret,id=sentry_org --mount=type=secret,id=sentry_project --mount=type=secret,id=sentry_version --mount=type=secret,id=sentry_repo \
+    npx -y @sentry/cli releases set-commits $(cat /run/secrets/sentry_version) --commit "$(cat /run/secrets/sentry_repo)@$(cat /run/secrets/sentry_version)" --org $(cat /run/secrets/sentry_org) \
     --project $(cat /run/secrets/sentry_project) --auth-token $(cat /run/secrets/sentry_auth_token)
+
 RUN --mount=type=secret,id=sentry_auth_token --mount=type=secret,id=sentry_org --mount=type=secret,id=sentry_project --mount=type=secret,id=sentry_version \
     npx -y @sentry/cli releases finalize $(cat /run/secrets/sentry_version) --org $(cat /run/secrets/sentry_org) \
     --project $(cat /run/secrets/sentry_project) --auth-token $(cat /run/secrets/sentry_auth_token)
 
-
-CMD [ "npm", "run", "start" ]
+CMD ["node", "./dist/index.js"]

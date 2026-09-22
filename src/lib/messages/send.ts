@@ -1,41 +1,42 @@
 // Send messages through the bot
-import { DiscordAPIError, RawFile } from "@discordjs/rest";
-import { Prisma } from "@prisma/client";
-import {
+import type { RawFile } from "@discordjs/rest";
+import { DiscordAPIError } from "@discordjs/rest";
+import type {
   APIEmbed,
   APIMessage,
   ChannelType,
   RESTPostAPIChannelMessageResult,
-  Routes,
 } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import { Routes } from "discord-api-types/v9";
+import type { FastifyInstance } from "fastify";
 
-import { embedPink } from "../../constants";
-import { parseDiscordPermissionValuesToStringNames } from "../../consts";
+import { embedPink } from "../../constants.js";
+import { parseDiscordPermissionValuesToStringNames } from "../../consts.js";
 import {
   ExpectedFailure,
   ExpectedPermissionFailure,
   InteractionOrRequestFinalStatus,
   LimitHit,
   UnexpectedFailure,
-} from "../../errors";
-import { InternalPermissions } from "../permissions/consts";
-import { GuildSession } from "../session";
+} from "../../errors.js";
+import type { Prisma } from "../../generated/prisma/client.js";
+import { InternalPermissions } from "../permissions/consts.js";
+import type { GuildSession } from "../session/index.js";
 import {
   requiredPermissionsSendBot,
   requiredPermissionsSendBotThread,
   requiredPermissionsSendUser,
-} from "./consts";
-import { checkEmbedMeetsLimits } from "./embeds/checks";
+} from "./consts.js";
+import { checkEmbedMeetsLimits } from "./embeds/checks.js";
 import {
   createSendableEmbedFromStoredEmbed,
   createStoredEmbedFromAPIMessage,
-} from "./embeds/parser";
-import { StoredEmbed } from "./embeds/types";
+} from "./embeds/parser.js";
+import type { StoredEmbed } from "./embeds/types.js";
 import {
   missingBotDiscordPermissionMessage,
   missingUserDiscordPermissionMessage,
-} from "./utils";
+} from "./utils.js";
 
 // Message for missing internal permissions
 const missingAccessMessage =
@@ -46,9 +47,9 @@ interface ThreadOptionObject {
   parentId?: string | null;
   locked?: boolean;
   type:
-    | ChannelType.GuildNewsThread
-    | ChannelType.GuildPublicThread
-    | ChannelType.GuildPrivateThread;
+    | ChannelType.AnnouncementThread
+    | ChannelType.PublicThread
+    | ChannelType.PrivateThread;
 }
 interface CheckSendMessageOptions {
   channelId: string;
@@ -74,7 +75,7 @@ async function checkSendMessagePossible({
 
   const userHasRequiredDiscordPermissions = await session.hasDiscordPermissions(
     requiredPermissionsSendUser,
-    channelId
+    channelId,
   );
   if (!userHasRequiredDiscordPermissions.allPresent) {
     throw new ExpectedPermissionFailure(
@@ -82,10 +83,10 @@ async function checkSendMessagePossible({
 
       missingUserDiscordPermissionMessage(
         parseDiscordPermissionValuesToStringNames(
-          userHasRequiredDiscordPermissions.missing
+          userHasRequiredDiscordPermissions.missing,
         ),
-        channelId
-      )
+        channelId,
+      ),
     );
   }
   // Check if the bot has the correct permissions
@@ -93,17 +94,17 @@ async function checkSendMessagePossible({
     await session.botHasDiscordPermissions(
       // If the target channel is a thread, also required the SEND_MESSAGES_IN_THREADS permission
       thread ? requiredPermissionsSendBotThread : requiredPermissionsSendBot,
-      channelId
+      channelId,
     );
   if (!botHasRequiredDiscordPermissions.allPresent) {
     throw new ExpectedPermissionFailure(
       InteractionOrRequestFinalStatus.BOT_MISSING_DISCORD_PERMISSION,
       missingBotDiscordPermissionMessage(
         parseDiscordPermissionValuesToStringNames(
-          botHasRequiredDiscordPermissions.missing
+          botHasRequiredDiscordPermissions.missing,
         ),
-        channelId
-      )
+        channelId,
+      ),
     );
   }
 
@@ -112,13 +113,13 @@ async function checkSendMessagePossible({
     !(
       await session.hasBotPermissions(
         InternalPermissions.SEND_MESSAGES,
-        channelId
+        channelId,
       )
     ).allPresent
   ) {
     throw new ExpectedPermissionFailure(
       InteractionOrRequestFinalStatus.USER_MISSING_INTERNAL_BOT_PERMISSION,
-      missingAccessMessage
+      missingAccessMessage,
     );
   }
 
@@ -149,7 +150,7 @@ async function sendMessage({
   if ((content === undefined || content === "") && embed === undefined) {
     throw new ExpectedFailure(
       InteractionOrRequestFinalStatus.ATTEMPTING_TO_SEND_WHEN_NO_CONTENT_SET,
-      "No content or embeds have been set, this is required to send a message"
+      "No content or embeds have been set, this is required to send a message",
     );
   }
   // Check if embed exceeds limits (limits set by discord)
@@ -158,16 +159,16 @@ async function sendMessage({
     if (exceedsLimits) {
       throw new LimitHit(
         InteractionOrRequestFinalStatus.EMBED_EXCEEDS_DISCORD_LIMITS,
-        "The embed exceeds one or more of limits on embeds."
+        "The embed exceeds one or more of limits on embeds.",
       );
     }
     if (
-      embed?.color !== undefined &&
+      embed.color !== undefined &&
       (embed.color > 16777215 || embed.color < 0)
     ) {
       throw new ExpectedFailure(
         InteractionOrRequestFinalStatus.EMBED_EXCEEDS_DISCORD_LIMITS,
-        "The embed color is not in the range of 0 - 16777215."
+        "The embed color is not in the range of 0 - 16777215.",
       );
     }
     // Also check if title and / or description is set on the embed
@@ -175,7 +176,7 @@ async function sendMessage({
     if (embed.title === undefined && embed.description === undefined) {
       throw new ExpectedFailure(
         InteractionOrRequestFinalStatus.EMBED_REQUIRES_TITLE_OR_DESCRIPTION,
-        "The embed requires a title or description."
+        "The embed requires a title or description.",
       );
     }
   }
@@ -190,19 +191,18 @@ async function sendMessage({
       Routes.channelMessages(channelId),
       {
         body: { content, embeds },
-      }
+      },
     )) as RESTPostAPIChannelMessageResult;
     // Save message to database
     const sentEmbed = createStoredEmbedFromAPIMessage(messageResult);
     // Query is the query to provide to the database create method for the embed
     let embedQuery:
-      | Prisma.MessageEmbedCreateNestedOneWithoutMessageInput
-      | undefined = undefined;
+      Prisma.MessageEmbedCreateNestedOneWithoutMessageInput | undefined =
+      undefined;
 
     if (sentEmbed !== null) {
       let fieldQuery:
-        | Prisma.EmbedFieldCreateNestedManyWithoutEmbedInput
-        | undefined;
+        Prisma.EmbedFieldCreateNestedManyWithoutEmbedInput | undefined;
       // Generate query for fields
       if (sentEmbed.fields && sentEmbed.fields.length > 0) {
         fieldQuery = {
@@ -277,9 +277,7 @@ async function sendMessage({
       description:
         `Message (${messageResult.id}) sent` +
         `${
-          messageResult.content !== undefined &&
-          messageResult.content !== "" &&
-          messageResult.content !== null
+          messageResult.content !== ""
             ? `\n**Content:**\n${messageResult.content}`
             : ""
         }`,
@@ -310,12 +308,12 @@ async function sendMessage({
       if (error.code === 404) {
         throw new UnexpectedFailure(
           InteractionOrRequestFinalStatus.CHANNEL_NOT_FOUND_DISCORD_HTTP,
-          "Channel not found"
+          "Channel not found",
         );
       } else if (error.code === 403 || error.code === 50013) {
         throw new UnexpectedFailure(
           InteractionOrRequestFinalStatus.MISSING_PERMISSIONS_DISCORD_HTTP_SEND_MESSAGE,
-          error.message
+          error.message,
         );
       }
       throw error;
@@ -324,4 +322,5 @@ async function sendMessage({
   }
 }
 
-export { checkSendMessagePossible, sendMessage, ThreadOptionObject };
+export type { ThreadOptionObject };
+export { checkSendMessagePossible, sendMessage };

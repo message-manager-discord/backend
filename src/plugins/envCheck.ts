@@ -1,5 +1,5 @@
 import envSchema from "env-schema";
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
 
 // Code for loading, validating, and typing environmental variables
@@ -21,7 +21,6 @@ const schemaForEnv = {
     "SITE_URL",
     "METRICS_AUTH_TOKEN",
     "AVATAR_URL",
-    "PRISMA_FIELD_ENCRYPTION_KEY",
     "PORT",
     "HOST",
     "NO_MIGRATION_AFTER",
@@ -66,6 +65,7 @@ const schemaForEnv = {
     },
     METRICS_AUTH_TOKEN: {
       type: "string",
+      minLength: 1,
     },
     AVATAR_URL: {
       type: "string",
@@ -75,9 +75,6 @@ const schemaForEnv = {
       type: "number",
     },
     HOST: {
-      type: "string",
-    },
-    PRISMA_FIELD_ENCRYPTION_KEY: {
       type: "string",
     },
     NO_MIGRATION_AFTER: {
@@ -91,6 +88,7 @@ const schemaForEnv = {
     },
     INTERNAL_TOKEN: {
       type: "string",
+      minLength: 1,
     },
     DEFAULT_STAFF_PROFILE_NAME: {
       type: "string",
@@ -115,7 +113,6 @@ interface EnvVars {
   AVATAR_URL: string;
   PORT: number;
   HOST: string;
-  PRISMA_FIELD_ENCRYPTION_KEY: string;
   NO_MIGRATION_AFTER: number;
   SENTRY_DSN: string;
   API_ADMIN_IDS: string;

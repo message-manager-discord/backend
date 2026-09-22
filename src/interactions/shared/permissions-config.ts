@@ -1,21 +1,20 @@
 // Shared logic for permissions config embed generation
 // In separate file as it's used in multiple places
-import { Snowflake } from "discord-api-types/globals";
-import {
+import type { Snowflake } from "discord-api-types/globals";
+import type {
   APIActionRowComponent,
+  APIComponentInMessageActionRow,
   APIEmbed,
-  APIMessageActionRowComponent,
   APISelectMenuOption,
-  ButtonStyle,
-  ComponentType,
 } from "discord-api-types/v9";
-import { FastifyInstance } from "fastify";
+import { ButtonStyle, ComponentType } from "discord-api-types/v9";
+import type { FastifyInstance } from "fastify";
 
-import { embedPink } from "../../constants";
-import { UsableInternalPermissions } from "../../lib/permissions/consts";
-import { PermissionAllowAndDenyData } from "../../lib/permissions/types";
-import { checkInternalPermissionValue } from "../../lib/permissions/utils";
-import { addTipToEmbed } from "../../lib/tips";
+import { embedPink } from "../../constants.js";
+import { UsableInternalPermissions } from "../../lib/permissions/consts.js";
+import type { PermissionAllowAndDenyData } from "../../lib/permissions/types.js";
+import { checkInternalPermissionValue } from "../../lib/permissions/utils.js";
+import { addTipToEmbed } from "../../lib/tips/index.js";
 
 // Options interfaces
 interface CreatePermissionsEmbedOptions {
@@ -30,7 +29,7 @@ interface CreatePermissionsEmbedOptions {
 
 interface CreatePermissionsEmbedResult {
   embed: APIEmbed;
-  components: APIActionRowComponent<APIMessageActionRowComponent>[];
+  components: APIActionRowComponent<APIComponentInMessageActionRow>[];
 }
 
 /*
@@ -67,7 +66,7 @@ const createPermissionsEmbed = async ({
         description: internalPermission.description,
         default: checkInternalPermissionValue(
           currentPermissions,
-          internalPermission.value
+          internalPermission.value,
         ),
       }); // Add option to array - each valid permission, and if it's currently set (default)
     }
@@ -75,7 +74,8 @@ const createPermissionsEmbed = async ({
     // Make a map of permission names to the state ("allow", "deny") - used for visual representation of current state
     const permissionMap: { [key: string]: string } = {};
     for (const option of options) {
-      permissionMap[option.label] = option.default ?? false ? "allow" : "deny";
+      permissionMap[option.label] =
+        (option.default ?? false) ? "allow" : "deny";
     }
 
     const description =
@@ -97,7 +97,7 @@ const createPermissionsEmbed = async ({
           type: ComponentType.ActionRow,
           components: [
             {
-              type: ComponentType.SelectMenu,
+              type: ComponentType.StringSelect,
               custom_id: `manage-permissions-select:null:${targetType}:${targetId}:null:${hasAdminPermission.toString()}`,
               options,
               max_values: options.length,
@@ -155,11 +155,11 @@ const createPermissionsEmbed = async ({
       }
       const allowed = checkInternalPermissionValue(
         currentPermissions.allow,
-        internalPermission.value
+        internalPermission.value,
       );
       const denied = checkInternalPermissionValue(
         currentPermissions.deny,
-        internalPermission.value
+        internalPermission.value,
       );
       allowOptions.push({
         label: internalPermission.readableName,
@@ -220,9 +220,9 @@ const createPermissionsEmbed = async ({
           type: ComponentType.ActionRow,
           components: [
             {
-              type: ComponentType.SelectMenu,
+              type: ComponentType.StringSelect,
               custom_id: `manage-permissions-select:allow:${targetType}:${targetId}:${JSON.stringify(
-                channelId
+                channelId,
               )}:${hasAdminPermission.toString()}`,
               options: allowOptions,
               placeholder: "Select permissions to allow",
@@ -250,9 +250,9 @@ const createPermissionsEmbed = async ({
           type: ComponentType.ActionRow,
           components: [
             {
-              type: ComponentType.SelectMenu,
+              type: ComponentType.StringSelect,
               custom_id: `manage-permissions-select:deny:${targetType}:${targetId}:${JSON.stringify(
-                channelId
+                channelId,
               )}:${hasAdminPermission.toString()}`,
               options: denyOptions,
               placeholder: "Select permissions to deny",

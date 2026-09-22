@@ -1,9 +1,9 @@
 // Registering the webhook manager to the instance
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
 
-import LoggingManager from "../lib/logging/manager";
-import WebhookManager from "../lib/webhook/manager";
+import LoggingManager from "../lib/logging/manager.js";
+import WebhookManager from "../lib/webhook/manager.js";
 
 declare module "fastify" {
   interface FastifyInstance {
@@ -18,9 +18,9 @@ const webhookAndLoggingPlugin = fp(
     instance.decorate("webhookManager", new WebhookManager(instance));
     instance.decorate(
       "loggingManager",
-      new LoggingManager(instance.webhookManager, instance)
+      new LoggingManager(instance.webhookManager, instance),
     );
-  }
+  },
 );
 
 export default webhookAndLoggingPlugin;
