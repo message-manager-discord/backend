@@ -2,10 +2,10 @@
 // Can be used on any message
 import type {
   APIEmbed,
-  APIInteractionResponseChannelMessageWithSource,
   APIMessage,
   APIMessageApplicationCommandGuildInteraction,
   APIMessageComponent,
+  RESTPatchAPIInteractionOriginalResponseJSONBody,
 } from "discord-api-types/v9";
 import { InteractionResponseType, MessageFlags } from "discord-api-types/v9";
 import type { FastifyInstance } from "fastify";
@@ -41,96 +41,100 @@ export default async function handleFetchMessageCommand(
     );
   }
 
-  // Generate formdata to respond with file
-  // JSON if more than just content on the message
-  // otherwise TXT
-  const form = new FormData();
-
-  const hasEmbeds = message.embeds.length > 0;
-  const hasComponents = (message.components?.length ?? 0) > 0;
-  const hasContent = message.content.length > 0;
-
-  if (!hasContent && !hasEmbeds && !hasComponents) {
-    return {
-      type: InteractionResponseType.ChannelMessageWithSource,
+  return {
+    returnData: {
+      type: InteractionResponseType.DeferredChannelMessageWithSource,
       data: {
-        content: "This message has no content, embeds or components",
         flags: MessageFlags.Ephemeral,
       },
-    };
-  }
-
-  const isJson = hasEmbeds || hasComponents;
-
-  if (isJson) {
-    interface FileData {
-      content?: string;
-      embeds?: APIEmbed[];
-      components?: APIMessageComponent[];
-    }
-
-    const fileData: FileData = {};
-
-    if (hasContent) {
-      fileData.content = message.content;
-    }
-
-    if (hasEmbeds) {
-      fileData.embeds = message.embeds;
-    }
-
-    if (hasComponents) {
-      fileData.components = message.components;
-    }
-
-    form.set(
-      "files[0]",
-      new Blob([JSON.stringify(fileData, undefined, 2)], {
-        type: "application/json",
-      }),
-      "message.json",
-    );
-  } else {
-    form.set(
-      "files[0]",
-      new Blob([message.content], {
-        type: "text/plain",
-      }),
-      "message.txt",
-    );
-  }
-
-  // Message to send with file
-  const messageData: APIInteractionResponseChannelMessageWithSource = {
-    type: InteractionResponseType.ChannelMessageWithSource,
-    data: {
-      content: isJson
-        ? "Fetched the message! The content, embeds and components are available in the attached json file."
-        : "Fetched the message! The content is available in the attached txt file.",
-      attachments: [
-        {
-          id: "0",
-          filename: `message.${isJson ? "json" : "txt"}`,
-          description: "A representation of the message",
-        },
-      ],
-      flags: MessageFlags.Ephemeral,
     },
-  };
-  // Set message to send with file (payload_json)
-  form.set(
-    "payload_json",
-    new Blob([JSON.stringify(messageData)], {
-      type: "application/json",
-    }),
-    "", // empty string for filename is required for discord to accept this as the
-    // payload (otherwise form-data adds a filename of "blob" and discord doesn't recognize it as the payload)
-  );
-  // Encode formdata to return
-  const encoder = new FormDataEncoder(form);
+    // eslint-disable-next-line @typescript-eslint/require-await
+    callback: async () => {
+      // Generate formdata to respond with file
+      // JSON if more than just content on the message
+      // otherwise TXT
+      const form = new FormData();
 
-  return {
-    headers: encoder.headers,
-    body: Readable.from(encoder.encode()),
+      const hasEmbeds = message.embeds.length > 0;
+      const hasComponents = (message.components?.length ?? 0) > 0;
+      const hasContent = message.content.length > 0;
+
+      if (!hasContent && !hasEmbeds && !hasComponents) {
+        // Ephemeral is inherited from the deferred response, so no flags needed
+        return {
+          content: "This message has no content, embeds or components",
+        };
+      }
+
+      const isJson = hasEmbeds || hasComponents;
+
+      if (isJson) {
+        interface FileData {
+          content?: string;
+          embeds?: APIEmbed[];
+          components?: APIMessageComponent[];
+        }
+
+        const fileData: FileData = {};
+
+        if (hasContent) {
+          fileData.content = message.content;
+        }
+
+        if (hasEmbeds) {
+          fileData.embeds = message.embeds;
+        }
+
+        if (hasComponents) {
+          fileData.components = message.components;
+        }
+
+        form.set(
+          "files[0]",
+          new Blob([JSON.stringify(fileData, undefined, 2)], {
+            type: "application/json",
+          }),
+          "message.json",
+        );
+      } else {
+        form.set(
+          "files[0]",
+          new Blob([message.content], {
+            type: "text/plain",
+          }),
+          "message.txt",
+        );
+      }
+
+      // Message to send with file (this is an edit of the deferred response)
+      const messageData: RESTPatchAPIInteractionOriginalResponseJSONBody = {
+        content: isJson
+          ? "Fetched the message! The content, embeds and components are available in the attached json file."
+          : "Fetched the message! The content is available in the attached txt file.",
+        attachments: [
+          {
+            id: "0",
+            filename: `message.${isJson ? "json" : "txt"}`,
+            description: "A representation of the message",
+          },
+        ],
+      };
+      // Set message to send with file (payload_json)
+      form.set(
+        "payload_json",
+        new Blob([JSON.stringify(messageData)], {
+          type: "application/json",
+        }),
+        "", // empty string for filename is required for discord to accept this as the
+        // payload (otherwise form-data adds a filename of "blob" and discord doesn't recognize it as the payload)
+      );
+      // Encode formdata to return
+      const encoder = new FormDataEncoder(form);
+
+      return {
+        headers: encoder.headers,
+        body: Readable.from(encoder.encode()),
+      };
+    },
   };
 }
