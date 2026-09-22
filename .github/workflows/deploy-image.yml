@@ -61,3 +61,4 @@ jobs:
             "sentry_org=${{ secrets.SENTRY_ORG }}"
             "sentry_project=${{ secrets.SENTRY_PROJECT }}"
             "sentry_version=${{ github.sha }}"
+            "sentry_repo=${{ github.repository }}"

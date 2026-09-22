@@ -22,8 +22,8 @@ RUN --mount=type=secret,id=sentry_auth_token --mount=type=secret,id=sentry_org -
     --org $(cat /run/secrets/sentry_org) \
     --project $(cat /run/secrets/sentry_project) --auth-token $(cat /run/secrets/sentry_auth_token)
 
-RUN --mount=type=secret,id=sentry_auth_token --mount=type=secret,id=sentry_org --mount=type=secret,id=sentry_project --mount=type=secret,id=sentry_version \
-    npx -y @sentry/cli releases set-commits $(cat /run/secrets/sentry_version) --auto --org $(cat /run/secrets/sentry_org) \
+RUN --mount=type=secret,id=sentry_auth_token --mount=type=secret,id=sentry_org --mount=type=secret,id=sentry_project --mount=type=secret,id=sentry_version --mount=type=secret,id=sentry_repo \
+    npx -y @sentry/cli releases set-commits $(cat /run/secrets/sentry_version) --commit "$(cat /run/secrets/sentry_repo)@$(cat /run/secrets/sentry_version)" --org $(cat /run/secrets/sentry_org) \
     --project $(cat /run/secrets/sentry_project) --auth-token $(cat /run/secrets/sentry_auth_token)
 
 RUN --mount=type=secret,id=sentry_auth_token --mount=type=secret,id=sentry_org --mount=type=secret,id=sentry_project --mount=type=secret,id=sentry_version \
