@@ -245,14 +245,18 @@ class PermissionManager {
         for (const permission of Object.values(
           (channel.permissions as unknown as ChannelPermissionData).roles,
         )) {
-          if (permission.allow !== InternalPermissions.NONE) return true;
-          if (permission.deny !== InternalPermissions.NONE) return true;
+          if (permission && permission.allow !== InternalPermissions.NONE)
+            return true;
+          if (permission && permission.deny !== InternalPermissions.NONE)
+            return true;
         }
         for (const permission of Object.values(
           (channel.permissions as unknown as ChannelPermissionData).users,
         )) {
-          if (permission.allow !== InternalPermissions.NONE) return true;
-          if (permission.deny !== InternalPermissions.NONE) return true;
+          if (permission && permission.allow !== InternalPermissions.NONE)
+            return true;
+          if (permission && permission.deny !== InternalPermissions.NONE)
+            return true;
         }
         return false;
       },
@@ -282,27 +286,27 @@ class PermissionManager {
       }),
     };
   }
-
-  // Get all users / roles with permissions set for a channel
-  // used to display what users / roles have permissions set when listing permissions
   public async getChannelEntitiesWithPermissions(
     channelId: Snowflake,
   ): Promise<{ users: Snowflake[]; roles: Snowflake[] }> {
     const channelPermissions = await this.getAllChannelPermissions(channelId);
     const permissions = this._parseAndFixBasePermissionData(channelPermissions);
+
     return {
       users: Object.keys(permissions.users).filter((userId) => {
         const permission = permissions.users[userId];
         return (
-          permission.allow !== InternalPermissions.NONE ||
-          permission.deny !== InternalPermissions.NONE
+          permission != undefined &&
+          (permission.allow !== InternalPermissions.NONE ||
+            permission.deny !== InternalPermissions.NONE)
         );
       }),
       roles: Object.keys(permissions.roles).filter((roleId) => {
         const permission = permissions.roles[roleId];
         return (
-          permission.allow !== InternalPermissions.NONE ||
-          permission.deny !== InternalPermissions.NONE
+          permission != undefined &&
+          (permission.allow !== InternalPermissions.NONE ||
+            permission.deny !== InternalPermissions.NONE)
         );
       }),
     };
@@ -409,8 +413,7 @@ class PermissionManager {
     // Next is the allow / deny sums for channel role overrides
     const channelRoleDenyPermissions = userRoles.reduce(
       (permissions: number, roleId: Snowflake) => {
-        const rolePermissions = channelPermissions.roles[roleId] as
-          PermissionAllowAndDenyData | undefined;
+        const rolePermissions = channelPermissions.roles[roleId];
         if (
           rolePermissions === undefined ||
           rolePermissions.deny === InternalPermissions.NONE // TODO - not sure why this was added
@@ -424,7 +427,10 @@ class PermissionManager {
     const channelRoleAllowPermissions = userRoles.reduce(
       (permissions: number, roleId: Snowflake) => {
         const rolePermissions = channelPermissions.roles[roleId];
-        if (rolePermissions.allow === InternalPermissions.NONE)
+        if (
+          rolePermissions == undefined ||
+          rolePermissions.allow === InternalPermissions.NONE
+        )
           return permissions;
         return permissions | rolePermissions.allow;
       },
@@ -435,8 +441,7 @@ class PermissionManager {
     total |= channelRoleAllowPermissions;
     // And then finally user deny, allow overrides
     // Then the user's permissions, excluding the channel user deny, including the channel user allow
-    const userPermissionData = channelPermissions.users[userId] as
-      PermissionAllowAndDenyData | undefined;
+    const userPermissionData = channelPermissions.users[userId];
     if (userPermissionData) {
       if (userPermissionData.deny) {
         total &= ~userPermissionData.deny;
@@ -625,13 +630,10 @@ class PermissionManager {
     }
     // Could potentially be undefined
     // Persisted JSON may be incomplete even though the TypeScript model requires this field.
-    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions, @typescript-eslint/no-unnecessary-condition
-    if (!fixedPermissions.roles[roleId]) {
-      fixedPermissions.roles[roleId] = {
-        allow: InternalPermissions.NONE,
-        deny: InternalPermissions.NONE,
-      };
-    }
+    fixedPermissions.roles[roleId] ??= {
+      allow: InternalPermissions.NONE,
+      deny: InternalPermissions.NONE,
+    };
     if (!fixedPermissions.roles[roleId].allow) {
       fixedPermissions.roles[roleId].allow = InternalPermissions.NONE;
     }
@@ -665,13 +667,10 @@ class PermissionManager {
     }
     // Could potentially be undefined
     // Persisted JSON may be incomplete even though the TypeScript model requires this field.
-    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions, @typescript-eslint/no-unnecessary-condition
-    if (!fixedPermissions.users[userId]) {
-      fixedPermissions.users[userId] = {
-        allow: InternalPermissions.NONE,
-        deny: InternalPermissions.NONE,
-      };
-    }
+    fixedPermissions.users[userId] ??= {
+      allow: InternalPermissions.NONE,
+      deny: InternalPermissions.NONE,
+    };
     if (!fixedPermissions.users[userId].allow) {
       fixedPermissions.users[userId].allow = InternalPermissions.NONE;
     }
@@ -763,10 +762,10 @@ class PermissionManager {
     );
     // Set the allow and deny values
     if (allow !== undefined) {
-      existingChannelPermissions.roles[roleId].allow = allow;
+      existingChannelPermissions.roles[roleId]!.allow = allow;
     }
     if (deny !== undefined) {
-      existingChannelPermissions.roles[roleId].deny = deny;
+      existingChannelPermissions.roles[roleId]!.deny = deny;
     }
     await this._setAllChannelPermissions({
       channelId,
@@ -800,10 +799,10 @@ class PermissionManager {
     );
     // Set the allow and deny values
     if (allow !== undefined) {
-      existingChannelPermissions.users[userId].allow = allow;
+      existingChannelPermissions.users[userId]!.allow = allow;
     }
     if (deny !== undefined) {
-      existingChannelPermissions.users[userId].deny = deny;
+      existingChannelPermissions.users[userId]!.deny = deny;
     }
     await this._setAllChannelPermissions({
       channelId,

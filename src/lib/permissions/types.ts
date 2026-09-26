@@ -19,16 +19,11 @@ interface GuildPermissionData {
 
 // Data that's stored for a channel
 interface ChannelPermissionData {
-  roles: {
-    [roleId: Snowflake]: PermissionAllowAndDenyData;
-  };
-
-  users: {
-    [userId: Snowflake]: PermissionAllowAndDenyData;
-  };
+  roles: Partial<Record<Snowflake, PermissionAllowAndDenyData>>;
+  users: Partial<Record<Snowflake, PermissionAllowAndDenyData>>;
 }
 
-// Results after permissions calcuation
+// Results after permissions calculation
 interface PresentBotPermissionResult {
   allPresent: true;
   present: number[];
