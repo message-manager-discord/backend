@@ -26,6 +26,7 @@ import prismaPlugin from "./plugins/prisma.js";
 import redisRestPlugin from "./plugins/redis.js";
 import sessionPlugin from "./plugins/session.js";
 import versionOnePlugin from "./v1/index.js";
+import discordShardMonitorPlugin from "./routes/monitoring.js";
 
 const productionEnv = process.env.PRODUCTION === "true";
 
@@ -117,6 +118,8 @@ await instance.register(interactionsPlugin);
 await instance.register(authRoutePlugin);
 
 await instance.register(versionOnePlugin, { prefix: "/v1" });
+
+await instance.register(discordShardMonitorPlugin);
 
 instance.listen(
   {
